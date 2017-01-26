@@ -1,0 +1,702 @@
+﻿#region Copyright
+// --------------------------------------------------------------------------------------------------------------------
+// <copyright file="Compiler.cs" company="Ian Horswill">
+// Copyright (C) 2017 Ian Horswill
+//  
+// Permission is hereby granted, free of charge, to any person obtaining a copy of
+// this software and associated documentation files (the "Software"), to deal in the
+// Software without restriction, including without limitation the rights to use, copy,
+// modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
+// and to permit persons to whom the Software is furnished to do so, subject to the
+// following conditions:
+//  
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+// 
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+// INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+// PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+// HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+// OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+// SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+// </copyright>
+// --------------------------------------------------------------------------------------------------------------------
+#endregion
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using BotL.Parser;
+using BotL.Unity;
+
+namespace BotL.Compiler
+{
+    public static class Compiler
+    {
+        public const int MaxSpecialPredicateArity=10;
+        static Compiler()
+        {
+            Macros.DeclareMacros();
+            
+            SpecialClauses = new CompiledClause[MaxSpecialPredicateArity];
+            for (int arity = 0; arity < SpecialClauses.Length; arity++)
+            {
+                SpecialClauses[arity] = MakeSpecialClause(arity);
+            }
+        }
+
+        #region Entry points
+        public static void Compile(string s)
+        {
+            CompileStream(new ExpressionParser(s));
+        }
+
+        private static void CompileStream(ExpressionParser expressionParser)
+        {
+            while (!expressionParser.EOF)
+                CompileInternal(expressionParser.Read());
+        }
+
+        public static void CompileFile(string path)
+        {
+            if (string.IsNullOrEmpty(Path.GetExtension(path)))
+                path = path + ".bot";
+            using (var f = File.OpenText(UnityUtilities.CanonicalizePath(path)))
+            {
+                var reader = new PositionTrackingTextReader(f, path);
+                try
+                {
+                    CompileStream(new ExpressionParser(reader));
+                }
+                catch (Exception)
+                {
+                    if (Repl.StandardError != null)
+                        Repl.StandardError.Write($"{path}:{reader.Line}: ");
+                    throw;
+                }
+            }
+        }
+
+        public static void Compile(params string[] code)
+        {
+            foreach (var s in code)
+                Compile(s);
+        }
+
+        public static void Compile(object assertion)
+        {
+            CompileInternal(assertion);
+        }
+
+        private static bool ProcessDeclaration(object maybeDeclaration)
+        {
+            var c = maybeDeclaration as Call;
+            if (c == null || c.Arity != 1)
+                return false;
+            switch (c.Functor.Name)
+            {
+                case "function":
+                    Functions.DeclareFunction(DecodePredicateIndicatorExpression(c.Arguments[0]));
+                    break;
+
+                case "table":
+                    var path = c.Arguments[0] as string;
+                    if (path != null)
+                        KB.LoadTable(path);
+                    else
+                        KB.DefineTable(DecodePredicateIndicatorExpression(c.Arguments[0]));
+                    break;
+
+                case "global":
+                    var g = c.Arguments[0] as Call;
+                    if (g == null || !g.IsFunctor(Symbol.Equal, 2) || !(g.Arguments[0] is Symbol))
+                        throw new SyntaxError("Invalid global declaration", g);
+                    GlobalVariable.DefineGlobal(((Symbol)g.Arguments[0]).Name, g.Arguments[1]);
+                    break;
+
+                case "struct":
+                    Structs.DeclareStruct(c.Arguments[0]);
+                    break;
+                    
+                case "signature":
+                {
+                    var d = c.Arguments[0] as Call;
+                    if (d == null)
+                        throw new SyntaxError("Malformed signature declaration", maybeDeclaration);
+                    var p = KB.Predicate(new PredicateIndicator(d.Functor, d.Arity));
+                    foreach (var t in d.Arguments)
+                    {
+                        if (!(t is Symbol))
+                            throw new SyntaxError("Invalid type name " + t, maybeDeclaration);
+                    }
+                    p.Signature = d.Arguments.Cast<Symbol>().ToArray();
+                }
+                    break;
+
+                case "trace":
+                {
+                    var spec = c.Arguments[0] as Call;
+                    if (spec == null || !spec.IsFunctor(Symbol.Slash, 2))
+                        throw new ArgumentException("Invalid predicate specified in trace command");
+                    KB.Predicate((Symbol) spec.Arguments[0], (int) spec.Arguments[1]).IsTraced = true;
+                }
+                    break;
+
+                case "notrace":
+                {
+                    var spec = c.Arguments[0] as Call;
+                    if (spec == null || !spec.IsFunctor(Symbol.Slash, 2))
+                        throw new ArgumentException("Invalid predicate specified in trace command");
+                    KB.Predicate((Symbol) spec.Arguments[0], (int) spec.Arguments[1]).IsTraced = false;
+                }
+                    break;
+
+                default:
+                    return false;
+            }
+            return true;
+        }
+
+        private static PredicateIndicator DecodePredicateIndicatorExpression(object exp)
+        {
+            if (!Call.IsFunctor(exp, Symbol.Slash, 2))
+                throw new SyntaxError("Malformed predicate indicator", exp);
+            var args = ((Call) exp).Arguments;
+            return new PredicateIndicator((Symbol)args[0], (int)args[1]);
+        }
+
+        internal static BindingEnvironment CompileInternal(object assertion, bool forceVoidVariables = false)
+        {
+            if (ProcessDeclaration(assertion))
+                return null;
+            assertion = Transform.TransformTopLevel(assertion);
+            BindingEnvironment e = new BindingEnvironment();
+            assertion = Transform.Variablize(assertion, e);
+            AnalyzeVariables(assertion, e);
+            if (forceVoidVariables)
+                e.IncrementVoidVariableReferences();
+            AllocateVariables(assertion, e);
+            if (Call.IsFunctor(assertion, Symbol.Implication, 2))
+            {
+                var implication = assertion as Call;
+                // ReSharper disable once PossibleNullReferenceException
+                var head = implication.Arguments[0];
+                var body = implication.Arguments[1];
+                Predicate.AddClause(new PredicateIndicator(head), CompileRule(assertion, head, body, e));
+            }
+            else
+            {
+                Predicate.AddClause(new PredicateIndicator(assertion), CompileFact(assertion, e));
+            }
+            return e;
+        }
+        #endregion
+
+        #region Compiling facts (rules with no body)
+        private static readonly byte[] TrivialFactCode = { (byte)Opcode.CNoGoal };
+
+        private static CompiledClause CompileFact(object head, BindingEnvironment e)
+        {
+            var spec = new PredicateIndicator(head);
+            if (spec.Arity == 0)
+                return new CompiledClause(head, TrivialFactCode, 0, null);
+
+            var b = new CodeBuilder(KB.Predicate(spec));
+            CompileArglist(head, b, e, true);
+            b.Emit(Opcode.CNoGoal);
+            return new CompiledClause(head, b.Code, e.EnvironmentSize, null);
+        }
+        #endregion
+
+        #region Compiling rules
+        private static CompiledClause CompileRule(object source, object head, object body, BindingEnvironment e)
+        {
+            var b = new CodeBuilder(KB.Predicate(new PredicateIndicator(head)));
+            if (head is Variable)
+                throw new SyntaxError("Head of clause may not be a variable", source);
+            CompileHead(head, b, e);
+            CompileGoal(body, b, e, true);
+
+            if (body == Symbol.Cut)
+                b.Emit(Opcode.CNoGoal);
+
+            return new CompiledClause(source, b.Code, e.EnvironmentSize, MakeHeadModel(head, e));
+        }
+
+        private static object[] MakeHeadModel(object head, BindingEnvironment environment)
+        {
+            var c = head as Call;
+            if (c == null)
+                return null;
+            var model = new object[c.Arity];
+            for (int i = 0; i < model.Length; i++)
+            {
+                var v = c.Arguments[i] as Variable;
+                if (v == null)
+                    model[i] = c.Arguments[i];
+                else
+                {
+                    model[i] = new StackReference(environment[v].EnvironmentIndex);
+                }
+            }
+            return model;
+        }
+
+        private static void CompileHead(object head, CodeBuilder b, BindingEnvironment e)
+        {
+            CompileArglist(head, b, e, true);
+            // Else c is a symbol, so there's nothing to compile.
+        }
+
+        private static void CompileArglist(object term, CodeBuilder b, BindingEnvironment e, bool isHead)
+        {
+            var c = term as Call;
+            if (c != null)
+            {
+                foreach (var a in c.Arguments)
+                {
+                    CompileArgument(a, b, e, isHead);
+                }
+            }
+        }
+
+        private static void CompileArgument(object a, CodeBuilder b, BindingEnvironment e, bool isHead=false)
+        {
+            var v = a as Variable;
+            if (v != null)
+            {
+                var variableInfo = e[v];
+                if (variableInfo.Type == VariableType.Void)
+                {
+                    b.Emit(AdjustArgumentOpcode(Opcode.HeadVoid, isHead));
+                }
+                else if (variableInfo.FirstReferenceCompiled)
+                {
+                    b.Emit(AdjustArgumentOpcode(Opcode.HeadVarMatch, isHead));
+                    b.Emit((byte) variableInfo.EnvironmentIndex);
+                }
+                else
+                {
+                    b.Emit(AdjustArgumentOpcode(Opcode.HeadVarFirst, isHead));
+                    b.Emit((byte) variableInfo.EnvironmentIndex);
+                    variableInfo.FirstReferenceCompiled = true;
+                }
+            }
+            else
+            {
+                var ac = a as Call;
+                var gv = a as GlobalVariable;
+                if (ac != null)
+                {
+                    if (ac.Arity == 2 && ac.Functor == Symbol.Slash && ac.Arguments[0] is Symbol &&
+                        ac.Arguments[1] is int)
+                    {
+                        // Special case: this is a literal referring to a predicate
+                        b.EmitConstant(AdjustArgumentOpcode(Opcode.HeadConst, isHead),
+                            KB.Predicate(new PredicateIndicator((Symbol) ac.Arguments[0], (int) ac.Arguments[1])));
+                    }
+                    else
+                    {
+                        // Otherwise it's a functional expression, so emit that.
+                        CompileFunctionalExpressionArgument(a, b, e, isHead);
+                    }
+                } else if (gv != null)
+                {
+                    // It's a global varaible
+                    CompileFunctionalExpressionArgument(a, b, e, isHead);
+                }
+                else
+                    b.EmitConstant(AdjustArgumentOpcode(Opcode.HeadConst, isHead), a);
+            }
+        }
+
+        private static void CompileFunctionalExpressionArgument(object a, CodeBuilder b, BindingEnvironment e, bool isHead)
+        {
+            b.Emit(AdjustArgumentOpcode(Opcode.HeadConst, isHead));
+            b.Emit((byte) OpcodeConstantType.FunctionalExpression);
+            CompileFunctionalExpression(a, b, e);
+            b.Emit(FOpcode.Return);
+        }
+
+        /// <summary>
+        /// Call with a head opcode and a boolean indicating whether it's intended for the head.
+        /// If not, it will change it to the associated goal opcode.
+        /// </summary>
+        /// <param name="o">Opcode for a head instruction</param>
+        /// <param name="isHead">True if opcode is to be inserted in head, false if it's to be inserted in a goal call.</param>
+        /// <returns>The adjusted opcode</returns>
+        private static Opcode AdjustArgumentOpcode(Opcode o, bool isHead)
+        {
+            if (isHead)
+                return o;
+            return (Opcode)(((int)o+1)*8);
+        }
+        
+        private static readonly object[] EmptyHeadModel = new object[0];
+        
+        private static void CompileGoal(object goal, CodeBuilder b, BindingEnvironment e, bool lastCall)
+        {
+            Call c = goal as Call;
+
+            if (goal is Variable)
+                throw new SyntaxError("Goal may not be a variable", goal);
+            if (goal == Symbol.Cut)
+                b.Emit(Opcode.CCut);
+            else if (c != null && c.IsFunctor(Symbol.Comma, 2))
+            {
+                // ReSharper disable once PossibleNullReferenceException
+                CompileGoal(c.Arguments[0], b, e, false);
+                CompileGoal(c.Arguments[1], b, e, lastCall);
+            } else if (c != null && c.IsFunctor(Symbol.Disjunction, 2))
+            {
+                var nested = new Predicate(Symbol.Intern("*or*"), 0) {IsNestedPredicate = true};
+                CompileDisjuncts(goal, b, e, nested);
+                nested.ImportConstantTablesFrom(b.Predicate);
+                b.EmitGoal(nested);
+                b.Emit(lastCall ? Opcode.CLastCall : Opcode.CCall);
+            } else if (c != null && c.Functor == Symbol.Call)
+            {
+                CompileMetaCall(c, b, e, lastCall);
+            } else if (goal == Symbol.Fail || goal.Equals(false))
+            {
+                b.Emit(Opcode.CFail);
+            }
+            else
+            {
+                b.EmitGoal(KB.Predicate(new PredicateIndicator(goal)));
+                CompileArglist(goal, b, e, false);
+                // Else c is a symbol, so there's nothing to compile.
+                b.Emit(lastCall ? Opcode.CLastCall : Opcode.CCall);
+            }
+        }
+
+        private static void CompileMetaCall(Call call, CodeBuilder b, BindingEnvironment e, bool lastCall)
+        {
+            var targetArity = call.Arity - 1;
+            // Call the internal primop to look up the predicate
+            b.EmitGoal(KB.Predicate(Symbol.Call, 2));
+            CompileArgument(call.Arguments[0], b, e);
+            CompileArgument(targetArity, b, e);
+            b.Emit(Opcode.CCall);
+            // When call returns, headPredicate has been reset to the thing we're calling, so fall through to the target's arglist.7
+            for (var i = 1; i<call.Arguments.Length; i++)
+                CompileArgument(call.Arguments[i], b, e);
+            b.Emit(lastCall ? Opcode.CLastCall : Opcode.CCall);
+        }
+
+        #endregion
+
+        #region Compiling nested clauses (disjunctions)
+        private static readonly CompiledClause TrueDisjunctClause
+            = new CompiledClause(true, TrivialFactCode, 0, null);
+        private static void CompileDisjuncts(object goal, CodeBuilder b, BindingEnvironment e, Predicate nested)
+        {
+            if (goal.Equals(true) || goal == Symbol.TruePredicate)
+                nested.AddClause(TrueDisjunctClause);
+            else if (goal.Equals(false) || goal == Symbol.Fail)
+            {
+                // Don't do anything
+            }
+            else if (Call.IsFunctor(goal, Symbol.Disjunction, 2))
+            {
+                nested.AddClause(CompileDisjunctClause(b, e, ((Call) goal).Arguments[0]));
+                nested.AddClause(CompileDisjunctClause(b, e, ((Call) goal).Arguments[1]));
+            }
+            else
+                nested.AddClause(CompileDisjunctClause(b, e, goal));
+        }
+
+        private static CompiledClause CompileDisjunctClause(CodeBuilder b, BindingEnvironment e, object disjunct)
+        {
+            var b1 = new CodeBuilder(b.Predicate);
+            CompileGoal(disjunct, b1, e, true);
+            var compiledClause = new CompiledClause(disjunct, b1.Code, e.EnvironmentSize, EmptyHeadModel);
+            return compiledClause;
+        }
+        #endregion
+
+        #region Functional Expressions
+        /// <summary>
+        /// Emits code for functional expression EXP.  Does not emit the preamble or return instruction.
+        /// </summary>
+        private static void CompileFunctionalExpression(object exp, CodeBuilder b, BindingEnvironment e)
+        {
+            var v = exp as Variable;
+            var c = exp as Call;
+            var g = exp as GlobalVariable;
+            if (g != null)
+            {
+                b.Emit(FOpcode.LoadGlobal);
+                b.Emit(b.Predicate.GetObjectConstantIndex(exp));
+            }
+            else if (v != null)
+            {
+                // It's a variable reference
+                b.Emit(FOpcode.Load);
+                var variableInfo = e[v];
+                if (variableInfo.Type == VariableType.Void || !variableInfo.FirstReferenceCompiled)
+                {
+                    throw new InvalidOperationException($"Reference to uninstantiated variable {v.Name} in functional expression.");
+                }
+
+                b.Emit((byte) variableInfo.EnvironmentIndex);
+            }
+            else if (c != null)
+            {
+                if (c.IsFunctor(Symbol.Dot, 2))
+                    CompileMemberReference(c.Arguments[0], c.Arguments[1], b, e);
+                else if (c.IsFunctor(Symbol.ColonColon, 2))
+                    CompileComponentReference(c.Arguments[0], c.Arguments[1], b, e);
+                else if (c.IsFunctor(Symbol.New, 1))
+                {
+                    // It's a new Type(args) expression
+                    var arg = c.Arguments[0] as Call;
+                    if (arg == null)
+                    {
+                        throw new SyntaxError("Malformed new expression", c.Arguments[0]);
+                    }
+                    var type = TypeUtils.FindType(arg.Functor.Name);
+                    if (type == null)
+                        throw new Exception("Unknown type "+ arg.Functor);
+                    CompileFunctionalExpression(type, b, e); // Push type name on stack
+
+                    foreach (var a in arg.Arguments)
+                    {
+                        CompileFunctionalExpression(a, b, e);
+                    }
+                    b.Emit(FOpcode.Constructor);
+                    b.Emit((byte)arg.Arity);
+                }
+                else
+                {
+                    // It's a function call
+                    foreach (var a in c.Arguments)
+                    {
+                        CompileFunctionalExpression(a, b, e);
+                    }
+                    var fOpcode = FOpcodeTable.Opcode(c);
+                    b.Emit(fOpcode);
+                    if (fOpcode == FOpcode.Array || fOpcode == FOpcode.ArrayList || fOpcode == FOpcode.Hashset)
+                        b.Emit((byte)c.Arity);
+                }
+            }
+            else
+            {
+                // It's a constant
+                if (exp is int)
+                {
+                    var i = (int) exp;
+                    if (Math.Abs(i) < 128)
+                    {
+                        b.Emit(FOpcode.PushSmallInt);
+                        b.Emit((byte) i);
+                    }
+                    else
+                    {
+                        b.Emit(FOpcode.PushInt);
+                        b.Emit(b.Predicate.GetIntConstantIndex(i));
+                    }
+                } else if (exp is float)
+                {
+                    b.Emit(FOpcode.PushFloat);
+                    b.Emit(b.Predicate.GetFloatConstantIndex((float) exp));
+                }
+                else if (exp is bool)
+                {
+                    b.Emit(FOpcode.PushBoolean);
+                    b.Emit(b.Predicate.GetFloatConstantIndex((bool)exp?1:0));
+                }
+                else
+                {
+                    b.Emit(FOpcode.PushObject);
+                    b.Emit(b.Predicate.GetObjectConstantIndex(exp));
+                }
+            }
+
+        }
+
+        private static void CompileMemberReference(object objectExpression, object member, CodeBuilder b, BindingEnvironment e)
+        {
+            CompileFunctionalExpression(objectExpression,  b, e);
+            var fieldName = member as Symbol;
+            if (fieldName != null)
+            {
+                // It's a field reference
+                CompileFunctionalExpression(fieldName.Name, b, e); // Push on stack
+                b.Emit(FOpcode.FieldReference);
+            }
+            else
+            {
+                var c = member as Call;
+                if (c == null)
+                    throw new SyntaxError("Invalid member expression", member);
+                CompileFunctionalExpression(c.Functor.Name, b, e); // Push method name on stack
+                foreach (object arg in c.Arguments)
+                    CompileFunctionalExpression(arg, b, e);
+                b.Emit(FOpcode.MethodCall);
+                b.Emit((byte) c.Arity);
+            }
+        }
+
+        private static void CompileComponentReference(object objectExpression, object type, CodeBuilder b, BindingEnvironment e)
+        {
+            CompileFunctionalExpression(objectExpression, b, e);
+            var typeName = type as Symbol;
+            if (typeName != null)
+            {
+                // It's a field reference
+                CompileFunctionalExpression(TypeUtils.FindType(typeName.Name), b, e); // Push on stack
+                b.Emit(FOpcode.ComponentLookup);
+            }
+            else
+            {
+                throw new SyntaxError("Invalid component expression", type);
+            }
+        }
+        #endregion
+
+        #region Variable analysis
+        /// <summary>
+        /// Count usages of variables in the term.
+        /// </summary>
+        private static void AnalyzeVariables(object term, BindingEnvironment e)
+        {
+            if (Call.IsFunctor(term, Symbol.Implication, 2))
+            {
+                var c = (Call) term;
+                AnalyzeVariables(c.Arguments[0], e, true);
+                AnalyzeVariables(c.Arguments[1], e, false);
+            }
+            else
+            {
+                AnalyzeVariables(term, e, true);
+            }
+        }
+
+        private static void AnalyzeVariables(object term, BindingEnvironment e, bool isHead)
+        {
+            var v = term as Variable;
+            if (v != null)
+            {
+                e[v].NoteUse(isHead);
+            }
+            else
+            {
+                var c = term as Call;
+                if (c != null)
+                {
+                    foreach (var a in c.Arguments)
+                        AnalyzeVariables(a, e, isHead);
+                }
+            }
+        }
+
+        private static void AllocateVariables(object term, BindingEnvironment e)
+        {
+            var v = term as Variable;
+            if (v != null)
+            {
+                var variableInfo = e[v];
+                if (variableInfo.Type != VariableType.Void && variableInfo.EnvironmentIndex < 0)
+                    e.AllocateSlot(variableInfo);
+            }
+            else
+            {
+                var c = term as Call;
+                if (c != null)
+                {
+                    foreach (var a in c.Arguments)
+                    {
+                        AllocateVariables(a, e);
+                    }
+                }
+            }
+        }
+        #endregion
+
+        #region Special predicates
+        public delegate CallStatus PredicateImplementation(ushort argBase, ushort restartedNextClause);
+        internal static Predicate MakePrimop(Symbol name, int arity, PredicateImplementation implementation, byte tempVars = 0)
+        {
+            return new Predicate(name, arity, implementation, null, tempVars) { FirstClause = SpecialClauses[arity] };
+        }
+
+        private static readonly CompiledClause[] SpecialClauses;
+
+        private static CompiledClause MakeSpecialClause(int arity)
+        {
+            var code = new byte[2 * arity + 1];
+            for (int i = 0; i < arity; i++)
+            {
+                code[2 * i] = (byte)Opcode.HeadVarFirst;
+                code[2 * i + 1] = (byte)i;
+            }
+            code[code.Length - 1] = (byte)Opcode.CSpecial;
+            var headModel = new object[arity];
+            for (int i = 0; i < headModel.Length; i++)
+            {
+                headModel[i] = new StackReference(i);
+            }
+            return new CompiledClause(null, code, (ushort)arity, headModel);
+        }
+
+        internal static Predicate MakeTable(Symbol name, int arity)
+        {
+            return new Predicate(name, arity, null, new Table(name, arity))
+            {
+                FirstClause = SpecialClauses[arity]
+            };
+        }
+
+        internal static Predicate LoadTable(string path)
+        {
+            using (var file = File.OpenText(UnityUtilities.CanonicalizePath(path)))
+            {
+                var parser = new CSVParser(',', new PositionTrackingTextReader(file, path));
+                var predicateName = Symbol.Intern(Path.GetFileNameWithoutExtension(path));
+                var rows = new List<object[]>();
+                parser.Read((rowNum, row) => rows.Add(row));
+                if (rows.Count == 0)
+                    throw new Exception("No rows found in table file");
+                var arity = rows[0].Length;
+                var table = new Table(predicateName, arity);
+                table.AddRows(rows);
+                if (parser.Signature.Count != rows[0].Length)
+                {
+                    // At least one column must be a struct
+                    // So do an implicit signature declaration
+                    KB.Predicate(new PredicateIndicator(predicateName, parser.Signature.Count)).Signature =
+                        parser.Signature.ToArray();
+                }
+                return new Predicate(predicateName, arity, null, table)
+                {
+                    FirstClause = SpecialClauses[arity]
+                };
+            }
+        }
+        #endregion
+
+        #region Compiler-internal helper predicates
+#if NOTUSED
+        internal static Predicate MakePredicateFromClauseCode(string name, int arity, byte[] code, object[] headModel)
+        {
+            return new Predicate(Symbol.Intern(name), arity)
+            {
+                FirstClause = new CompiledClause(null, code, (ushort)arity, headModel)
+            };
+        }
+
+        private static readonly Predicate IsTrue =
+            MakePredicateFromClauseCode("expression_is_true", 1,
+                new byte[]
+                {
+                    (byte) Opcode.HeadConst, // Compare first arg to true
+                    (byte) OpcodeConstantType.Boolean,
+                    1, // true
+                    (byte) Opcode.CNoGoal // return success
+                },
+                new object[] {Symbol.Intern("expression")});
+#endif
+        #endregion
+    }
+}

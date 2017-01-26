@@ -1,47 +1,76 @@
-# Windows image file caches
-Thumbs.db
-ehthumbs.db
+# =============== #
+# Unity generated #
+# =============== #
+Temp/
+Library/
+Build/
 
-# Folder config file
-Desktop.ini
+# ===================================== #
+# Visual Studio / MonoDevelop generated #
+# ===================================== #
+ExportedObj/
+obj/
+TestResults
+*.svd
+*.userprefs
+/*.csproj
+*.pidb
+*.suo
+/*.sln
+*.user
+*.unityproj
+*.booproj
+*.dll
+*.pdb
 
-# Recycle Bin used on file shares
-$RECYCLE.BIN/
+# ============= #
+# Excel generated  #
+# ============= #
 
-# Windows Installer files
-*.cab
-*.msi
-*.msm
-*.msp
+~$*
 
-# Windows shortcuts
-*.lnk
+# ============= #
+# Emacs-related #
+# ============= #
 
-# =========================
-# Operating System Files
-# =========================
+*~
+\#*\#
+.\#*
+\#*\#.meta
+Assets/TAGS
+Assets/TAGS.meta
 
-# OSX
-# =========================
 
+# ============ #
+# OS generated #
+# ============ #
 .DS_Store
-.AppleDouble
-.LSOverride
-
-# Thumbnails
+.DS_Store?
 ._*
-
-# Files that might appear in the root of a volume
-.DocumentRevisions-V100
-.fseventsd
 .Spotlight-V100
-.TemporaryItems
 .Trashes
-.VolumeIcon.icns
+ehthumbs.db
+Thumbs.db
 
-# Directories potentially created on remote AFP share
-.AppleDB
-.AppleDesktop
-Network Trash Folder
-Temporary Items
-.apdisk
+# ===== #
+# Other #
+# ===== #
+.dropbox
+UnityVS/
+UnityVS.meta
+UnityVS.*.sln.DotSettings
+
+#Un-ignore these specific files
+#!Library/*.asset
+#!Library/AssetImportState
+#!Library/AssetVersioning.db
+#!Library/BuildPlayer.prefs
+#!Library/ScriptMapper
+#!Library/assetservercachev3
+#!Library/expandedItems
+#!Library/guidmapper
+#!Library/unity default resources
+#!Library/unity editor resources
+#!Library/metadata/
+*.stackdump
+TAGS

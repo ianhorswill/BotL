@@ -50,7 +50,10 @@ namespace BotL
 
         public override string ToString()
         {
-            return $"{CallingFrame}:{Engine.EnvironmentStack[CallingFrame].Predicate}=>{Callee}";
+            return string.Format("{0}:{1}=>{2}",
+                CallingFrame,
+                Engine.EnvironmentStack[CallingFrame].Predicate,
+                Callee);
         }
     }
 }

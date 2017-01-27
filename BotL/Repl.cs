@@ -138,7 +138,7 @@ namespace BotL
                         {
                             foreach (var b in Engine.TopLevelResultBindings)
                             {
-                                StandardOutput.WriteLine($"{b.Key} = {ExpressionParser.WriteExpressionToString(b.Value)}");
+                                StandardOutput.WriteLine(string.Format("{0} = {1}", b.Key, ExpressionParser.WriteExpressionToString(b.Value)));
                             }
                         }
                     }

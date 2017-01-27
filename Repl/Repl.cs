@@ -22,6 +22,10 @@
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
 #endregion
+
+// don't compile this file in unity, only if it's a console app
+#if !UNITY_5
+
 using System;
 using System.Diagnostics.CodeAnalysis;
 using static BotL.Repl;
@@ -39,3 +43,5 @@ namespace Repl
         }
     }
 }
+
+#endif

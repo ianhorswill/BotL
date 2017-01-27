@@ -71,7 +71,7 @@ namespace BotL.Compiler
                 catch (Exception)
                 {
                     if (Repl.StandardError != null)
-                        Repl.StandardError.Write($"{path}:{reader.Line}: ");
+                        Repl.StandardError.Write(string.Format("{0}:{1}: ", path, reader.Line));
                     throw;
                 }
             }
@@ -169,9 +169,9 @@ namespace BotL.Compiler
         {
             if (ProcessDeclaration(assertion))
                 return null;
-            assertion = Transform.TransformTopLevel(assertion);
+            assertion = SourceTransform.TransformTopLevel(assertion);
             BindingEnvironment e = new BindingEnvironment();
-            assertion = Transform.Variablize(assertion, e);
+            assertion = SourceTransform.Variablize(assertion, e);
             AnalyzeVariables(assertion, e);
             if (forceVoidVariables)
                 e.IncrementVoidVariableReferences();
@@ -436,7 +436,7 @@ namespace BotL.Compiler
                 var variableInfo = e[v];
                 if (variableInfo.Type == VariableType.Void || !variableInfo.FirstReferenceCompiled)
                 {
-                    throw new InvalidOperationException($"Reference to uninstantiated variable {v.Name} in functional expression.");
+                    throw new InvalidOperationException(string.Format("Reference to uninstantiated variable {0} in functional expression.", v.Name));
                 }
 
                 b.Emit((byte) variableInfo.EnvironmentIndex);

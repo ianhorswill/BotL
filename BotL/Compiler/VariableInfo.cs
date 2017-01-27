@@ -46,13 +46,13 @@ namespace BotL.Compiler
         /// <summary>
         /// How many times this variable appears in the rule or fact.
         /// </summary>
-        public int Uses => headUses + BodyUses;
+        public int Uses { get { return headUses + BodyUses; } }
 
         /// <summary>
         /// Does this variable only have one use and can therefore be ignored?
         /// </summary>
         // ReSharper disable once MemberCanBePrivate.Global
-        public bool IsSingleton => Uses == 1;
+        public bool IsSingleton { get { return Uses == 1; } }
 
         /// <summary>
         /// Increment use count.

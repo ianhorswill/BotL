@@ -79,7 +79,7 @@ namespace BotL.Parser
             }
             catch (Exception e)
             {
-                var wrapper = new Exception($"{reader.File} row {row}: {e.Message}", e);
+                var wrapper = new Exception(string.Format("{0} row {1}: {2}", reader.File, row, e.Message), e);
                 throw wrapper;
             }
         }

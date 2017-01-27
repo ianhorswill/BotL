@@ -22,6 +22,8 @@
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
 #endregion
+
+#if !UNITY_5
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using BotL;
 using BotL.Compiler;
@@ -469,3 +471,4 @@ a(X,Y) <-- g(Y,X)");
         }
     }
 }
+#endif

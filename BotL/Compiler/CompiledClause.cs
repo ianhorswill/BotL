@@ -42,7 +42,7 @@ namespace BotL
 
         public override string ToString()
         {
-            return $"CompiledClause<{Source}>";
+            return string.Format("CompiledClause<{0}>", Source);
         }
     }
 }

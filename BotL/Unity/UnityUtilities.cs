@@ -25,7 +25,6 @@
 using System;
 using System.IO;
 using UnityEngine;
-using static BotL.Engine;
 
 namespace BotL.Unity
 {
@@ -44,13 +43,13 @@ namespace BotL.Unity
             // We have to put this is in a separate method or the unit tests throw a security exception
             // when the jitter tries to compile Eval.  Putting it here means the references to UnityEngine
             // don't get jitted during the unit tests.
-            Type t = (Type)DataStack[--stack].reference;
+            Type t = (Type)Engine.DataStack[--stack].reference;
             --stack;
-            if (DataStack[stack].Type != TaggedValueType.Reference
-                || !(DataStack[stack].reference is GameObject))
-                throw new ArgumentException("Argument to : is not a GameObject: " + DataStack[stack].Value);
-            GameObject go = (GameObject)DataStack[stack].reference;
-            DataStack[stack++].reference = go.GetComponent(t);
+            if (Engine.DataStack[stack].Type != TaggedValueType.Reference
+                || !(Engine.DataStack[stack].reference is GameObject))
+                throw new ArgumentException("Argument to : is not a GameObject: " + Engine.DataStack[stack].Value);
+            GameObject go = (GameObject)Engine.DataStack[stack].reference;
+            Engine.DataStack[stack++].reference = go.GetComponent(t);
             return stack;
         }
         

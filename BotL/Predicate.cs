@@ -58,7 +58,7 @@ namespace BotL
         internal readonly Compiler.Compiler.PredicateImplementation PrimopImplementation;
         internal readonly Table Table;
 
-        public bool IsSpecial => (PrimopImplementation != null || Table != null);
+        public bool IsSpecial { get { return (PrimopImplementation != null || Table != null); } }
 
         #endregion
 
@@ -172,7 +172,7 @@ namespace BotL
 
         public override string ToString()
         {
-            return $"{Name}/{Arity}";
+            return string.Format("{0}/{1}", Name, Arity);
         }
     }
 }

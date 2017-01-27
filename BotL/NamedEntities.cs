@@ -36,7 +36,7 @@ namespace BotL
             {
                 var s = name as Symbol;
                 if (s == null)
-                    throw new ArgumentException(nameof(name));
+                    throw new ArgumentException("name");
                 n = s.Name;
             }
             var v = GlobalVariable.Find(Symbol.Intern(n));

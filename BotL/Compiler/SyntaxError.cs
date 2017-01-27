@@ -31,11 +31,11 @@ namespace BotL.Compiler
     {
         private readonly object offendingExpression;
 
-        public SyntaxError(string message, object expression) : base($"{message} in expression {expression}")
+        public SyntaxError(string message, object expression) : base(string.Format("{0} in expression {1}", message, expression))
         {
             offendingExpression = expression;
         }
 
-        public override string Message => $"{base.Message}: {ExpressionParser.WriteExpressionToString(offendingExpression)}";
+        public override string Message { get { return string.Format("{0}: {1}", base.Message, ExpressionParser.WriteExpressionToString(offendingExpression)); } }
     }
 }

@@ -22,6 +22,8 @@
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
 #endregion
+
+#if !UNITY_5
 using BotL;
 using BotL.Compiler;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -51,3 +53,4 @@ identity(X,X)");
         }
     }
 }
+#endif

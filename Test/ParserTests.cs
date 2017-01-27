@@ -22,6 +22,8 @@
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
 #endregion
+
+#if !UNITY_5
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using BotL;
 using BotL.Parser;
@@ -48,3 +50,4 @@ namespace Test
         }
     }
 }
+#endif

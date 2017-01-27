@@ -5,6 +5,11 @@ Temp/
 Library/
 Build/
 
+# we don't care about Unity .meta files for anything that's not a component.
+# in the future we probably want to move the Unity folder one directory up,
+# to exclude those from being ignored, but for now this will do...
+*.meta
+
 # ===================================== #
 # Visual Studio / MonoDevelop generated #
 # ===================================== #

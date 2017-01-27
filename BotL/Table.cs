@@ -25,7 +25,6 @@
 using System;
 using System.Collections.Generic;
 using BotL.Compiler;
-using static BotL.Engine;
 
 namespace BotL
 {
@@ -53,7 +52,7 @@ namespace BotL
         /// </summary>
         internal ushort MatchTableRows(ushort startRow, ushort frameBase, out bool canContinue)
         {
-            var trail = TrailTop;
+            var trail = Engine.TrailTop;
             for (int row = startRow; row < rows.Count; row++)
             {
                 if (MatchTableRow(rows[row], frameBase))
@@ -62,7 +61,7 @@ namespace BotL
                     canContinue = nextRow < rows.Count;
                     return nextRow;
                 }
-                UndoTo(trail);
+                Engine.UndoTo(trail);
             }
             canContinue = false;
             return 0;
@@ -73,33 +72,33 @@ namespace BotL
             for (int i = 0; i < row.Length; i++)
             {
                 var v = row[i];
-                var addr = Deref(frameBase + i);
-                switch (DataStack[addr].Type)
+                var addr = Engine.Deref(frameBase + i);
+                switch (Engine.DataStack[addr].Type)
                 {
                     case TaggedValueType.Boolean:
-                        if (!(v is bool) || (bool)v != DataStack[addr].boolean)
+                        if (!(v is bool) || (bool)v != Engine.DataStack[addr].boolean)
                             return false;
                         break;
 
                     case TaggedValueType.Integer:
-                        if (!(v is int) || (int)v != DataStack[addr].integer)
+                        if (!(v is int) || (int)v != Engine.DataStack[addr].integer)
                             return false;
                         break;
 
                     case TaggedValueType.Float:
                         // ReSharper disable once CompareOfFloatsByEqualityOperator
-                        if (!(v is float) || (float)v != DataStack[addr].floatingPoint)
+                        if (!(v is float) || (float)v != Engine.DataStack[addr].floatingPoint)
                             return false;
                         break;
 
                     case TaggedValueType.Reference:
-                        if (!Equals(v, DataStack[addr].reference))
+                        if (!Equals(v, Engine.DataStack[addr].reference))
                             return false;
                         break;
 
                     case TaggedValueType.Unbound:
-                        DataStack[addr].SetGeneral(v);
-                        SaveUndo(addr);
+                        Engine.DataStack[addr].SetGeneral(v);
+                        Engine.SaveUndo(addr);
                         break;
                 }
             }
@@ -139,7 +138,7 @@ namespace BotL
         {
             KB.DefineMetaPrimop("assert_internal", (argBase, ignore) =>
             {
-                var predicate = (Predicate) DataStack[Deref(argBase)].reference;
+                var predicate = (Predicate) Engine.DataStack[Engine.Deref(argBase)].reference;
                 if (!AllArgumentsInstantiated(argBase+1, predicate.Arity))
                     throw new InstantiationException("All arguments to assert must be instantiated.");
                 if (predicate.Table == null)
@@ -150,7 +149,7 @@ namespace BotL
 
             KB.DefineMetaPrimop("retract_internal", (argBase, ignore) =>
             {
-                var predicate = (Predicate)DataStack[Deref(argBase)].reference;
+                var predicate = (Predicate)Engine.DataStack[Engine.Deref(argBase)].reference;
                 if (!AllArgumentsInstantiated(argBase + 1, predicate.Arity))
                     throw new InstantiationException("All arguments to retract must be instantiated.");
                 var table = predicate.Table;
@@ -165,7 +164,7 @@ namespace BotL
 
             KB.DefineMetaPrimop("update_internal", (argBase, ignore) =>
             {
-                var predicate = (Predicate)DataStack[Deref(argBase)].reference;
+                var predicate = (Predicate)Engine.DataStack[Engine.Deref(argBase)].reference;
                 if (!AllArgumentsInstantiated(argBase + 1, predicate.Arity))
                     throw new InstantiationException("All arguments to update must be instantiated.");
                 var table = predicate.Table;
@@ -174,13 +173,13 @@ namespace BotL
                 var rowNum = table.FindFunctionRow(argBase + 1);
                 if (rowNum < 0)
                     return CallStatus.Fail;
-                predicate.Table.rows[rowNum][predicate.Arity - 1] = DataStack[Deref(argBase + predicate.Arity)].Value;
+                predicate.Table.rows[rowNum][predicate.Arity - 1] = Engine.DataStack[Engine.Deref(argBase + predicate.Arity)].Value;
                 return CallStatus.DeterministicSuccess;
             });
 
             KB.DefineMetaPrimop("increment_internal", (argBase, ignore) =>
             {
-                var predicate = (Predicate)DataStack[Deref(argBase)].reference;
+                var predicate = (Predicate)Engine.DataStack[Engine.Deref(argBase)].reference;
                 if (!AllArgumentsInstantiated(argBase + 1, predicate.Arity))
                     throw new InstantiationException("All arguments to update must be instantiated.");
                 var table = predicate.Table;
@@ -190,13 +189,13 @@ namespace BotL
                 if (rowNum < 0)
                     return CallStatus.Fail;
                 predicate.Table.rows[rowNum][predicate.Arity - 1] =
-                    Convert.ToSingle(predicate.Table.rows[rowNum][predicate.Arity - 1]) + DataStack[Deref(argBase + predicate.Arity)].AsFloat;
+                    Convert.ToSingle(predicate.Table.rows[rowNum][predicate.Arity - 1]) + Engine.DataStack[Engine.Deref(argBase + predicate.Arity)].AsFloat;
                 return CallStatus.DeterministicSuccess;
             });
 
             KB.DefineMetaPrimop("retractall_internal", (argBase, ignore) =>
             {
-                var predicate = (Predicate)DataStack[Deref(argBase)].reference;
+                var predicate = (Predicate)Engine.DataStack[Engine.Deref(argBase)].reference;
                 var table = predicate.Table;
                 if (table == null)
                     throw new InvalidOperationException("Attempting to add row to a non-table " + predicate);
@@ -213,7 +212,7 @@ namespace BotL
             var row = new object[length];
             for (int i = 0; i < row.Length; i++)
             {
-                row[i] = DataStack[Deref(baseAddress + i)].Value;
+                row[i] = Engine.DataStack[Engine.Deref(baseAddress + i)].Value;
             }
             return row;
         }
@@ -221,7 +220,7 @@ namespace BotL
         private static bool AllArgumentsInstantiated(int baseAddress, int length)
         {
             for (int a = baseAddress; a < baseAddress + length; a++)
-                if (DataStack[Deref(a)].Type == TaggedValueType.Unbound)
+                if (Engine.DataStack[Engine.Deref(a)].Type == TaggedValueType.Unbound)
                     return false;
             return true;
         }
@@ -233,7 +232,7 @@ namespace BotL
                 var row = rows[rowNum];
                 for (int i = 0; i < row.Length; i++)
                 {
-                    if (!DataStack[Deref(baseAddress + i)].EqualGeneral(row[i]))
+                    if (!Engine.DataStack[Engine.Deref(baseAddress + i)].EqualGeneral(row[i]))
                         goto mismatch;
                 }
                 return rowNum;
@@ -250,7 +249,7 @@ namespace BotL
                 var row = rows[rowNum];
                 for (int i = 0; i < row.Length-1; i++)
                 {
-                    if (!DataStack[Deref(baseAddress + i)].EqualGeneral(row[i]))
+                    if (!Engine.DataStack[Engine.Deref(baseAddress + i)].EqualGeneral(row[i]))
                         goto mismatch;
                 }
                 return rowNum;
@@ -267,10 +266,10 @@ namespace BotL
                 var row = rows[rowNum];
                 for (int i = 0; i < row.Length; i++)
                 {
-                    var addr = Deref(baseAddress + i);
-                    if (DataStack[addr].Type == TaggedValueType.Unbound)
+                    var addr = Engine.Deref(baseAddress + i);
+                    if (Engine.DataStack[addr].Type == TaggedValueType.Unbound)
                         continue;
-                    if (!DataStack[addr].EqualGeneral(row[i]))
+                    if (!Engine.DataStack[addr].EqualGeneral(row[i]))
                         goto mismatch;
                 }
                 return rowNum;
@@ -302,7 +301,7 @@ namespace BotL
 
         public override string ToString()
         {
-            return $"Table<{Name}/{Arity}>";
+            return string.Format("Table<{0}/{1}>", Name, Arity);
         }
     }
 }

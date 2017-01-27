@@ -208,7 +208,7 @@ namespace BotL
                     return "Unbound";
 
                 case TaggedValueType.VariableForward:
-                    return $"(Forward to {forward}";
+                    return string.Format("(Forward to {0}", forward);
 
                 default:
                     throw new InvalidOperationException("Invalid tag type: " + Type);

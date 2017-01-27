@@ -75,7 +75,10 @@ namespace BotL
         
         public override string ToString()
         {
-            return $"{Predicate} => {Engine.EnvironmentStack[ContinuationFrame].Predicate}:{ContinuationPc}";
+            return string.Format("{0} => {1}:{2}",
+                Predicate,
+                Engine.EnvironmentStack[ContinuationFrame].Predicate,
+                ContinuationPc);
         }
     }
 }

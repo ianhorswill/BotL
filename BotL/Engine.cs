@@ -27,7 +27,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using BotL.Compiler;
 using BotL.Parser;
-using static BotL.Repl;
 
 namespace BotL
 {
@@ -750,7 +749,7 @@ namespace BotL
 
                         default:
                             Debug.Assert(false,
-                                $"Unknown opcode combination: head={headInstruction}, goal={goalInstruction}");
+                                string.Format("Unknown opcode combination: head={0}, goal={1}", headInstruction, goalInstruction));
 
                             #region Fail handling
 
@@ -762,7 +761,7 @@ namespace BotL
                             DebugConsoleFailMessage(headPredicate, goalFrame, eTop, cTop);
 #endif
                             if (headPredicate.IsTraced || goalPredicate.IsTraced)
-                                StandardError.WriteLine($"*FAIL*: Call from {goalPredicate} to {headPredicate}");
+                                Repl.StandardError.WriteLine(string.Format("*FAIL*: Call from {0} to {1}", goalPredicate, headPredicate));
 
                             if (cTop == 0)
                                 // No choice points
@@ -783,7 +782,7 @@ namespace BotL
 
 #if DEBUG
                             if (SingleStep)
-                                StandardError.WriteLine($"Restored to dTop={dTop}, TrailTop={TrailTop}");
+                                Repl.StandardError.WriteLine(string.Format("Restored to dTop={0}, TrailTop={1}", dTop, TrailTop));
 #endif
 
                             headPredicate = cp.Callee;
@@ -819,7 +818,7 @@ namespace BotL
             }
             catch
             {
-                if (StandardError != null)
+                if (Repl.StandardError != null)
                     DumpStackWithHead(goalFrame, eTop, cTop, dTop, headPredicate, head, headPc);
                 throw;
             }
@@ -827,16 +826,16 @@ namespace BotL
 
         private static void TraceSucceed(ushort dTopSave, Predicate goalPredicate, byte[] goal)
         {
-            StandardError.Write("Succeed: ");
+            Repl.StandardError.Write("Succeed: ");
             DumpHead(dTopSave, goalPredicate, goal, 9999);
         }
 
         private static void TraceCall(Predicate headPredicate, ushort dTop, byte[] head, ushort headPc, CompiledClause headRule)
         {
-            StandardError.Write("Enter: ");
+            Repl.StandardError.Write("Enter: ");
             DumpHead(dTop, headPredicate, head, headPc);
-            StandardError.Write("   ");
-            StandardError.WriteLine(headRule.Source);
+            Repl.StandardError.Write("   ");
+            Repl.StandardError.WriteLine(headRule.Source);
         }
 
         [Conditional("DEBUG")]
@@ -1082,9 +1081,9 @@ namespace BotL
 #if DEBUG
             if (SingleStep)
             {
-                StandardError.WriteLine(goalPredicate == null
-                    ? $"Restarting top-level call to {headPredicate} at clause {cp.NextClause}"
-                    : $"Restarting {goalPredicate}'s call to {headPredicate} at clause {cp.NextClause}");
+                Repl.StandardError.WriteLine(goalPredicate == null
+                    ? string.Format("Restarting top-level call to {0} at clause {1}", headPredicate, cp.NextClause)
+                    : string.Format("Restarting {0}'s call to {1} at clause {2}", goalPredicate, headPredicate, cp.NextClause));
             }
 #endif
         }
@@ -1095,9 +1094,9 @@ namespace BotL
 #if DEBUG
             if (SingleStep)
             {
-                StandardError.WriteLine("\n\n***FAIL***\n\nFailed call to {0} at", headPredicate);
+                Repl.StandardError.WriteLine("\n\n***FAIL***\n\nFailed call to {0} at", headPredicate);
                 DumpStack(goalFrame, eTop, cTop);
-                StandardError.WriteLine();
+                Repl.StandardError.WriteLine();
             }
 #endif
         }
@@ -1107,10 +1106,10 @@ namespace BotL
         {
             if (SingleStep)
             {
-                StandardError.WriteLine($"Head={headInstruction}, Goal={goalInstruction}");
+                Repl.StandardError.WriteLine(string.Format("Head={0}, Goal={1}", headInstruction, goalInstruction));
                 DumpStackWithHead(goalFrame, eTop, cTop, dTop, headPredicate, head, headPc);
-                StandardError.Write("Debug>");
-                switch (StandardInput.ReadLine())
+                Repl.StandardError.Write("Debug>");
+                switch (Repl.StandardInput.ReadLine())
                 {
                     case "c":
                     case "continue":
@@ -1132,7 +1131,7 @@ namespace BotL
 
         static void DumpStackWithHead(ushort goalFrame, ushort eTop, ushort cTop, ushort dTop, Predicate headPredicate, byte[] head, ushort headPc)
         {
-            StandardError.Write("Try match: ");
+            Repl.StandardError.Write("Try match: ");
             DumpHead(dTop, headPredicate, head, headPc);
             DumpStack(goalFrame, eTop, cTop);
         }
@@ -1144,7 +1143,7 @@ namespace BotL
 
             while (choicePoint >= 0 && ChoicePointStack[choicePoint].CallingFrame == goalFrame)
             {
-                StandardError.WriteLine($"        next {ChoicePointStack[choicePoint].Callee} clause={ChoicePointStack[choicePoint].NextClause}");
+                Repl.StandardError.WriteLine(string.Format("        next {0} clause={1}", ChoicePointStack[choicePoint].Callee, ChoicePointStack[choicePoint].NextClause));
                 choicePoint--;
             }
 
@@ -1152,26 +1151,26 @@ namespace BotL
             {
                 while (choicePoint >= 0 && ChoicePointStack[choicePoint].CallingFrame == environment)
                 {
-                    StandardError.WriteLine($"        next {ChoicePointStack[choicePoint].Callee} clause={ChoicePointStack[choicePoint].NextClause}");
+                    Repl.StandardError.WriteLine(string.Format("        next {0} clause={1}", ChoicePointStack[choicePoint].Callee, ChoicePointStack[choicePoint].NextClause));
                     choicePoint--;
                 }
 
                 var frame = EnvironmentStack[environment];
-                StandardError.Write(frame.Predicate == null
+                Repl.StandardError.Write(frame.Predicate == null
                     ? "Top-level goal"
-                    : $"{frame.Predicate.Name}");
+                    : string.Format("{0}", frame.Predicate.Name));
                 DumpFrame(frame);
 
                 if (choicePoint>=0
                     && ChoicePointStack[choicePoint].CallingFrame==frame.ContinuationFrame
                     && ChoicePointStack[choicePoint].Callee == frame.Predicate)
                 {
-                    StandardError.WriteLine();
-                    StandardError.Write($"        next {ChoicePointStack[choicePoint].Callee} clause={ChoicePointStack[choicePoint].NextClause}");
+                    Repl.StandardError.WriteLine();
+                    Repl.StandardError.Write(string.Format("        next {0} clause={1}", ChoicePointStack[choicePoint].Callee, ChoicePointStack[choicePoint].NextClause));
                     choicePoint--;
                 }
 
-                StandardError.WriteLine();
+                Repl.StandardError.WriteLine();
                 environment--;
             }
             Debug.Assert(choicePoint<=0);
@@ -1179,10 +1178,10 @@ namespace BotL
 
         private static void DumpHead(ushort dTop, Predicate headPredicate, byte[] head, ushort headPc)
         {
-            StandardError.Write(headPredicate.Name);
+            Repl.StandardError.Write(headPredicate.Name);
             if (headPredicate.Arity > 0)
             {
-                StandardError.Write('(');
+                Repl.StandardError.Write('(');
                 var firstArg = true;
                 for (ushort pc = 0; pc < head.Length; )
                 {
@@ -1192,9 +1191,9 @@ namespace BotL
                             if (firstArg)
                                 firstArg = false;
                             else
-                                StandardError.Write(", ");
+                                Repl.StandardError.Write(", ");
 
-                            StandardError.Write('_');
+                            Repl.StandardError.Write('_');
                             break;
 
                         case Opcode.HeadVarFirst:
@@ -1202,12 +1201,12 @@ namespace BotL
                             if (firstArg)
                                 firstArg = false;
                             else
-                                StandardError.Write(", ");
+                                Repl.StandardError.Write(", ");
 
                             if (pc >= headPc)
                             {
                                 // Don't print it if the instruction loading it hasn't run yet
-                                StandardError.Write('*');
+                                Repl.StandardError.Write('*');
                                 pc++;
                             }
                             else
@@ -1218,29 +1217,29 @@ namespace BotL
                             if (firstArg)
                                 firstArg = false;
                             else
-                                StandardError.Write(", ");
+                                Repl.StandardError.Write(", ");
 
                             switch ((OpcodeConstantType)head[pc++])
                             {
                                 case OpcodeConstantType.Boolean:
-                                    StandardError.Write(head[pc++] != 0);
+                                    Repl.StandardError.Write(head[pc++] != 0);
                                     break;
 
                                 case OpcodeConstantType.SmallInteger:
                                     var val = (sbyte)head[pc++];
-                                    StandardError.Write(val);
+                                    Repl.StandardError.Write(val);
                                     break;
 
                                 case OpcodeConstantType.Integer:
-                                    StandardError.Write(headPredicate.GetIntConstant(head[pc++]));
+                                    Repl.StandardError.Write(headPredicate.GetIntConstant(head[pc++]));
                                     break;
 
                                 case OpcodeConstantType.Float:
-                                    StandardError.Write(headPredicate.GetFloatConstant(head[pc++]));
+                                    Repl.StandardError.Write(headPredicate.GetFloatConstant(head[pc++]));
                                     break;
 
                                 case OpcodeConstantType.Object:
-                                    StandardError.Write(ExpressionParser.WriteExpressionToString(headPredicate.GetObjectConstant<object>(head[pc++])));
+                                    Repl.StandardError.Write(ExpressionParser.WriteExpressionToString(headPredicate.GetObjectConstant<object>(head[pc++])));
                                     break;
                             }
                             break;
@@ -1250,22 +1249,22 @@ namespace BotL
                     }
                 }
                 done:
-                StandardError.Write(')');
+                Repl.StandardError.Write(')');
             }
-            StandardError.WriteLine();
+            Repl.StandardError.WriteLine();
         }
 
         private static void DumpVar(int address)
         {
             if (DataStack[address].Type == TaggedValueType.VariableForward && DataStack[address].forward == address)
-                StandardError.Write("(self-aliased)");
+                Repl.StandardError.Write("(self-aliased)");
             else
             {
                 address = Deref(address);
                 if (DataStack[address].Type == TaggedValueType.Unbound)
-                    StandardError.Write("_{0}", address);
+                    Repl.StandardError.Write("_{0}", address);
                 else
-                    StandardError.Write(DataStack[Deref(address)]);
+                    Repl.StandardError.Write(DataStack[Deref(address)]);
             }
         }
 
@@ -1273,28 +1272,28 @@ namespace BotL
         {
             if (frame.CompiledClause.HeadModel != null)
             {
-                StandardError.Write('(');
+                Repl.StandardError.Write('(');
                 var firstArg = true;
                 foreach (var a in frame.CompiledClause.HeadModel)
                 {
                     if (firstArg)
                         firstArg = false;
                     else
-                        StandardError.Write(", ");
+                        Repl.StandardError.Write(", ");
                     if (a is StackReference)
                     {
                         var offset = ((StackReference) a).Offset;
                         if (offset < 0)
-                            StandardError.Write('_');
+                            Repl.StandardError.Write('_');
                         else
                             DumpVar(frame.Base + offset);
                     }
                 }
-                StandardError.Write(')');
+                Repl.StandardError.Write(')');
             }
-            StandardError.WriteLine();
+            Repl.StandardError.WriteLine();
             if (frame.CompiledClause.Source != null)
-                StandardError.Write("     Rule: {0}", ExpressionParser.WriteExpressionToString(frame.CompiledClause.Source));
+                Repl.StandardError.Write("     Rule: {0}", ExpressionParser.WriteExpressionToString(frame.CompiledClause.Source));
         }
         #endregion
     }

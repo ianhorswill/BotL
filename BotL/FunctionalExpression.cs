@@ -26,7 +26,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using BotL.Unity;
-using static BotL.Engine;
 
 namespace BotL
 {
@@ -41,7 +40,7 @@ namespace BotL
         /// </summary>
         /// <param name="p">Predicate being executed (for access to constant tables)</param>
         /// <param name="clause">Compiled clause code</param>
-        /// <param name="frameBase">Base address of clause's environment in DataStack</param>
+        /// <param name="frameBase">Base address of clause's environment in Engine.DataStack</param>
         /// <param name="pc">PC within clause</param>
         /// <param name="stack">top of the data stack</param>
         /// <returns>PC of the next instruction after the functional expression</returns>
@@ -58,35 +57,35 @@ namespace BotL
                         return pc;
 
                     case FOpcode.PushSmallInt:
-                        DataStack[stack++].Set((sbyte) clause[pc++]);
+                        Engine.DataStack[stack++].Set((sbyte) clause[pc++]);
                         break;
 
                     case FOpcode.PushInt:
-                        DataStack[stack++].Set(p.GetIntConstant(clause[pc++]));
+                        Engine.DataStack[stack++].Set(p.GetIntConstant(clause[pc++]));
                         break;
 
                     case FOpcode.PushFloat:
-                        DataStack[stack++].Set(p.GetFloatConstant(clause[pc++]));
+                        Engine.DataStack[stack++].Set(p.GetFloatConstant(clause[pc++]));
                         break;
 
                     case FOpcode.PushBoolean:
-                        DataStack[stack++].Set(clause[pc++] != 0);
+                        Engine.DataStack[stack++].Set(clause[pc++] != 0);
                         break;
 
                     case FOpcode.PushObject:
-                        DataStack[stack++].SetReference(p.GetObjectConstant<object>(clause[pc++]));
+                        Engine.DataStack[stack++].SetReference(p.GetObjectConstant<object>(clause[pc++]));
                         break;
 
                     case FOpcode.Load:
-                        var address = Deref(frameBase + clause[pc++]);
-                        if (DataStack[address].Type == TaggedValueType.Unbound)
+                        var address = Engine.Deref(frameBase + clause[pc++]);
+                        if (Engine.DataStack[address].Type == TaggedValueType.Unbound)
                             throw new InstantiationException("Uninstantiated variable in functional expression");
-                        DataStack[stack++] = DataStack[address];
+                        Engine.DataStack[stack++] = Engine.DataStack[address];
                         break;
 
                     case FOpcode.LoadGlobal:
                         var globalVariable = (GlobalVariable)p.GetObjectConstant<object>(clause[pc++]);
-                        DataStack[stack++] = globalVariable.Value;
+                        Engine.DataStack[stack++] = globalVariable.Value;
                         break;
 
                     case FOpcode.Add:
@@ -94,11 +93,11 @@ namespace BotL
                         var op2Addr = --stack;
                         var op1Addr = --stack;
                         if (BothInts(op1Addr, op2Addr))
-                            DataStack[stack++].Set(DataStack[op1Addr].integer +
-                                                          DataStack[op2Addr].integer);
+                            Engine.DataStack[stack++].Set(Engine.DataStack[op1Addr].integer +
+                                                          Engine.DataStack[op2Addr].integer);
                         else
-                            DataStack[stack++].Set(DataStack[op1Addr].AsFloat +
-                                                          DataStack[op2Addr].AsFloat);
+                            Engine.DataStack[stack++].Set(Engine.DataStack[op1Addr].AsFloat +
+                                                          Engine.DataStack[op2Addr].AsFloat);
                     }
                         break;
 
@@ -107,21 +106,21 @@ namespace BotL
                         var op2Addr = --stack;
                         var op1Addr = --stack;
                         if (BothInts(op1Addr, op2Addr))
-                            DataStack[stack++].Set(DataStack[op1Addr].integer -
-                                                          DataStack[op2Addr].integer);
+                            Engine.DataStack[stack++].Set(Engine.DataStack[op1Addr].integer -
+                                                          Engine.DataStack[op2Addr].integer);
                         else
-                            DataStack[stack++].Set(DataStack[op1Addr].AsFloat -
-                                                          DataStack[op2Addr].AsFloat);
+                            Engine.DataStack[stack++].Set(Engine.DataStack[op1Addr].AsFloat -
+                                                          Engine.DataStack[op2Addr].AsFloat);
                     }
                         break;
 
                     case FOpcode.Negate:
                         {
                             var op1Addr = --stack;
-                            if (DataStack[op1Addr].Type == TaggedValueType.Integer)
-                                DataStack[stack++].Set(-DataStack[op1Addr].integer);
+                            if (Engine.DataStack[op1Addr].Type == TaggedValueType.Integer)
+                                Engine.DataStack[stack++].Set(-Engine.DataStack[op1Addr].integer);
                             else
-                                DataStack[stack++].Set(DataStack[op1Addr].floatingPoint);
+                                Engine.DataStack[stack++].Set(Engine.DataStack[op1Addr].floatingPoint);
                         }
                         break;
 
@@ -130,11 +129,11 @@ namespace BotL
                         var op2Addr = --stack;
                         var op1Addr = --stack;
                         if (BothInts(op1Addr, op2Addr))
-                            DataStack[stack++].Set(DataStack[op1Addr].integer *
-                                                          DataStack[op2Addr].integer);
+                            Engine.DataStack[stack++].Set(Engine.DataStack[op1Addr].integer *
+                                                          Engine.DataStack[op2Addr].integer);
                         else
-                            DataStack[stack++].Set(DataStack[op1Addr].AsFloat *
-                                                          DataStack[op2Addr].AsFloat);
+                            Engine.DataStack[stack++].Set(Engine.DataStack[op1Addr].AsFloat *
+                                                          Engine.DataStack[op2Addr].AsFloat);
                     }
                         break;
 
@@ -142,17 +141,17 @@ namespace BotL
                     {
                         var op2Addr = --stack;
                         var op1Addr = --stack;
-                        DataStack[stack++].Set(DataStack[op1Addr].AsFloat /
-                                                      DataStack[op2Addr].AsFloat);
+                        Engine.DataStack[stack++].Set(Engine.DataStack[op1Addr].AsFloat /
+                                                      Engine.DataStack[op2Addr].AsFloat);
                     }
                         break;
 
                     case FOpcode.FieldReference:
                     {
-                        var fieldName = (string) DataStack[--stack].reference;
-                        var target = DataStack[--stack].Value;
+                        var fieldName = (string) Engine.DataStack[--stack].reference;
+                        var target = Engine.DataStack[--stack].Value;
                         var result = target.GetPropertyOrField(fieldName);
-                        DataStack[stack++].SetGeneral(result);
+                        Engine.DataStack[stack++].SetGeneral(result);
                     }
                         break;
 
@@ -160,11 +159,11 @@ namespace BotL
                     {
                         object[] args = new object[clause[pc++]];
                         for (var i = args.Length-1; i >= 0; i--)
-                            args[i] = DataStack[--stack].Value;
-                        var methodName = (string) DataStack[--stack].reference;
-                        var target = DataStack[--stack].Value;
+                            args[i] = Engine.DataStack[--stack].Value;
+                        var methodName = (string) Engine.DataStack[--stack].reference;
+                        var target = Engine.DataStack[--stack].Value;
                         var result = target.InvokeMethod(methodName, args);
-                        DataStack[stack++].SetGeneral(result);
+                        Engine.DataStack[stack++].SetGeneral(result);
                     }
                         break;
 
@@ -172,10 +171,10 @@ namespace BotL
                         {
                             object[] args = new object[clause[pc++]];
                             for (var i = args.Length - 1; i >= 0; i--)
-                                args[i] = DataStack[--stack].Value;
-                            var type = (Type)DataStack[--stack].reference;
+                                args[i] = Engine.DataStack[--stack].Value;
+                            var type = (Type)Engine.DataStack[--stack].reference;
                             var result = type.CreateInstance(args);
-                            DataStack[stack++].SetGeneral(result);
+                            Engine.DataStack[stack++].SetGeneral(result);
                         }
                         break;
 
@@ -189,8 +188,8 @@ namespace BotL
                     {
                         var result = new object[clause[pc++]];
                         for (int i = result.Length - 1; i >= 0; i--)
-                            result[i] = DataStack[--stack].Value;
-                        DataStack[stack++].SetReference(result);
+                            result[i] = Engine.DataStack[--stack].Value;
+                        Engine.DataStack[stack++].SetReference(result);
                     }
                         break;
 
@@ -198,8 +197,8 @@ namespace BotL
                         {
                             var result = new ArrayList(clause[pc++]);
                             for (int i = result.Count - 1; i >= 0; i--)
-                                result[i] = DataStack[--stack].Value;
-                            DataStack[stack++].SetReference(result);
+                                result[i] = Engine.DataStack[--stack].Value;
+                            Engine.DataStack[stack++].SetReference(result);
                         }
                         break;
 
@@ -208,8 +207,8 @@ namespace BotL
                         var count = clause[pc++];
                         var result = new HashSet<object>();
                         for (int i = 0; i < count; i++)
-                            result.Add(DataStack[--stack].Value);
-                        DataStack[stack++].SetReference(result);
+                            result.Add(Engine.DataStack[--stack].Value);
+                        Engine.DataStack[stack++].SetReference(result);
                     }
                         break;
 
@@ -217,7 +216,7 @@ namespace BotL
                         // Push true on the stack if TOS is anything but the boolean False.
                     {
                         var tos = stack-1;
-                        DataStack[tos].Set(DataStack[tos].Type != TaggedValueType.Boolean || DataStack[tos].boolean);
+                        Engine.DataStack[tos].Set(Engine.DataStack[tos].Type != TaggedValueType.Boolean || Engine.DataStack[tos].boolean);
                     }
                         break;
                         
@@ -229,8 +228,8 @@ namespace BotL
 
         private static bool BothInts(ushort op1Addr, ushort op2Addr)
         {
-            return DataStack[op1Addr].Type == TaggedValueType.Integer &&
-                   DataStack[op2Addr].Type == TaggedValueType.Integer;
+            return Engine.DataStack[op1Addr].Type == TaggedValueType.Integer &&
+                   Engine.DataStack[op2Addr].Type == TaggedValueType.Integer;
         }
     }
 }

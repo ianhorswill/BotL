@@ -62,7 +62,7 @@ namespace BotL
 
         public override string ToString()
         {
-            return $"${Name.Name}";
+            return string.Format("${0}", Name.Name);
         }
     }
 }

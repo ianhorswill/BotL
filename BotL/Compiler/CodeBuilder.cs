@@ -37,7 +37,7 @@ namespace BotL.Compiler
         private readonly List<byte> code = new List<byte>();
         public readonly Predicate Predicate;
 
-        public byte[] Code => code.ToArray();
+        public byte[] Code { get { return code.ToArray(); } }
 
         public void Emit(Opcode op)
         {

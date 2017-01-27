@@ -40,7 +40,7 @@ namespace BotL
         public readonly Symbol Functor;
         public readonly object[] Arguments;
 
-        public int Arity => Arguments.Length;
+        public int Arity { get { return Arguments.Length; } }
 
         public override string ToString()
         {

@@ -75,7 +75,7 @@ namespace BotL.Compiler
 
             public override string ToString()
             {
-                return $"_{address}";
+                return string.Format("_{0}", address);
             }
         }
  
@@ -94,7 +94,7 @@ namespace BotL.Compiler
             }
         }
 
-        public ushort EnvironmentSize => nextIndex;
+        public ushort EnvironmentSize { get { return nextIndex; } }
 
         public VariableInfo this[Variable v]
         {

@@ -59,7 +59,7 @@ namespace BotL
         public static bool AddTypeSearchPath(string namespacePrefix, string assembly)
         {
             if (namespacePrefix == null && assembly == null)
-                throw new ArgumentNullException(nameof(namespacePrefix));
+                throw new ArgumentNullException("namespacePrefix");
 
             if (assembly==null)
                 TypeSearchPaths.Add(namespacePrefix+".{0}");
@@ -126,8 +126,8 @@ namespace BotL
         [SuppressMessage("Microsoft.Naming", "CA1704:IdentifiersShouldBeSpelledCorrectly", MessageId = "t")]
         public static object CreateInstance(this Type type, params object[] constructorArguments)
         {
-            if (type == null) throw new ArgumentNullException(nameof(type));
-            if (constructorArguments == null) throw new ArgumentNullException(nameof(constructorArguments));
+            if (type == null) throw new ArgumentNullException("type");
+            if (constructorArguments == null) throw new ArgumentNullException("constructorArguments");
             
             return type.InvokeMember(null, BindingFlags.CreateInstance, null, null, constructorArguments);
         }
@@ -139,8 +139,8 @@ namespace BotL
         [SuppressMessage("Microsoft.Naming", "CA1704:IdentifiersShouldBeSpelledCorrectly", MessageId = "t"), SuppressMessage("Microsoft.Design", "CA1002:DoNotExposeGenericLists")]
         public static object CreateInstance(this Type type, List<object> constructorArguments)
         {
-            if (type == null) throw new ArgumentNullException(nameof(type));
-            if (constructorArguments == null) throw new ArgumentNullException(nameof(constructorArguments));
+            if (type == null) throw new ArgumentNullException("type");
+            if (constructorArguments == null) throw new ArgumentNullException("constructorArguments");
             
             return type.CreateInstance(constructorArguments.ToArray());
         }
@@ -150,9 +150,9 @@ namespace BotL
         /// </summary>
         public static object CreateGenericInstance(this Type genericType, Type[] genericTypeParameters, params object[] constructorArguments)
         {
-            if (genericType == null) throw new ArgumentNullException(nameof(genericType));
-            if (genericTypeParameters == null) throw new ArgumentNullException(nameof(genericTypeParameters));
-            if (constructorArguments == null) throw new ArgumentNullException(nameof(constructorArguments));
+            if (genericType == null) throw new ArgumentNullException("genericType");
+            if (genericTypeParameters == null) throw new ArgumentNullException("genericTypeParameters");
+            if (constructorArguments == null) throw new ArgumentNullException("constructorArguments");
 
             return genericType.MakeGenericType(genericTypeParameters).CreateInstance(constructorArguments);
         }
@@ -162,9 +162,9 @@ namespace BotL
         /// </summary>
         public static object CreateGenericInstance(this Type genericType, Type genericTypeParameter, params object[] constructorArguments)
         {
-            if (genericType == null) throw new ArgumentNullException(nameof(genericType));
-            if (genericTypeParameter == null) throw new ArgumentNullException(nameof(genericTypeParameter));
-            if (constructorArguments == null) throw new ArgumentNullException(nameof(constructorArguments));
+            if (genericType == null) throw new ArgumentNullException("genericType");
+            if (genericTypeParameter == null) throw new ArgumentNullException("genericTypeParameter");
+            if (constructorArguments == null) throw new ArgumentNullException("constructorArguments");
 
             return genericType.MakeGenericType(new[] { genericTypeParameter }).CreateInstance(constructorArguments);
         }
@@ -175,9 +175,9 @@ namespace BotL
         [SuppressMessage("Microsoft.Design", "CA1002:DoNotExposeGenericLists")]
         public static object CreateGenericInstance(this Type genericType, Type[] genericTypeParameters, List<object> constructorArguments)
         {
-            if (genericType == null) throw new ArgumentNullException(nameof(genericType));
-            if (genericTypeParameters == null) throw new ArgumentNullException(nameof(genericTypeParameters));
-            if (constructorArguments == null) throw new ArgumentNullException(nameof(constructorArguments));
+            if (genericType == null) throw new ArgumentNullException("genericType");
+            if (genericTypeParameters == null) throw new ArgumentNullException("genericTypeParameters");
+            if (constructorArguments == null) throw new ArgumentNullException("constructorArguments");
 
             return genericType.CreateGenericInstance(genericTypeParameters, constructorArguments.ToArray());
         }
@@ -189,8 +189,8 @@ namespace BotL
         [SuppressMessage("Microsoft.Globalization", "CA1304:SpecifyCultureInfo", MessageId = "System.Type.InvokeMember(System.String,System.Reflection.BindingFlags,System.Reflection.Binder,System.Object,System.Object[])")]
         public static object InvokeMethod(this object value, string methodName, params object[] args)
         {
-            if (value == null) throw new ArgumentNullException(nameof(value));
-            if (methodName == null) throw new ArgumentNullException(nameof(methodName));
+            if (value == null) throw new ArgumentNullException("value");
+            if (methodName == null) throw new ArgumentNullException("methodName");
             var type = value as Type;
             if (type != null)
                 return type.InvokeMember(methodName,
@@ -210,8 +210,8 @@ namespace BotL
         /// </summary>
         public static object GetPropertyOrField(this object value, string memberName)
         {
-            if (value == null) throw new ArgumentNullException(nameof(value));
-            if (memberName == null) throw new ArgumentNullException(nameof(memberName));
+            if (value == null) throw new ArgumentNullException("value");
+            if (memberName == null) throw new ArgumentNullException("memberName");
             var t = value as Type;
             if (t != null)
             {
@@ -265,8 +265,8 @@ namespace BotL
         // ReSharper disable once UnusedMethodReturnValue.Global
         public static bool TrySetPropertyOrField(this object objectToModify, string memberName, object value, bool errorOnMissing)
         {
-            if (memberName == null) throw new ArgumentNullException(nameof(memberName));
-            if (objectToModify == null) throw new ArgumentNullException(nameof(objectToModify));
+            if (memberName == null) throw new ArgumentNullException("memberName");
+            if (objectToModify == null) throw new ArgumentNullException("objectToModify");
 
             var mtype = objectToModify as Type;
             BindingFlags bflags = BindingFlags.IgnoreCase | BindingFlags.Static | BindingFlags.Public | BindingFlags.FlattenHierarchy;

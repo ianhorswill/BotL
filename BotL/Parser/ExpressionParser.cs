@@ -88,7 +88,7 @@ namespace BotL.Parser
         public ExpressionParser(string s) : this(new StringReader(s)) { }
 
         // ReSharper disable once InconsistentNaming
-        public bool EOF => tok.PeekToken() == Tokenizer.EOFToken;
+        public bool EOF { get { return tok.PeekToken() == Tokenizer.EOFToken; } }
 
         public object Read(bool isArgument=false)
         {
@@ -145,7 +145,7 @@ namespace BotL.Parser
                 return ReadArrayElementExpression(symbol);
 
             var op = Operator(symbol);
-            if (op?.PrefixPrecedence != null)
+            if (op != null && op.PrefixPrecedence != null)
                 return new Call(symbol, ReadExpression(ReadPrimary(), op.PrefixPrecedence.Value, false));
 
             return t;
@@ -156,7 +156,7 @@ namespace BotL.Parser
             var value = Read();
             var close = tok.GetToken();
             if (close != CloseParen)
-                throw new SyntaxError($"Nested expression {value} does not have matching close paren; got {close} instead", value);
+                throw new SyntaxError(string.Format("Nested expression {0} does not have matching close paren; got {1} instead", value, close), value);
             return value;
         }
 
@@ -167,7 +167,7 @@ namespace BotL.Parser
             var closeToken = tok.GetToken();
             if (closeToken != CloseBracket)
                 throw new SyntaxError(
-                    $"Syntax error in array index expression.  Expected ], got {closeToken}", symbol);
+                    string.Format("Syntax error in array index expression.  Expected ], got {0}", closeToken), symbol);
             return new Call(Symbol.Item, symbol, elementExpression);
         }
 
@@ -185,7 +185,7 @@ namespace BotL.Parser
                         tok.GetToken();
                     else
                         throw new SyntaxError(
-                            $"Syntax error in argument list to {symbol}.  Expected comma, got {tok.GetToken()}", symbol);
+                            string.Format("Syntax error in argument list to {0}.  Expected comma, got {1}", symbol, tok.GetToken()), symbol);
                 }
             }
             tok.GetToken();
@@ -236,7 +236,7 @@ namespace BotL.Parser
 
             public override string ToString()
             {
-                return $"Operator<{name}>";
+                return string.Format("Operator<{0}>", name);
             }
         }
 
@@ -346,7 +346,7 @@ namespace BotL.Parser
             else
             {
                 var op = c.Arity == 2 ? Operator(c.Functor) : null;
-                if (op?.BinaryPrecedence != null)
+                if (op != null && op.BinaryPrecedence != null)
                 {
                     bool parenthesize = op.BinaryPrecedence < minPrec;
                     if (parenthesize)

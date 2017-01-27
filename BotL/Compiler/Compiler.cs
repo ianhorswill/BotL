@@ -169,9 +169,9 @@ namespace BotL.Compiler
         {
             if (ProcessDeclaration(assertion))
                 return null;
-            assertion = Transform.TransformTopLevel(assertion);
+            assertion = SourceTransform.TransformTopLevel(assertion);
             BindingEnvironment e = new BindingEnvironment();
-            assertion = Transform.Variablize(assertion, e);
+            assertion = SourceTransform.Variablize(assertion, e);
             AnalyzeVariables(assertion, e);
             if (forceVoidVariables)
                 e.IncrementVoidVariableReferences();

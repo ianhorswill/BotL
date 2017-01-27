@@ -33,7 +33,7 @@ namespace BotL.Compiler
     /// - Macro expansion
     /// - Hoisting function predicates from arguments to goals.
     /// </summary>
-    internal static class Transform
+    internal static class SourceTransform
     {
         #region Code walk
         /// <summary>

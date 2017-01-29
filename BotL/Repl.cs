@@ -85,11 +85,11 @@ namespace BotL
                             StandardError.WriteLine(e.Message);
                         }
                     }
-                    else if (command.StartsWith("assert "))
+                    else if (command.StartsWith("rule "))
                     {
                         try
                         {
-                            Compiler.Compiler.Compile(command.Substring("assert ".Length));
+                            Compiler.Compiler.Compile(command.Substring("rule ".Length));
                             StandardOutput.WriteLine("Compiled");
                         }
                         catch (Exception e)

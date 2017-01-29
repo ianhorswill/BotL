@@ -293,6 +293,8 @@ namespace BotL
         private static object Expand(Symbol functor, object arg)
         {
             var c = (Call)arg;
+            if (c.IsFunctor(Symbol.Implication, 2))
+                throw new ArgumentException("Assert/2 is used only for updating tables, not for adding rules to rule predicates.");
             var arglist = new object[c.Arguments.Length + 1];
             arglist[0] = KB.Predicate(new PredicateIndicator(c.Functor, c.Arity));
             for (var i = 0; i < c.Arguments.Length; i++)

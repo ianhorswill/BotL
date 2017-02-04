@@ -99,7 +99,7 @@ namespace BotL
                     }
                     else if (command.StartsWith("table ") || command.StartsWith("function ")
                              || command.StartsWith("trace ") || command.StartsWith("notrace ") 
-                             || command.StartsWith("global "))
+                             || command.StartsWith("global ") || command.StartsWith("require "))
                     {
                         try
                         {

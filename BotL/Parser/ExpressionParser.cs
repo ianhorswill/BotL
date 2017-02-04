@@ -45,6 +45,7 @@ namespace BotL.Parser
             DefinePrefixOperator("set", 25);
             DefinePrefixOperator("function", 25);
             DefinePrefixOperator("table", 25);
+            DefinePrefixOperator("require", 25);
             DefinePrefixOperator("global", 25);
             DefinePrefixOperator("struct", 25);
             DefinePrefixOperator("signature", 25);

@@ -57,16 +57,32 @@ namespace BotL.Compiler
                 CompileInternal(expressionParser.Read());
         }
 
-        public static void CompileFile(string path)
+        static HashSet<string> LoadedSourceFiles = new HashSet<string>();
+        static string CanonicalizeSourceName(object name)
         {
+            var path = name as string;
+            if (path == null)
+            {
+                if (name is Symbol)
+                    path = ((Symbol) name).Name;
+                else throw new ArgumentException("Invalid source module name: "+name);
+            }
+
             if (string.IsNullOrEmpty(Path.GetExtension(path)))
                 path = path + ".bot";
-            using (var f = File.OpenText(UnityUtilities.CanonicalizePath(path)))
+            return UnityUtilities.CanonicalizePath(path);
+        }
+
+        public static void CompileFile(string path)
+        {
+            var canonical = CanonicalizeSourceName(path);
+            using (var f = File.OpenText(canonical))
             {
                 var reader = new PositionTrackingTextReader(f, path);
                 try
                 {
                     CompileStream(new ExpressionParser(reader));
+                    LoadedSourceFiles.Add(canonical);
                 }
                 catch (Exception)
                 {
@@ -93,34 +109,41 @@ namespace BotL.Compiler
             var c = maybeDeclaration as Call;
             if (c == null || c.Arity != 1)
                 return false;
+            var arg = c.Arguments[0];
             switch (c.Functor.Name)
             {
                 case "function":
-                    Functions.DeclareFunction(DecodePredicateIndicatorExpression(c.Arguments[0]));
+                    Functions.DeclareFunction(DecodePredicateIndicatorExpression(arg));
                     break;
 
                 case "table":
-                    var path = c.Arguments[0] as string;
+                    var path = arg as string;
                     if (path != null)
                         KB.LoadTable(path);
                     else
-                        KB.DefineTable(DecodePredicateIndicatorExpression(c.Arguments[0]));
+                        KB.DefineTable(DecodePredicateIndicatorExpression(arg));
+                    break;
+
+                case "require":
+                    var canonical = CanonicalizeSourceName(arg);
+                    if (!LoadedSourceFiles.Contains(canonical))
+                        CompileFile(canonical);
                     break;
 
                 case "global":
-                    var g = c.Arguments[0] as Call;
+                    var g = arg as Call;
                     if (g == null || !g.IsFunctor(Symbol.Equal, 2) || !(g.Arguments[0] is Symbol))
                         throw new SyntaxError("Invalid global declaration", g);
                     GlobalVariable.DefineGlobal(((Symbol)g.Arguments[0]).Name, g.Arguments[1]);
                     break;
 
                 case "struct":
-                    Structs.DeclareStruct(c.Arguments[0]);
+                    Structs.DeclareStruct(arg);
                     break;
                     
                 case "signature":
                 {
-                    var d = c.Arguments[0] as Call;
+                    var d = arg as Call;
                     if (d == null)
                         throw new SyntaxError("Malformed signature declaration", maybeDeclaration);
                     var p = KB.Predicate(new PredicateIndicator(d.Functor, d.Arity));
@@ -135,7 +158,7 @@ namespace BotL.Compiler
 
                 case "trace":
                 {
-                    var spec = c.Arguments[0] as Call;
+                    var spec = arg as Call;
                     if (spec == null || !spec.IsFunctor(Symbol.Slash, 2))
                         throw new ArgumentException("Invalid predicate specified in trace command");
                     KB.Predicate((Symbol) spec.Arguments[0], (int) spec.Arguments[1]).IsTraced = true;
@@ -144,7 +167,7 @@ namespace BotL.Compiler
 
                 case "notrace":
                 {
-                    var spec = c.Arguments[0] as Call;
+                    var spec = arg as Call;
                     if (spec == null || !spec.IsFunctor(Symbol.Slash, 2))
                         throw new ArgumentException("Invalid predicate specified in trace command");
                     KB.Predicate((Symbol) spec.Arguments[0], (int) spec.Arguments[1]).IsTraced = false;

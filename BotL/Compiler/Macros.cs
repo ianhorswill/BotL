@@ -32,6 +32,7 @@ namespace BotL.Compiler
         public static void DeclareMacros()
         {
             Table.DefineTableMacros();
+            ELNode.DefineElMacros();
 
             DeclareMacro("not", 1, p => Or(And(p, Symbol.Cut, Symbol.Fail), Symbol.TruePredicate));
             DeclareMacro("->", 2, (test, consequent) => And(test, Symbol.Cut, consequent));
@@ -128,22 +129,22 @@ namespace BotL.Compiler
             DeclareMacro(name, arity, (Delegate)expander);
         }
 
-        private static void DeclareMacro(string name, int arity, Func<object, object, object> expander)
+        public static void DeclareMacro(string name, int arity, Func<object, object, object> expander)
         {
             DeclareMacro(name, arity, (Delegate)expander);
         }
 
-        private static void DeclareMacro(string name, int arity, Func<object, object, object, object> expander)
+        public static void DeclareMacro(string name, int arity, Func<object, object, object, object> expander)
         {
             DeclareMacro(name, arity, (Delegate)expander);
         }
 
-        private static void DeclareMacro(string name, int arity, Func<object, object, object, object, object> expander)
+        public static void DeclareMacro(string name, int arity, Func<object, object, object, object, object> expander)
         {
             DeclareMacro(name, arity, (Delegate)expander);
         }
 
-        private static void DeclareMacro(string name, int arity, Delegate expander)
+        public static void DeclareMacro(string name, int arity, Delegate expander)
         {
             Macrotable[new PredicateIndicator(Symbol.Intern(name), arity)] = expander;
         }
@@ -152,17 +153,17 @@ namespace BotL.Compiler
         #endregion
 
         #region Term construction utilities
-        private static object And(params object[] arguments)
+        public static object And(params object[] arguments)
         {
             return MakeConnective(Symbol.Comma, arguments);
         }
 
-        private static object Or(params object[] arguments)
+        public static object Or(params object[] arguments)
         {
             return MakeConnective(Symbol.Disjunction, arguments);
         }
 
-        private static object Not(object o)
+        public static object Not(object o)
         {
             return new Call(Symbol.Intern("not"), o);
         }

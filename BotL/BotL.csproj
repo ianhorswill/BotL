@@ -54,6 +54,7 @@
     <Compile Include="Compiler\Variable.cs" />
     <Compile Include="Compiler\VariableInfo.cs" />
     <Compile Include="Compiler\VariableType.cs" />
+    <Compile Include="ELNode.cs" />
     <Compile Include="Engine.cs" />
     <Compile Include="Environment.cs" />
     <Compile Include="Compiler\FOpcode.cs" />
@@ -81,6 +82,7 @@
     <Compile Include="TypeUtils.cs" />
     <Compile Include="Unity\BotLConsole.cs" />
     <Compile Include="Unity\Console.cs" />
+    <Compile Include="Unity\ELInspector.cs" />
     <Compile Include="Unity\ExtensionMethods.cs" />
     <Compile Include="Unity\UnityUtilities.cs" />
   </ItemGroup>

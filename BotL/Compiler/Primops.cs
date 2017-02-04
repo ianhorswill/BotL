@@ -36,6 +36,7 @@ namespace BotL
         internal static void DefinePrimops()
         {
             Table.DefineTablePrimops();
+            ELNode.DefineELPrimops();
 
             #region Equality testing
             // Nonunifiability test

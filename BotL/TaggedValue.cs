@@ -214,5 +214,59 @@ namespace BotL
                     throw new InvalidOperationException("Invalid tag type: " + Type);
             }
         }
+
+        /// <summary>
+        /// Test of tagged value matches this value.
+        /// </summary>
+        /// <param name="value"></param>
+        /// <returns></returns>
+        public bool Match(ref TaggedValue value)
+        {
+            if (Type != value.Type)
+                return false;
+            switch (Type)
+            {
+                case TaggedValueType.Boolean:
+                    return value.boolean == boolean;
+
+                case TaggedValueType.Float:
+                    // ReSharper disable once CompareOfFloatsByEqualityOperator
+                    return value.floatingPoint == floatingPoint;
+
+                case TaggedValueType.Integer:
+                    return value.integer == integer;
+
+                case TaggedValueType.Reference:
+                    return Equals(value.reference, reference);
+
+                default:
+                    throw new InvalidOperationException("Attempt to match non-constant TaggedValues");
+            }
+        }
+
+        /// <summary>
+        /// This maybe ought to be an overload of GetHashCode, but I'm not certain its semantics
+        /// match those of GetHashCode, so I'm naming it Hash.
+        /// </summary>
+        internal int Hash()
+        {
+            switch (Type)
+            {
+                case TaggedValueType.Boolean:
+                    return boolean.GetHashCode();
+
+                case TaggedValueType.Float:
+                    return floatingPoint.GetHashCode();
+
+                case TaggedValueType.Integer:
+                    return integer.GetHashCode();
+
+                case TaggedValueType.Reference:
+                    return reference.GetHashCode();
+
+                default:
+                    throw new InvalidOperationException("Attempt to hash non-constant TaggedValues");
+            }
+        }
     }
 }

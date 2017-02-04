@@ -26,11 +26,11 @@ namespace BotL
 {
     public enum TaggedValueType
     {
-        VariableForward,
         Integer,
         Float,
         Boolean,
         Reference,
+        VariableForward,
         Unbound
     }
 }

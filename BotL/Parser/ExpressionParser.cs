@@ -68,11 +68,12 @@ namespace BotL.Parser
             DefineBinaryOperator("-", 110, 110);
 
             DefineBinaryOperator("*", 120);
-            DefineBinaryOperator("/", 120);
+            DefineBinaryOperator("/", 120, 130);
             DefineBinaryOperator("%", 120);
+            DefineBinaryOperator(":", 120);
+            DefineBinaryOperator(">>", 120);
             DefineBinaryOperator(".", 200);
             DefinePrefixOperator("$", 300);
-            DefineBinaryOperator(":", 300);
             DefineBinaryOperator("::", 300);
         }
 

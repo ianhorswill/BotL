@@ -41,13 +41,13 @@ namespace BotL.Compiler
             DeclareMacro("once", 1, exp => Or(Symbol.Fail, And(exp, Symbol.Cut)));
             DeclareMacro("ignore", 1, exp => Or(And(exp, Symbol.Cut), Symbol.TruePredicate));
             DeclareMacro("forall", 2, (cond, action) => Not(And(cond, Not(action))));
-            DeclareMacro("min", 3,
+            DeclareMacro("minimum", 3,
                 (score, generator, result) => And(new Call("initialize_variable", result),
                                                   Or(And(generator,
                                                          new Call("aggregate_min", score, result),
                                                          Symbol.Fail),
                                                      new Call("nonvar", result))));
-            DeclareMacro("max", 3,
+            DeclareMacro("maximum", 3,
                 (score, generator, result) => And(new Call("initialize_variable", result),
                                                   Or(And(generator,
                                                          new Call("aggregate_max", score, result),

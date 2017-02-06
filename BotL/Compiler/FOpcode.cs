@@ -52,6 +52,21 @@ namespace BotL
         ArrayList,
         Hashset,
         Constructor,
+        // Funky math
+        Abs,
+        Sqrt,
+        Pow,
+        Log,
+        Exp,
+        Ceiling,
+        Floor,
+        Sin,
+        Cos,
+        Tan,
+        Atan,
+        Atan2,
+        Min,
+        Max,
         Return = 255
     }
 
@@ -83,6 +98,22 @@ namespace BotL
             OpcodeTable[new PredicateIndicator("non_false", 1)] = FOpcode.NonFalse;
             OpcodeTable[new PredicateIndicator("new", 1)] = FOpcode.Constructor;
             OpcodeTable[new PredicateIndicator("::", 2)] = FOpcode.ComponentLookup;
+
+            OpcodeTable[new PredicateIndicator("abs", 1)] = FOpcode.Abs;
+            OpcodeTable[new PredicateIndicator("sqrt", 1)] = FOpcode.Sqrt;
+            OpcodeTable[new PredicateIndicator("pow", 2)] = FOpcode.Pow;
+            OpcodeTable[new PredicateIndicator("log", 1)] = FOpcode.Log;
+            OpcodeTable[new PredicateIndicator("exp", 1)] = FOpcode.Exp;
+            OpcodeTable[new PredicateIndicator("ceiling", 1)] = FOpcode.Ceiling;
+            OpcodeTable[new PredicateIndicator("floor", 1)] = FOpcode.Floor;
+            OpcodeTable[new PredicateIndicator("sin", 1)] = FOpcode.Sin;
+            OpcodeTable[new PredicateIndicator("cos", 1)] = FOpcode.Cos;
+            OpcodeTable[new PredicateIndicator("tan", 1)] = FOpcode.Tan;
+            OpcodeTable[new PredicateIndicator("atan", 1)] = FOpcode.Atan;
+            OpcodeTable[new PredicateIndicator("atan", 2)] = FOpcode.Atan2;
+
+            OpcodeTable[new PredicateIndicator("min", 2)] = FOpcode.Min;
+            OpcodeTable[new PredicateIndicator("max", 2)] = FOpcode.Max;
         }
     }
 }

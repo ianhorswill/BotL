@@ -36,13 +36,6 @@ namespace Test
     [TestClass]
     public class PrimopTests
     {
-        public PrimopTests()
-        {
-            //
-            // TODO: Add constructor logic here
-            //
-        }
-
         private TestContext testContextInstance;
 
         /// <summary>
@@ -147,8 +140,8 @@ namespace Test
             Compiler.Compile(@"dumbset(1)
 dumbset(2)
 dumbset(3)");
-            TestTrue("min(X,dumbset(X), M), M=1.0");
-            TestTrue("max(X,dumbset(X), M), M=3.0");
+            TestTrue("minimum(X,dumbset(X), M), M=1.0");
+            TestTrue("maximum(X,dumbset(X), M), M=3.0");
         }
 
         [TestMethod]

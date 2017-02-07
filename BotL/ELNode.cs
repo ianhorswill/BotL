@@ -34,6 +34,7 @@ namespace BotL
             var node = NodePool.Pop();
             node.Key = key;
             node.keyHash = key.Hash();
+            node.FirstChild = null;
             node.previousSibling = null;
             node.NextSibling = nextSibling;
             node.parent = parent;

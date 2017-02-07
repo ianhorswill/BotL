@@ -44,6 +44,46 @@ namespace Test
             TestTrue("/rrt/a >> X, X:1");
         }
 
+        [TestMethod]
+        public void AssertTest()
+        {
+            TestTrue("assert(/atest/foo/bar), /atest/foo/bar");
+            TestTrue("assert(/atest/a:b), /atest/a:X, X=b");
+        }
+
+        [TestMethod]
+        public void DeleteTest()
+        {
+            TestTrue("assert(/dtest/foo/bar), /dtest/foo/bar");
+            TestTrue("retract(/dtest/foo)");
+            TestFalse("/dtest/foo");
+            TestTrue("assert(/dtest/foo/baz), /dtest/foo/baz");
+            TestFalse("/dtest/foo/bar");
+            TestTrue("assert(/dtest/bar/foo1), assert(/dtest/bar/foo1), retract(/dtest/bar/foo1), not(/dtest/bar/foo1)");
+            TestTrue(
+                "assert(/dtest/baz/foo1), assert(/dtest/baz/foo2), assert(/dtest/baz/foo3), retract(/dtest/baz/foo2)");
+            TestFalse("/dtest/baz/foo2");
+            TestTrue("not(/dtest/baz/foo2)");
+            TestTrue("/dtest/baz/foo3");
+        }
+
+        [TestMethod]
+        public void ExclusiveWriteTest()
+        {
+            TestTrue("assert(/ewtest/a:1)");
+            TestTrue("/ewtest/a:1");
+            TestTrue("assert(/ewtest/a:2)");
+            TestTrue("/ewtest/a:2");
+            TestFalse("/ewtest/a:1");
+            TestTrue("not(/ewtest/a:1)");
+            TestTrue("assert(/ewtest/a:1/foo)");
+            TestTrue("/ewtest/a:1/foo");
+            TestTrue("assert(/ewtest/a:2)");
+            TestTrue("/ewtest/a:2");
+            TestFalse("/ewtest/a:2/foo");
+            TestTrue("assert(/ewtest/a:3 >> X), assert(X/foo), /ewtest/a:3/foo");
+        }
+
         private void TestFalse(string code)
         {
             Assert.IsFalse(Engine.Run(code));

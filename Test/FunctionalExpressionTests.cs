@@ -133,6 +133,46 @@ namespace Test
 
             TestTrue("1/1=1.0");
             TestTrue("1/1.0=1.0");
+
+            TestTrue("X=2, -2 = -X");
+            TestTrue("2=abs(-2)");
+        }
+
+        [TestMethod]
+        public void MinMaxTests()
+        {
+            TestTrue("1=min(1,2)");
+            TestTrue("2=max(1,2)");
+        }
+
+        [TestMethod]
+        public void FloorCeilingTests()
+        {
+            TestTrue("2.0=floor(2.5)");
+            TestTrue("3.0=ceiling(2.5)");
+        }
+
+        [TestMethod]
+        public void SqrtTest()
+        {
+            TestTrue("2.0=sqrt(4)");
+        }
+
+        [TestMethod]
+        public void LogExpTest()
+        {
+            TestTrue("0.0=log(1)");
+            TestTrue("1.0=exp(0)");
+            TestTrue("1.0=pow(10,0)");
+        }
+
+        [TestMethod]
+        public void TrigTests()
+        {
+            TestTrue("0.0=sin(0.0)");
+            TestTrue("1.0=cos(0.0)");
+            TestTrue("1.0=atan(tan(1.0))");
+            TestTrue("1.0=atan(tan(1.0),1)");
         }
 
         [TestMethod]

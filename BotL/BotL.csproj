@@ -84,6 +84,7 @@
     <Compile Include="Unity\Console.cs" />
     <Compile Include="Unity\ELInspector.cs" />
     <Compile Include="Unity\ExtensionMethods.cs" />
+    <Compile Include="Unity\KnowledgeBase.cs" />
     <Compile Include="Unity\UnityUtilities.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

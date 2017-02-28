@@ -245,6 +245,7 @@ namespace BotL
             throw new MissingMemberException(t.Name, memberName);
         }
 
+#if notdef
         /// <summary>
         /// Sets property or field value of object.
         /// Properly handles inheritance of virtual properties.
@@ -318,5 +319,6 @@ namespace BotL
             }
             return true;
         }
+#endif
     }
 }

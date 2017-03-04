@@ -480,7 +480,7 @@ namespace BotL.Compiler
                     }
                     var type = TypeUtils.FindType(arg.Functor.Name);
                     if (type == null)
-                        throw new Exception("Unknown type "+ arg.Functor);
+                        throw new Exception("Unknown type " + arg.Functor);
                     CompileFunctionalExpression(type, b, e); // Push type name on stack
 
                     foreach (var a in arg.Arguments)
@@ -488,19 +488,26 @@ namespace BotL.Compiler
                         CompileFunctionalExpression(a, b, e);
                     }
                     b.Emit(FOpcode.Constructor);
-                    b.Emit((byte)arg.Arity);
+                    b.Emit((byte) arg.Arity);
                 }
                 else
                 {
                     // It's a function call
-                    foreach (var a in c.Arguments)
-                    {
-                        CompileFunctionalExpression(a, b, e);
-                    }
                     var fOpcode = FOpcodeTable.Opcode(c);
+                    if (FOpcodeTable.ReverseArguments(fOpcode))
+                        for (int i = c.Arguments.Length - 1; i >= 0; i--)
+                        {
+                            CompileFunctionalExpression(c.Arguments[i], b, e);
+                        }
+                    else
+                        foreach (var a in c.Arguments)
+                        {
+                            CompileFunctionalExpression(a, b, e);
+                        }
                     b.Emit(fOpcode);
-                    if (fOpcode == FOpcode.Array || fOpcode == FOpcode.ArrayList || fOpcode == FOpcode.Hashset)
-                        b.Emit((byte)c.Arity);
+                    if (fOpcode == FOpcode.Array || fOpcode == FOpcode.ArrayList || fOpcode == FOpcode.Queue ||
+                        fOpcode == FOpcode.Hashset)
+                        b.Emit((byte) c.Arity);
                 }
             }
             else

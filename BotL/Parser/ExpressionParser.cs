@@ -35,6 +35,7 @@ namespace BotL.Parser
         static ExpressionParser()
         {
             DefineBinaryOperator("<--", 10);
+            DefineBinaryOperator("-->", 10);
 
             DefineBinaryOperator(",", 20);
 
@@ -299,6 +300,10 @@ namespace BotL.Parser
                 {
                     case "ArrayList":
                         b.Append("arraylist(");
+                        break;
+
+                    case "Queue":
+                        b.Append("queue(");
                         break;
 
                     default:

@@ -33,10 +33,11 @@ namespace BotL
         public ushort NextClause;
         public readonly ushort DataStackTop;
         public readonly ushort TrailTop;
+        public readonly ushort UndoStackTop;
 
         public readonly ushort SavedETop;
 
-        public ChoicePoint(ushort callingFrame, ushort callingPc, Predicate callee, ushort nextClause, ushort dTop, ushort trailTop, ushort savedETop)
+        public ChoicePoint(ushort callingFrame, ushort callingPc, Predicate callee, ushort nextClause, ushort dTop, ushort trailTop, ushort undoStackTop, ushort savedETop)
         {
             CallingFrame = callingFrame;
             CallingPC = callingPc;
@@ -45,6 +46,7 @@ namespace BotL
             DataStackTop = dTop;
             TrailTop = trailTop;
             SavedETop = savedETop;
+            UndoStackTop = undoStackTop;
             //Debug.Assert(callingFrame==0 || Engine.EnvironmentStack[callingFrame].CompiledClause.Code[callingPc-2]==(byte)Opcode.CGoal, "Invalid calling PC address in choicepoint");
         }
 

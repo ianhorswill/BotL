@@ -41,6 +41,9 @@ namespace BotL.Compiler
         /// </summary>
         internal static object TransformTopLevel(object assertion)
         {
+            if (Call.IsFunctor(assertion, Symbol.GrammarRule, 2))
+                assertion = MacroExpand(assertion);
+
             var c = assertion as Call;
             if (c == null)
                 return assertion;

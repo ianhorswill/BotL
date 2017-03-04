@@ -34,7 +34,7 @@ namespace Test
     /// Summary description for PrimopTests
     /// </summary>
     [TestClass]
-    public class PrimopTests
+    public class PrimopTests : BotLTestClass
     {
         private TestContext testContextInstance;
 
@@ -234,16 +234,6 @@ dumbmap(c,3)");
             TestTrue("writenl(1)");
             writer.Flush();
             Assert.AreEqual("1\r\n", writer.ToString());
-        }
-
-        private void TestFalse(string code)
-        {
-            Assert.IsFalse(Engine.Run(code));
-        }
-
-        private void TestTrue(string code)
-        {
-            Assert.IsTrue(Engine.Run(code));
         }
     }
 }

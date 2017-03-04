@@ -56,6 +56,8 @@ namespace BotL
         public static readonly Symbol Underscore = Intern("_");
         public static readonly Symbol Null = Intern("null");
         public static readonly Symbol ColonColon = Intern("::");
+        public static readonly Symbol Queue = Intern("queue");
+        public static readonly  Symbol GrammarRule = Intern("-->");
 
 
         Symbol(string n)

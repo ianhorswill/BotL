@@ -181,8 +181,8 @@ namespace BotL
                 }
                 DataStack[keyAddr] = child.Key;
                 DataStack[resultAddr].SetReference(child);
-                SaveUndo(keyAddr);
-                SaveUndo(resultAddr);
+                SaveVariable(keyAddr);
+                SaveVariable(resultAddr);
                 return child.NextSibling == null
                     ? CallStatus.DeterministicSuccess
                     : CallStatus.NonDeterministicSuccess;
@@ -193,7 +193,7 @@ namespace BotL
             if (match == null)
                 return CallStatus.Fail;
             DataStack[resultAddr].SetReference(match);
-            SaveUndo(resultAddr);
+            SaveVariable(resultAddr);
             return CallStatus.DeterministicSuccess;
         }
 
@@ -245,7 +245,7 @@ namespace BotL
                 }
             }
             DataStack[resultAddr].SetReference(result);
-            SaveUndo(resultAddr);
+            SaveVariable(resultAddr);
             return CallStatus.DeterministicSuccess;   
         }
         #endregion

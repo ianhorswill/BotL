@@ -37,6 +37,7 @@ namespace BotL
         {
             Table.DefineTablePrimops();
             ELNode.DefineELPrimops();
+            Queue.DefineQueuePrimops();
 
             #region Equality testing
             // Nonunifiability test
@@ -238,7 +239,7 @@ namespace BotL
                             return CallStatus.Fail;
                         // Enumerating an IList
                         DataStack[memberAddr].SetGeneral(ilist[restartCount]);
-                        SaveUndo(memberAddr);
+                        SaveVariable(memberAddr);
                         return restartCount < ilist.Count-1
                             ? CallStatus.NonDeterministicSuccess
                             : CallStatus.DeterministicSuccess;
@@ -257,7 +258,7 @@ namespace BotL
                         if (enumerator.MoveNext())
                         {
                             DataStack[memberAddr].SetGeneral(enumerator.Current);
-                            SaveUndo(memberAddr);
+                            SaveVariable(memberAddr);
                             return CallStatus.NonDeterministicSuccess;
                         }
                         else return CallStatus.Fail;
@@ -338,7 +339,7 @@ namespace BotL
                     if (index < 0)
                         return CallStatus.Fail;
                     DataStack[indexAddr].Set(index);
-                    SaveUndo(indexAddr);
+                    SaveVariable(indexAddr);
                     return CallStatus.DeterministicSuccess;
                 }
                 // Index argument is bound
@@ -347,7 +348,7 @@ namespace BotL
                 if (DataStack[elementAddr].Type == TaggedValueType.Unbound)
                 {
                     DataStack[elementAddr].SetGeneral(list[DataStack[indexAddr].integer]);
-                    SaveUndo(elementAddr);
+                    SaveVariable(elementAddr);
                 }
                 else
                 {
@@ -390,7 +391,29 @@ namespace BotL
                 gv.Value = DataStack[valueAddr];
                 return CallStatus.DeterministicSuccess;
             });
+
+            DefinePrimop("try_set_global", 2, (argBase, ignore) =>
+            {
+                var nameAddr = Deref(argBase);
+                var name = DataStack[nameAddr].reference as Symbol;
+                if (name == null || DataStack[nameAddr].Type != TaggedValueType.Reference)
+                    throw new ArgumentException("Invalid global variable name: " + DataStack[nameAddr].Value);
+                var valueAddr = Deref(argBase + 1);
+                if (DataStack[valueAddr].Type == TaggedValueType.Unbound)
+                    throw new InstantiationException("Value argument to try_set_global is uninstantiated");
+                var gv = GlobalVariable.Find(name);
+                if (gv == null)
+                    throw new ArgumentException("Unknown global variable: " + name);
+                UndoStack[uTop++].Set(UndoTrySetGlobal, gv, ref gv.Value);
+                gv.Value = DataStack[valueAddr];
+                return CallStatus.DeterministicSuccess;
+            });
             #endregion
+        }
+        
+        static void UndoTrySetGlobal(ref UndoRecord u)
+        {
+            ((GlobalVariable) u.objArg).Value = u.TaggedArg;
         }
     }
 }

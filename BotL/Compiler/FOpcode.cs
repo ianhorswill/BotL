@@ -48,8 +48,10 @@ namespace BotL
         FieldReference,
         ComponentLookup,
         NonFalse,
+        Length,
         Array,
         ArrayList,
+        Queue,
         Hashset,
         Constructor,
         // Funky math
@@ -74,6 +76,11 @@ namespace BotL
     {
         static readonly Dictionary<PredicateIndicator, FOpcode> OpcodeTable = new Dictionary<PredicateIndicator, FOpcode>();
 
+        internal static bool ReverseArguments(FOpcode o)
+        {
+            return o == FOpcode.ArrayList || o == FOpcode.Queue;
+        }
+
         internal static FOpcode Opcode(Call c)
         {
             FOpcode result;
@@ -83,6 +90,8 @@ namespace BotL
                 return FOpcode.Array;
             if (c.Functor == Symbol.ArrayList)
                 return FOpcode.ArrayList;
+            if (c.Functor == Symbol.Queue)
+                return FOpcode.Queue;
             if (c.Functor == Symbol.Hashset)
                 return FOpcode.Hashset;
             throw new Exception("Unknown functional expression operation in: "+c);
@@ -98,6 +107,7 @@ namespace BotL
             OpcodeTable[new PredicateIndicator("non_false", 1)] = FOpcode.NonFalse;
             OpcodeTable[new PredicateIndicator("new", 1)] = FOpcode.Constructor;
             OpcodeTable[new PredicateIndicator("::", 2)] = FOpcode.ComponentLookup;
+            OpcodeTable[new PredicateIndicator("length", 1)] = FOpcode.Length;
 
             OpcodeTable[new PredicateIndicator("abs", 1)] = FOpcode.Abs;
             OpcodeTable[new PredicateIndicator("sqrt", 1)] = FOpcode.Sqrt;

@@ -186,6 +186,17 @@ namespace BotL
                     }
                         break;
 
+                    case FOpcode.Length:
+                    {
+                        var addr = stack - 1;
+                        var collection = DataStack[addr].Value as ICollection;
+                        if (collection == null)
+                            throw new ArgumentTypeException("length", 1, "Argument is not a collection",
+                                DataStack[addr].Value);
+                        DataStack[addr].Set(collection.Count);
+                    }
+                        break;
+
                     case FOpcode.Array:
                     {
                         var result = new object[clause[pc++]];
@@ -197,9 +208,20 @@ namespace BotL
 
                     case FOpcode.ArrayList:
                         {
-                            var result = new ArrayList(clause[pc++]);
-                            for (int i = result.Count - 1; i >= 0; i--)
-                                result[i] = DataStack[--stack].Value;
+                            var capacity = clause[pc++];
+                            var result = new ArrayList(capacity);
+                            for (int i = 0; i < capacity; i++)
+                                result.Add(DataStack[--stack].Value);
+                            DataStack[stack++].SetReference(result);
+                        }
+                        break;
+
+                    case FOpcode.Queue:
+                        {
+                            var capacity = clause[pc++];
+                            var result = new Queue();
+                            for (int i = 0; i < capacity; i++)
+                                result.Enqueue(DataStack[--stack].Value);
                             DataStack[stack++].SetReference(result);
                         }
                         break;

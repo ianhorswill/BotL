@@ -99,7 +99,7 @@ namespace BotL
 
                     case TaggedValueType.Unbound:
                         DataStack[addr].SetGeneral(v);
-                        SaveUndo(addr);
+                        SaveVariable(addr);
                         break;
                 }
             }

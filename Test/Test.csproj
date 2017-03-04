@@ -52,7 +52,9 @@
     </Otherwise>
   </Choose>
   <ItemGroup>
+    <Compile Include="BotLTestClass.cs" />
     <Compile Include="CompilerTests.cs" />
+    <Compile Include="GrammarTests.cs" />
     <Compile Include="ELTests.cs" />
     <Compile Include="EngineTests.cs" />
     <Compile Include="FunctionalExpressionTests.cs" />
@@ -61,6 +63,7 @@
     <Compile Include="ParserTests.cs" />
     <Compile Include="PrimopTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="QueueTests.cs" />
     <Compile Include="StructureTests.cs" />
     <Compile Include="TableTests.cs" />
   </ItemGroup>

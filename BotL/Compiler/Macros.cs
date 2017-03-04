@@ -24,6 +24,7 @@
 #endregion
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace BotL.Compiler
 {
@@ -121,6 +122,14 @@ namespace BotL.Compiler
                                    Symbol.Fail),
                                true));
             });
+
+            DeclareMacro("-->", 2, (head, body) =>
+            {
+                var qv = new Variable(GrammarRuleQueueVarName, true);
+                return new Call(Symbol.Implication,
+                    AppendArgs(head, qv),
+                    ExpandGrammarRuleBody(body, qv));
+            });
         }
 
         #region Macro declation
@@ -174,6 +183,51 @@ namespace BotL.Compiler
             for (int i = 1; i < arguments.Length; i++)
                 result = new Call(functor, result, arguments[i]);
             return result;
+        }
+
+        public static Call AppendArgs(object term, params object[] additionalArgs)
+        {
+            var c = term as Call;
+            if (c == null)
+            {
+                var s = term as Symbol;
+                if (s == null)
+                    throw new ArgumentException("Invalid call passed to AppendArgs: " + term);
+                return new Call(s, additionalArgs);
+            }
+            var args = new object[c.Arguments.Length + additionalArgs.Length];
+            Array.Copy(c.Arguments, args, c.Arguments.Length);
+            Array.Copy(additionalArgs, 0, args, c.Arguments.Length, additionalArgs.Length);
+            return new Call(c.Functor, args);
+        }
+        #endregion
+
+        #region Grammar rule macros
+        private static readonly Symbol GrammarRuleQueueVarName = Symbol.Intern("*Q*");
+        private static readonly Symbol MatchQueueSequence = Symbol.Intern("words");
+
+        private static object ExpandGrammarRuleBody(object body, Variable queue)
+        {
+            var s = body as string;
+            if (s != null)
+            {
+                if (s == "")
+                    return true;
+                return new Call(MatchQueueSequence,
+                                ParseGrammarLiteral(s),
+                                queue);
+            }
+            var c = body as Call;
+            if (c != null && c.IsFunctor(Symbol.Comma, 2))
+                return new Call(Symbol.Comma,
+                                ExpandGrammarRuleBody(c.Arguments[0], queue),
+                                ExpandGrammarRuleBody(c.Arguments[1], queue));
+            return AppendArgs(body, queue);
+        }
+
+        private static object[] ParseGrammarLiteral(string literal)
+        {
+            return literal.Split(' ').Select(s => ((object) Symbol.Intern(s))).ToArray();
         }
         #endregion
 

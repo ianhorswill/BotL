@@ -33,11 +33,17 @@ namespace BotL
 {
     public static class Engine
     {
-        internal static readonly TaggedValue[] DataStack = new TaggedValue[20000];
-        internal static readonly Environment[] EnvironmentStack = new Environment[2000];
-        static readonly ChoicePoint[] ChoicePointStack = new ChoicePoint[1000];
-        private static readonly ushort[] Trail = new ushort[2000];
+        private const int DStackSize = 2000;
+        private const int EStackSize = DStackSize / 2;
+        private const int CStackSize = DStackSize / 3;
+        private const int UStackSize = DStackSize / 2;
+        internal static readonly TaggedValue[] DataStack = new TaggedValue[DStackSize];
+        internal static readonly Environment[] EnvironmentStack = new Environment[EStackSize];
+        static readonly ChoicePoint[] ChoicePointStack = new ChoicePoint[CStackSize];
+        private static readonly ushort[] Trail = new ushort[DStackSize];
         internal static ushort TrailTop;
+        internal static readonly UndoRecord[] UndoStack = new UndoRecord[UStackSize];
+        internal static ushort uTop;         // Undo stack pointer
 
 #if DEBUG
         public static bool SingleStep;
@@ -88,6 +94,7 @@ namespace BotL
             ushort dTopSave = 0;     // Data stack point at start of call
             ushort restartedClauseNumber = 0;
             TrailTop = 0;
+            uTop = 0;
 
             byte[] goal = Trampoline;
             Predicate goalPredicate = TrampolinePredicate;
@@ -114,7 +121,7 @@ namespace BotL
 
             // Allocate new choice frame, if necessary
             if (headPredicate.ExtraClauses != null)
-                ChoicePointStack[cTop++] = new ChoicePoint(goalFrame, startOfCall, headPredicate, 0, dTopSave, trailSave, eTop);
+                ChoicePointStack[cTop++] = new ChoicePoint(goalFrame, startOfCall, headPredicate, 0, dTopSave, trailSave, uTop, eTop);
             #endregion
 
             try
@@ -458,11 +465,12 @@ namespace BotL
                                 if (canContinue)
                                 {
                                     ChoicePointStack[cTop++] = new ChoicePoint(goalFrame, startOfCall, headPredicate,
-                                        nextRow, dTopSave, trailSave, eTop);
+                                        nextRow, dTopSave, trailSave, uTop, eTop);
                                 }
                             }
                             else
                             {
+                                var savedUTop = uTop;
                                 switch (headPredicate.PrimopImplementation(dTop, restartedClauseNumber))
                                 {
                                     case CallStatus.Fail:
@@ -480,7 +488,7 @@ namespace BotL
                                             dTop += headPredicate.Tempvars;
                                         ChoicePointStack[cTop++] = new ChoicePoint(goalFrame, startOfCall,
                                             headPredicate, (byte) (restartedClauseNumber + 1),
-                                            dTopSave, trailSave, eTop);
+                                            dTopSave, trailSave, savedUTop, eTop);
                                         break;
 
                                     case CallStatus.CallIndirect:
@@ -554,7 +562,7 @@ namespace BotL
                             if (headPredicate.ExtraClauses != null)
                                 ChoicePointStack[cTop++] = new ChoicePoint(goalFrame, startOfCall,
                                     headPredicate, 0,
-                                    dTopSave, trailSave, eTop);
+                                    dTopSave, trailSave, uTop, eTop);
                             break;
 
                         // (Non-tail) calling a special predicate
@@ -570,10 +578,11 @@ namespace BotL
                                 if (canContinue)
                                     ChoicePointStack[cTop++] = new ChoicePoint(goalFrame, startOfCall,
                                         headPredicate, nextRow,
-                                        dTopSave, trailSave, eTop);
+                                        dTopSave, trailSave, uTop, eTop);
                             }
                             else
                             {
+                                var savedUTop = uTop;
                                 switch (headPredicate.PrimopImplementation(dTop, restartedClauseNumber))
                                 {
                                     case CallStatus.Fail:
@@ -585,7 +594,7 @@ namespace BotL
                                     case CallStatus.NonDeterministicSuccess:
                                         ChoicePointStack[cTop++] = new ChoicePoint(goalFrame, startOfCall,
                                             headPredicate, (byte) (restartedClauseNumber + 1),
-                                            dTopSave, trailSave, eTop);
+                                            dTopSave, trailSave, savedUTop, eTop);
                                         break;
 
                                     case CallStatus.CallIndirect:
@@ -631,7 +640,7 @@ namespace BotL
                                     if (headPredicate.ExtraClauses != null)
                                         ChoicePointStack[cTop++] = new ChoicePoint(goalFrame, startOfCall,
                                             headPredicate, 0,
-                                            dTopSave, trailSave, eTop);
+                                            dTopSave, trailSave, uTop, eTop);
                                     break;
 
                                 case Opcode.CCut:
@@ -689,7 +698,7 @@ namespace BotL
                             if (headPredicate.ExtraClauses != null)
                                 ChoicePointStack[cTop++] = new ChoicePoint(goalFrame, startOfCall,
                                     headPredicate, 0,
-                                    dTopSave, trailSave, eTop);
+                                    dTopSave, trailSave, uTop, eTop);
 
                             headPc = 0;
                             break;
@@ -742,7 +751,7 @@ namespace BotL
                             if (headPredicate.ExtraClauses != null && head == headPredicate.FirstClause.Code)
                                 ChoicePointStack[cTop++] = new ChoicePoint(goalFrame, startOfCall,
                                     headPredicate, 0, dTopSave,
-                                    trailSave, eTop);
+                                    trailSave, uTop, eTop);
                             break;
 
                             #endregion
@@ -773,7 +782,7 @@ namespace BotL
                             goalFrame = cp.CallingFrame;
                             eTop = cp.SavedETop;
                             dTopSave = dTop = cp.DataStackTop;
-                            UndoTo(cp.TrailTop);
+                            UndoTo(cp.TrailTop, cp.UndoStackTop);
                             trailSave = cp.TrailTop;
                             goalPredicate = EnvironmentStack[goalFrame].Predicate;
                             goal = EnvironmentStack[goalFrame].CompiledClause.Code;
@@ -871,19 +880,30 @@ namespace BotL
             }
         }
 
-        #region Trailing
-        internal static void SaveUndo(ushort address)
+        #region Trailing and Undo Satck
+        internal static void SaveVariable(ushort address)
         {
             Trail[TrailTop++] = address;
         }
+        
+        private static void UndoTo(ushort cpTrailTop, ushort uStackTop)
+        {
+            ushort t;
+            UndoTo(cpTrailTop);
+            t = uTop;
+            while (t>uStackTop)
+                UndoStack[--t].Invoke();
+            uTop = t;
+        }
 
-        internal static void UndoTo(ushort cpTrailTop)
+        public static void UndoTo(ushort cpTrailTop)
         {
             var t = TrailTop;
             while (t > cpTrailTop)
                 DataStack[Trail[--t]].Type = TaggedValueType.Unbound;
             TrailTop = cpTrailTop;
         }
+
         #endregion
 
         #region Unification
@@ -932,7 +952,7 @@ namespace BotL
         private static void SetVariableToDereferencedBoundVariableValue(ushort addressToSet, ushort addressToRead)
         {
             Debug.Assert(DataStack[addressToRead].Type != TaggedValueType.VariableForward, "Setting variable to underefed address");
-            SaveUndo(addressToSet);
+            SaveVariable(addressToSet);
             DataStack[addressToSet] = DataStack[addressToRead];
         }
 
@@ -942,12 +962,12 @@ namespace BotL
                 return;
             if (a1 > a2)
             {
-                SaveUndo(a1);
+                SaveVariable(a1);
                 DataStack[a1].AliasTo(a2);
             }
             else
             {
-                SaveUndo(a2);
+                SaveVariable(a2);
                 DataStack[a2].AliasTo(a1);
             }
         }
@@ -1028,7 +1048,7 @@ namespace BotL
 
         private static ushort SetVarToConstant(int address, Predicate p, byte[] clause, ushort pc, ushort frameBase, ushort dTop)
         {
-            SaveUndo((ushort)address);  // Don't need to deref because this is only called for XFirstVar.
+            SaveVariable((ushort)address);  // Don't need to deref because this is only called for XFirstVar.
             switch ((OpcodeConstantType) clause[pc++])
             {
                 case OpcodeConstantType.Boolean:

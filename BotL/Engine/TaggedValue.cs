@@ -88,6 +88,24 @@ namespace BotL
             }
         }
 
+        public object ValueOrUnbound
+        {
+            get
+            {
+                switch (Type)
+                {
+                    case TaggedValueType.Unbound:
+                        return "<Unbound>";
+
+                    case TaggedValueType.VariableForward:
+                        return Engine.DataStack[integer].ValueOrUnbound;
+
+                    default:
+                        return Value;
+                }
+            }
+        }
+
         #region Assignment
         public void Set(bool b)
         {

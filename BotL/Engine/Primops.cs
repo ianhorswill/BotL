@@ -217,6 +217,33 @@ namespace BotL
             #endregion
 
             #region C# interop
+
+            DefinePrimop("set_property", 3, 0, (argBase, ignore) =>
+            {
+                var oAddr = Deref(argBase);
+                if (DataStack[oAddr].Type != TaggedValueType.Reference)
+                    throw new ArgumentTypeException("set_property", 1, "Argument should be a reference type",
+                        DataStack[oAddr].ValueOrUnbound);
+                var objArg = DataStack[oAddr].reference;
+                var nameAddr = Deref(argBase + 1);
+                if (DataStack[nameAddr].Type != TaggedValueType.Reference)
+                    throw new ArgumentTypeException("set_property", 1, "Argument should be a string or symbol",
+                        DataStack[nameAddr].ValueOrUnbound);
+                var nArg = DataStack[nameAddr].reference;
+                var name = nArg as string;
+                if (name == null)
+                {
+                    var s = nArg as Symbol;
+                    if (s != null)
+                        name = s.Name;
+                    else
+                        throw new ArgumentTypeException("set_property", 1, "Argument should be a string or symbol",
+                            DataStack[nameAddr].ValueOrUnbound);
+                }
+                objArg.SetPropertyOrField(name, DataStack[Deref(argBase + 2)].Value);
+                return CallStatus.DeterministicSuccess;
+            });
+
             DefinePrimop("in", 2, 1, (argBase, restartCount) =>
             {
                 var memberAddr = Deref(argBase);

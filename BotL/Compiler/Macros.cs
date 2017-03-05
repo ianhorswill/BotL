@@ -236,16 +236,34 @@ namespace BotL.Compiler
         #region Function macro expansion
         private static object ExpandFunctionUpdate(string updatePredicate, object functionArg, object newValueArg)
         {
+            var c = functionArg as Call;
+            if (c == null)
+                throw new ArgumentException("Invalid left hand side of set expression.");
+            if (c.IsFunctor(Symbol.DollarSign, 1))
+            {
+                // It's an update to a global variable
+                return new Call(Symbol.Intern("set_global"), c.Arguments[0], newValueArg);
+            }
+
+            if (c.IsFunctor(Symbol.Dot, 2))
+            {
+                // It's a property update expression
+                return new Call(Symbol.Intern("set_property"), c.Arguments[0], Stringify(c.Arguments[1]), newValueArg);
+            }
             if (!Functions.IsFunctionRelation(functionArg))
                 throw new InvalidOperationException("Unknown function in set expression: "+functionArg);
-
-            var c = functionArg as Call;
             // ReSharper disable once PossibleNullReferenceException
             var expandedArgs = new object[c.Arity + 1];
             for (var i = 0; i < c.Arguments.Length; i++)
                 expandedArgs[i] = c.Arguments[i];
             expandedArgs[expandedArgs.Length - 1] = newValueArg;
             return new Call(updatePredicate, new Call(c.Functor, expandedArgs));
+        }
+
+        private static string Stringify(object atom)
+        {
+            var s = atom as Symbol;
+            return s != null ? s.Name : (string) atom;
         }
         #endregion
     }

@@ -58,8 +58,8 @@ namespace BotL
         public static readonly Symbol ColonColon = Intern("::");
         public static readonly Symbol Queue = Intern("queue");
         public static readonly  Symbol GrammarRule = Intern("-->");
-
-
+        public static readonly Symbol CurlyBraces = Intern("{}");
+        
         Symbol(string n)
         {
             Name = n;

@@ -218,6 +218,8 @@ namespace BotL.Compiler
                                 queue);
             }
             var c = body as Call;
+            if (c != null && c.IsFunctor(Symbol.CurlyBraces, 1))
+                return c.Arguments[0];
             if (c != null && c.IsFunctor(Symbol.Comma, 2))
                 return new Call(Symbol.Comma,
                                 ExpandGrammarRuleBody(c.Arguments[0], queue),

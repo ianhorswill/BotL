@@ -128,6 +128,8 @@ namespace BotL.Parser
         private static readonly Symbol CloseParen = Symbol.Intern(")");
         private static readonly Symbol OpenBracket = Symbol.Intern("[");
         private static readonly Symbol CloseBracket = Symbol.Intern("]");
+        private static readonly Symbol OpenCurly = Symbol.Intern("{");
+        private static readonly Symbol CloseCurly = Symbol.Intern("}");
 
         private object ReadPrimary()
         {
@@ -142,6 +144,8 @@ namespace BotL.Parser
             var symbol = t as Symbol;
             if (t == OpenParen)
                 return ReadNestedExpression();
+            if (t == OpenCurly)
+                return ReadCurlyBraceExpression();
             if (symbol != null && tok.PeekToken() == OpenParen)
                 return ReadCall(symbol);
             if (symbol != null && tok.PeekToken() == OpenBracket)
@@ -154,12 +158,23 @@ namespace BotL.Parser
             return t;
         }
 
+        private object ReadCurlyBraceExpression()
+        {
+            return new Call(Symbol.CurlyBraces, ReadDelimitedExpression(CloseCurly));
+        }
+
         private object ReadNestedExpression()
+        {
+            return ReadDelimitedExpression(CloseParen);
+        }
+
+        private object ReadDelimitedExpression(Symbol delimiter)
         {
             var value = Read();
             var close = tok.GetToken();
-            if (close != CloseParen)
-                throw new SyntaxError($"Nested expression {value} does not have matching close paren; got {close} instead", value);
+            if (close != delimiter)
+                throw new SyntaxError($"Nested expression {value} does not have matching close paren; got {close} instead",
+                    value);
             return value;
         }
 
@@ -363,6 +378,12 @@ namespace BotL.Parser
                     WriteExpressionToString(c.Arguments[1], op.BinaryPrecedence.Value, b);
                     if (parenthesize)
                         b.Append(')');
+                }
+                else if (c.IsFunctor(Symbol.CurlyBraces, 1))
+                {
+                    b.Append("{");
+                    WriteExpressionToString(c.Arguments[0], 0, b);
+                    b.Append("}");
                 }
                 else
                 {

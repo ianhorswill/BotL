@@ -59,5 +59,14 @@ namespace Test
             TestFalse("sentence(queue(loves, john))");
             TestFalse("sentence(queue(john, loves, cats, foo, bar))");
         }
+
+        [TestMethod]
+        public void MatchCurlyBraces()
+        {
+            KB.Compile("digits --> word(W), { W in array(0, 1, 2, 3, 4, 5, 6, 7, 8, 9) }, digits");
+            KB.Compile("digits --> \"\"");
+            TestTrue("Q=queue(1, 5, 9, 1), digits(Q), length(Q)=0");
+            TestFalse("Q=queue(1, 5, 9, a, 1), digits(Q), length(Q)=0");
+        }
     }
 }

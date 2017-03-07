@@ -53,8 +53,12 @@ namespace BotL.Compiler
 
         private static void CompileStream(ExpressionParser expressionParser)
         {
+            expressionParser.SwallowStatementDeliminters();
             while (!expressionParser.EOF)
+            {
                 CompileInternal(expressionParser.Read());
+                expressionParser.SwallowStatementDeliminters();
+            }
         }
 
         static HashSet<string> LoadedSourceFiles = new HashSet<string>();

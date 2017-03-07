@@ -29,7 +29,7 @@ using BotL.Parser;
 namespace Test
 {
     [TestClass]
-    public class ParserTests
+    public class ParserTests : BotLTestClass
     {
         [TestMethod]
         public void NullExpressionTests()
@@ -40,6 +40,15 @@ namespace Test
             Assert.AreEqual(2, c.Arity);
             Assert.AreEqual(null, c.Arguments[0]);
             Assert.AreEqual(null, c.Arguments[1]);
+        }
+
+        [TestMethod]
+        public void DelimitedCode()
+        {
+            KB.Compile(@"delimited_code(a);
+delimited_code(b);;");
+            TestTrue("delimited_code(a)");
+            TestTrue("delimited_code(b)");
         }
 
         static object Read(string s)

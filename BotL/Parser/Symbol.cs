@@ -59,7 +59,8 @@ namespace BotL
         public static readonly Symbol Queue = Intern("queue");
         public static readonly  Symbol GrammarRule = Intern("-->");
         public static readonly Symbol CurlyBraces = Intern("{}");
-        
+        public static readonly Symbol Semicolon = Intern(";");
+
         Symbol(string n)
         {
             Name = n;

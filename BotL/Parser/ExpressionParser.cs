@@ -98,6 +98,17 @@ namespace BotL.Parser
             return ReadExpression(ReadPrimary(), 0, isArgument);
         }
 
+        public void SwallowStatementDeliminters()
+        {
+            while (IsStatementDelimiter(tok.PeekToken()))
+                tok.GetToken();
+        }
+
+        private bool IsStatementDelimiter(object token)
+        {
+            return token == Symbol.Semicolon;
+        }
+
         private object ReadExpression(object lhs, int minPrec, bool isArgument)
         {
             var lookAhead = tok.PeekToken() as Symbol;

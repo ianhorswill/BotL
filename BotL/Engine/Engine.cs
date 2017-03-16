@@ -37,22 +37,76 @@ namespace BotL
         private const int EStackSize = DStackSize / 2;
         private const int CStackSize = DStackSize / 3;
         private const int UStackSize = DStackSize / 2;
+        /// <summary>
+        /// Holds arguments for predicates.
+        /// Environment stack points into here to specify where the arguments of a given invocation are stored.
+        /// </summary>
         internal static readonly TaggedValue[] DataStack = new TaggedValue[DStackSize];
+        /// <summary>
+        /// Activation frames for individual predicate invocations.
+        /// Arguments for the invocation are stored in the DataStack,
+        /// at the offset specified by the base address in this frame.
+        /// Restart information for backtracking an invocation is stored in the ChoicePointStack.
+        /// </summary>
         internal static readonly Environment[] EnvironmentStack = new Environment[EStackSize];
+        /// <summary>
+        /// Stack of restart information for invocations of backtrackable predicates in the environment stack.
+        /// Each entry in the environment stack has at most one entry in the choicepointstack.  However,
+        /// many calls are deterministic, meaning they can't be restarted, and so they have no entry here.
+        /// As a consequence, when backtracking occurs, the system proceeds directly to whatever previous
+        /// predicate *was* restartable.
+        /// </summary>
         static readonly ChoicePoint[] ChoicePointStack = new ChoicePoint[CStackSize];
+        /// <summary>
+        /// Log of variables that have been bound to values and which will consequently need to be unbound
+        /// if backtracking in the future.  A choicepoint specifies how far down the tail needs to be unwound
+        /// if we restart that choicepoint.
+        /// </summary>
         private static readonly ushort[] Trail = new ushort[DStackSize];
+        /// <summary>
+        /// The top of the trail (which is ultimately a stack).
+        /// This is a field rather than a local variable of Engine.Run() because code outside of Run() needs
+        /// to be able to bind variables, and hence to push the trail.
+        /// </summary>
         internal static ushort TrailTop;
+        /// <summary>
+        /// A stack of operations to perform when backtracking.  So like the Trail, but for operations other
+        /// than resetting variable bindings.  The trail is a specialized undo stack.
+        /// Each choicepoint records how far down to unwind the undo stack.
+        /// We assume that undoing is a rarer operation than trailing, so it's somewhat more expensive.
+        /// </summary>
         internal static readonly UndoRecord[] UndoStack = new UndoRecord[UStackSize];
-        internal static ushort uTop;         // Undo stack pointer
+        /// <summary>
+        /// Top of the undo stack.  Like the trail top, this is a field rather than a local variable of Run()
+        /// because primops need to be able to push undo records.
+        /// </summary>
+        internal static ushort UTop;
 
 #if DEBUG
+        /// <summary>
+        /// We are single-stepping the VM.  Don't set this unless you are using the REPL and want to
+        /// watch the VM run instruction by instruction.
+        /// </summary>
         public static bool SingleStep;
 #endif
 
         #region Front end overloads of Run
+        /// <summary>
+        /// The name of the scratch predicate used by the repl to compile top-level queries into.
+        /// </summary>
         private static readonly Symbol TopLevelGoal = Symbol.Intern("top_level_goal");
-
+        /// <summary>
+        /// The compiler's model of the environment for the top-level goal.
+        /// This is used by TopLevelResultBindings to return the values of variables from the last
+        /// call to Run(string goal).  It is not used otherwise.
+        /// </summary>
         private static BindingEnvironment topLevelBindingEnvironment;
+
+        /// <summary>
+        /// Compile and run some code.
+        /// </summary>
+        /// <param name="goal">Source code to compile and run.</param>
+        /// <returns>True if the query succeeded.</returns>
         public static bool Run(string goal)
         {
             KB.Predicate(new PredicateIndicator(TopLevelGoal, 0)).Clear();
@@ -60,6 +114,9 @@ namespace BotL
             return Run(TopLevelGoal);
         }
 
+        /// <summary>
+        /// Iterator to return the bindings of all the variables in the last query run by Run(string goal).
+        /// </summary>
         public static IEnumerable<KeyValuePair<Symbol, object>> TopLevelResultBindings
         {
             get
@@ -69,20 +126,52 @@ namespace BotL
             }
         }
 
+        /// <summary>
+        /// Runs an already-compiled predicate.  The predicate may not take arguments.
+        /// </summary>
+        /// <param name="entryPoint">Symbol naming the predicate.</param>
+        /// <returns>True if the predicate succeeded.</returns>
         public static bool Run(Symbol entryPoint)
         {
             return Run(KB.Predicate(new PredicateIndicator(entryPoint)));
         }
         #endregion
 
+        #region Trampoline used to start user code
+        //
+        // Trampoline
+        // This isn't a real predicate.  It's a hand-coded placeholder that is stored into the PC
+        // when the VM starts up so that it will invoke the actual predicate the user is trying to run.
+        //
+
         private static readonly byte[] Trampoline = { (byte)Opcode.CLastCall };
 
+        /// <summary>
+        /// The clause used to start execution.  This will only ever appear on the bottom of the environment
+        /// stack.
+        /// </summary>
         private static readonly CompiledClause TrampolineRule =
             new CompiledClause(null, Trampoline, 0, null);
 
-        // Just a placeholder so goalPredicate will always be non-null.
+        /// <summary>
+        /// This is just a placeholder predicate so that the TrampolineRule has a predicate it belongs to
+        /// and hence goalPredicate will be non-null even for the fake frame at the bottom of the
+        /// environment stack.
+        /// </summary>
         static readonly Predicate TrampolinePredicate = new Predicate(Symbol.Intern("trampoline"), 0);
+        #endregion
 
+        #region Virutal machine interpreter
+        /// <summary>
+        /// Run a specified predicate without any arguments.
+        /// 
+        /// The VM interpreter is inside this method.
+        /// 
+        /// WARNING: this is not reentrant!  Don't call it from inside a primop or other C# code called
+        /// from within BotL code.
+        /// </summary>
+        /// <param name="headPredicate">Predicate to call</param>
+        /// <returns>True if the predicate succeeds.</returns>
         private static bool Run(Predicate headPredicate)
         {
             #region Startup
@@ -94,7 +183,7 @@ namespace BotL
             ushort dTopSave = 0;     // Data stack point at start of call
             ushort restartedClauseNumber = 0;
             TrailTop = 0;
-            uTop = 0;
+            UTop = 0;
 
             byte[] goal = Trampoline;
             Predicate goalPredicate = TrampolinePredicate;
@@ -121,7 +210,7 @@ namespace BotL
 
             // Allocate new choice frame, if necessary
             if (headPredicate.ExtraClauses != null)
-                ChoicePointStack[cTop++] = new ChoicePoint(goalFrame, startOfCall, headPredicate, 0, dTopSave, trailSave, uTop, eTop);
+                ChoicePointStack[cTop++] = new ChoicePoint(goalFrame, startOfCall, headPredicate, 0, dTopSave, trailSave, UTop, eTop);
             #endregion
 
             try
@@ -465,12 +554,12 @@ namespace BotL
                                 if (canContinue)
                                 {
                                     ChoicePointStack[cTop++] = new ChoicePoint(goalFrame, startOfCall, headPredicate,
-                                        nextRow, dTopSave, trailSave, uTop, eTop);
+                                        nextRow, dTopSave, trailSave, UTop, eTop);
                                 }
                             }
                             else
                             {
-                                var savedUTop = uTop;
+                                var savedUTop = UTop;
                                 switch (headPredicate.PrimopImplementation(dTop, restartedClauseNumber))
                                 {
                                     case CallStatus.Fail:
@@ -562,7 +651,7 @@ namespace BotL
                             if (headPredicate.ExtraClauses != null)
                                 ChoicePointStack[cTop++] = new ChoicePoint(goalFrame, startOfCall,
                                     headPredicate, 0,
-                                    dTopSave, trailSave, uTop, eTop);
+                                    dTopSave, trailSave, UTop, eTop);
                             break;
 
                         // (Non-tail) calling a special predicate
@@ -578,11 +667,11 @@ namespace BotL
                                 if (canContinue)
                                     ChoicePointStack[cTop++] = new ChoicePoint(goalFrame, startOfCall,
                                         headPredicate, nextRow,
-                                        dTopSave, trailSave, uTop, eTop);
+                                        dTopSave, trailSave, UTop, eTop);
                             }
                             else
                             {
-                                var savedUTop = uTop;
+                                var savedUTop = UTop;
                                 switch (headPredicate.PrimopImplementation(dTop, restartedClauseNumber))
                                 {
                                     case CallStatus.Fail:
@@ -640,7 +729,7 @@ namespace BotL
                                     if (headPredicate.ExtraClauses != null)
                                         ChoicePointStack[cTop++] = new ChoicePoint(goalFrame, startOfCall,
                                             headPredicate, 0,
-                                            dTopSave, trailSave, uTop, eTop);
+                                            dTopSave, trailSave, UTop, eTop);
                                     break;
 
                                 case Opcode.CCut:
@@ -698,7 +787,7 @@ namespace BotL
                             if (headPredicate.ExtraClauses != null)
                                 ChoicePointStack[cTop++] = new ChoicePoint(goalFrame, startOfCall,
                                     headPredicate, 0,
-                                    dTopSave, trailSave, uTop, eTop);
+                                    dTopSave, trailSave, UTop, eTop);
 
                             headPc = 0;
                             break;
@@ -751,7 +840,7 @@ namespace BotL
                             if (headPredicate.ExtraClauses != null && head == headPredicate.FirstClause.Code)
                                 ChoicePointStack[cTop++] = new ChoicePoint(goalFrame, startOfCall,
                                     headPredicate, 0, dTopSave,
-                                    trailSave, uTop, eTop);
+                                    trailSave, UTop, eTop);
                             break;
 
                             #endregion
@@ -879,6 +968,7 @@ namespace BotL
                     "Saved dTop for choicepoint points to unallocated space.");
             }
         }
+        #endregion
 
         #region Trailing and Undo Satck
         internal static void SaveVariable(ushort address)
@@ -890,10 +980,10 @@ namespace BotL
         {
             ushort t;
             UndoTo(cpTrailTop);
-            t = uTop;
+            t = UTop;
             while (t>uStackTop)
                 UndoStack[--t].Invoke();
-            uTop = t;
+            UTop = t;
         }
 
         public static void UndoTo(ushort cpTrailTop)

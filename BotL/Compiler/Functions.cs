@@ -26,6 +26,9 @@ using System.Collections.Generic;
 
 namespace BotL.Compiler
 {
+    /// <summary>
+    /// Table of predicates that are callable as functions
+    /// </summary>
     public static class Functions
     {
         private static readonly HashSet<PredicateIndicator> HoistableFunctions = new HashSet<PredicateIndicator>();

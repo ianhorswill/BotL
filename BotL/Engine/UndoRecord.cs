@@ -2,7 +2,15 @@
 
 namespace BotL
 {
+    /// <summary>
+    /// A closure to be called to undo some state change when backtracking 
+    /// </summary>
+    /// <param name="arg">The UndoRecord containing further information about what to undo.</param>
     delegate void UndoAction(ref UndoRecord arg);
+
+    /// <summary>
+    /// A record indicating some action to take to undo some state chance when the system backtracks.
+    /// </summary>
     internal struct UndoRecord
     {
         public UndoAction Action;

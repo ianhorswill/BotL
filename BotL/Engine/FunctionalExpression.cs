@@ -31,6 +31,11 @@ using static BotL.Engine;
 
 namespace BotL
 {
+    /// <summary>
+    /// Evaluator for compiled functional expressions.
+    /// Functional expressions have their own byte codes (FOpcode), but these are embedded
+    /// in the normal byte code.
+    /// </summary>
     internal static class FunctionalExpression
     {
         public const ushort EvalStackOffset = 256;

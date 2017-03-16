@@ -26,6 +26,9 @@ using System.Collections.Generic;
 
 namespace BotL.Compiler
 {
+    /// <summary>
+    /// Represents the compile-time environment of a clause.
+    /// </summary>
     class BindingEnvironment
     {
         private readonly Dictionary<Symbol, Variable> variableTable = new Dictionary<Symbol, Variable>();

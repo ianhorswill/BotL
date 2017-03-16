@@ -24,6 +24,9 @@
 #endregion
 namespace BotL
 {
+    /// <summary>
+    /// Specifies a name+arity for a predicate.  Used when looking up a predicate or indexing a table.
+    /// </summary>
     internal struct PredicateIndicator
     {
         public PredicateIndicator(Symbol f, int a)

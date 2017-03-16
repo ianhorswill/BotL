@@ -31,8 +31,14 @@ using static BotL.Engine;
 
 namespace BotL
 {
+    /// <summary>
+    /// Definitions related to primitive predicates
+    /// </summary>
     public static class Primops
     {
+        /// <summary>
+        /// Add the built-in primops to the KB.
+        /// </summary>
         internal static void DefinePrimops()
         {
             Table.DefineTablePrimops();
@@ -431,7 +437,7 @@ namespace BotL
                 var gv = GlobalVariable.Find(name);
                 if (gv == null)
                     throw new ArgumentException("Unknown global variable: " + name);
-                UndoStack[uTop++].Set(UndoTrySetGlobal, gv, ref gv.Value);
+                UndoStack[UTop++].Set(UndoTrySetGlobal, gv, ref gv.Value);
                 gv.Value = DataStack[valueAddr];
                 return CallStatus.DeterministicSuccess;
             });

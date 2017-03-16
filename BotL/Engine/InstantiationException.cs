@@ -26,6 +26,10 @@ using System;
 
 namespace BotL
 {
+    /// <summary>
+    /// Exception thrown when referencing an unbound variable in a functional expression or
+    /// otherwise using an unbound variable somewhere where a bound one must be used.
+    /// </summary>
     public class InstantiationException : Exception
     {
         public InstantiationException(string message) : base(message) { }

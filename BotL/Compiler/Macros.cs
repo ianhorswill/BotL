@@ -28,8 +28,14 @@ using System.Linq;
 
 namespace BotL.Compiler
 {
+    /// <summary>
+    /// Support for macroexpansion.
+    /// </summary>
     static class Macros
     {
+        /// <summary>
+        /// Declare the standard built-in macros.
+        /// </summary>
         public static void DeclareMacros()
         {
             Table.DefineTableMacros();

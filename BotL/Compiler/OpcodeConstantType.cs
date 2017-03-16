@@ -24,13 +24,34 @@
 #endregion
 namespace BotL
 {
+    /// <summary>
+    /// Extension to the HeadConst/GoalConst opcodes, specifying the type of constant to be passed.
+    /// </summary>
     enum OpcodeConstantType : byte
     {
+        /// <summary>
+        /// Value is a constant from the Object constant table
+        /// </summary>
         Object,
+        /// <summary>
+        /// Value is a boolean
+        /// </summary>
         Boolean,
+        /// <summary>
+        /// Value is an sbyte to be converted to an int.
+        /// </summary>
         SmallInteger,
+        /// <summary>
+        /// Value is a constant from the integer constant table
+        /// </summary>
         Integer,
+        /// <summary>
+        /// Value is a constant from the float constant table
+        /// </summary>
         Float,
+        /// <summary>
+        /// Value is to be computed at run-time using the compiled functional code after this opcode.
+        /// </summary>
         FunctionalExpression
     }
 }

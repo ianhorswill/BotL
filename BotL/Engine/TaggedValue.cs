@@ -29,6 +29,14 @@ using BotL.Parser;
 
 namespace BotL
 {
+    /// <summary>
+    /// A variant record used to represent values in the interpreter.
+    /// We use this instead of the object type because if you store an int, bool, or float into an object
+    /// variable, the system will box it (copy it to the heap).  So we instead have a struct (non-heap) type 
+    /// that is optimized to be able to hold an int, bool, or float without boxing.
+    /// This is the type used to represent variables on the stack.  It can also store forwarding pointers
+    /// to other variables when this variable has been unified with another, or a special "unbound" value.
+    /// </summary>
     [StructLayout(LayoutKind.Explicit)]
     public struct TaggedValue
     {

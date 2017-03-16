@@ -24,6 +24,9 @@
 #endregion
 namespace BotL.Compiler
 {
+    /// <summary>
+    /// Represents compiler-internal information about a variable.
+    /// </summary>
     class VariableInfo
     {
         /// <summary>

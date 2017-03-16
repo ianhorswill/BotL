@@ -175,7 +175,7 @@ namespace BotL
                     {
                         if (queue.Count == 0)
                             return CallStatus.Fail;
-                        UndoStack[uTop++].Set(RestoreHead, queue, queue.head);
+                        UndoStack[UTop++].Set(RestoreHead, queue, queue.head);
                         var value = queue.Dequeue();
 
                         if (DataStack[vAddr].Type == TaggedValueType.Unbound)
@@ -190,7 +190,7 @@ namespace BotL
                     case MatchMode.Generate:
                     {
                         // Generate mode
-                        UndoStack[uTop++].Set(RestoreTail, queue, queue.tail);
+                        UndoStack[UTop++].Set(RestoreTail, queue, queue.tail);
                         if (DataStack[vAddr].Type == TaggedValueType.Unbound)
                             throw new InstantiationException("Attempt to write uninstantiated variable to queue");
                         queue.Enqueue(DataStack[vAddr].Value);
@@ -221,7 +221,7 @@ namespace BotL
                     {
                         if (queue.Count < seq.Length)
                             return CallStatus.Fail;
-                        UndoStack[uTop++].Set(RestoreHead, queue, queue.head);
+                        UndoStack[UTop++].Set(RestoreHead, queue, queue.head);
 
                         foreach (var word in seq)
                             if (!Equals(word, queue.Dequeue()))
@@ -231,7 +231,7 @@ namespace BotL
                     case MatchMode.Generate:
                     {
                         // Generate mode
-                        UndoStack[uTop++].Set(RestoreTail, queue, queue.tail);
+                        UndoStack[UTop++].Set(RestoreTail, queue, queue.tail);
                         foreach (var word in seq)
                             queue.Enqueue(word);
                         return CallStatus.DeterministicSuccess;

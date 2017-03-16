@@ -29,6 +29,11 @@ using static BotL.Engine;
 
 namespace BotL
 {
+    /// <summary>
+    /// A predicate implemented as a table of tuples of constants.
+    /// Tables may not have rules, although their Predicate objects contain a single fake rule
+    /// that parses the arguments and calls into the matching code below.
+    /// </summary>
     public class Table
     {
         public Table(Symbol name, int arity)

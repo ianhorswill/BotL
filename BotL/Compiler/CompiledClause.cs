@@ -25,11 +25,29 @@
 
 namespace BotL
 {
+    /// <summary>
+    /// The compiled form of a rule.
+    /// Contains a bytecode vector as well as environment size and debug info.
+    /// </summary>
     sealed class CompiledClause
     {
+        /// <summary>
+        /// Source code for the rule.
+        /// </summary>
         public readonly object Source;
+        /// <summary>
+        /// Compiled bytecode for the rule.
+        /// </summary>
         public readonly byte[] Code;
+        /// <summary>
+        /// Number of entries in this rule's stack frame.
+        /// </summary>
         public readonly ushort EnvironmentSize;
+        /// <summary>
+        /// Describes the mapping from head arguments to stack positions
+        /// HeadModel[i] = constant, if that arg was a constant in the head
+        /// HeadModel[i] = StackReference object if it was a variable.
+        /// </summary>
         public readonly object[] HeadModel;
 
         public CompiledClause(object source, byte[] code, ushort environmentSize, object[] headModel)

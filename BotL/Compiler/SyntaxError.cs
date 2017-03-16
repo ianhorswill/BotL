@@ -27,6 +27,9 @@ using BotL.Parser;
 
 namespace BotL.Compiler
 {
+    /// <summary>
+    /// Exception for syntax errors in BotL code.
+    /// </summary>
     public class SyntaxError : Exception
     {
         private readonly object offendingExpression;

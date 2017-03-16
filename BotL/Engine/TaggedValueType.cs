@@ -24,13 +24,36 @@
 #endregion
 namespace BotL
 {
+    /// <summary>
+    /// The type of data stored in a TaggedValue cell
+    /// </summary>
     public enum TaggedValueType
     {
+        /// <summary>
+        /// Value is an integer stored in the integer field of the TaggedValue
+        /// </summary>
         Integer,
+        /// <summary>
+        /// Value is an (single precision) float stored in the floatingPoint field of the TaggedValue
+        /// </summary>
         Float,
+        /// <summary>
+        /// Value is an boolean stored in the boolean field of the TaggedValue
+        /// </summary>
         Boolean,
+        /// <summary>
+        /// TaggedValue is bound to something other than an int, float, or bool.
+        /// It's stored in the reference field of the TaggedValue.
+        /// </summary>
         Reference,
+        /// <summary>
+        /// Used only for variables in the DataStack array.  The variable has been aliased to some
+        /// other variable whose DataStack index is in the integer field of the TaggedValue.
+        /// </summary>
         VariableForward,
+        /// <summary>
+        /// Used only for variables, i.e. TaggedValues in the DataStack array.  The variable is uninstantiated.
+        /// </summary>
         Unbound
     }
 }

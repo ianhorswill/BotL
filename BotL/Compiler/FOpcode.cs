@@ -213,6 +213,14 @@ namespace BotL
         /// </summary>
         Max,
         /// <summary>
+        /// World-space between two GameObjects
+        /// </summary>
+        Distance,
+        /// <summary>
+        /// Squared world-space distance between two game objects.
+        /// </summary>
+        DistanceSq,
+        /// <summary>
         /// Marks the end of a functional expression
         /// </summary>
         Return = 255
@@ -270,6 +278,9 @@ namespace BotL
 
             OpcodeTable[new PredicateIndicator("min", 2)] = FOpcode.Min;
             OpcodeTable[new PredicateIndicator("max", 2)] = FOpcode.Max;
+
+            OpcodeTable[new PredicateIndicator("distance", 2)] = FOpcode.Distance;
+            OpcodeTable[new PredicateIndicator("distance_squared", 2)] = FOpcode.DistanceSq;
         }
     }
 }

@@ -366,7 +366,16 @@ namespace BotL
                         }
                         break;
 
-                    
+                    case FOpcode.Distance:
+                        var distance = UnityUtilities.Distance(DataStack[--stack].Value, DataStack[--stack].Value);
+                        DataStack[stack++].Set(distance);
+                        break;
+
+                    case FOpcode.DistanceSq:
+                        var distanceSq = UnityUtilities.DistanceSq(DataStack[--stack].Value, DataStack[--stack].Value);
+                        DataStack[stack++].Set(distanceSq);
+                        break;
+
                     default:
                         throw new InvalidOperationException("Bad opcode in compiled functional expression");
                 }

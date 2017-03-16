@@ -97,5 +97,25 @@ namespace BotL.Unity
             GlobalVariable.This.Value.SetReference(comp);
             GlobalVariable.GameObject.Value.SetReference(gameObject);
         }
+
+        public static float Distance(object arg1, object arg2)
+        {
+            if (!(arg1 is GameObject o1))
+                throw new ArgumentTypeException("distance", 1, "Argument should be a GameObject", arg1);
+            if (!(arg2 is GameObject o2))
+                throw new ArgumentTypeException("distance", 2, "Argument should be a GameObject", arg1);
+
+            return Vector3.Distance(o1.transform.position, o2.transform.position);
+        }
+
+        public static float DistanceSq(object arg1, object arg2)
+        {
+            if (!(arg1 is GameObject o1))
+                throw new ArgumentTypeException("distance", 1, "Argument should be a GameObject", arg1);
+            if (!(arg2 is GameObject o2))
+                throw new ArgumentTypeException("distance", 2, "Argument should be a GameObject", arg1);
+
+            return Vector3.SqrMagnitude(o1.transform.position-o2.transform.position);
+        }
     }
 }

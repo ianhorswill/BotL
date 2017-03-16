@@ -105,7 +105,7 @@ namespace BotL.Compiler
             {
                 var c = input as Call;
                 if (c == null || !c.IsFunctor(Symbol.Colon, 2))
-                    throw new ArgumentException("Argument to setof must be of the form Var:Generator.");
+                    throw new SyntaxError("Argument to setof must be of the form Var:Generator.", input);
                 var v = c.Arguments[0];
                 var generator = c.Arguments[1];
                 return And(new Call(Symbol.Equal, output, new Call(Symbol.Hashset)),
@@ -119,7 +119,7 @@ namespace BotL.Compiler
             {
                 var c = input as Call;
                 if (c == null || !c.IsFunctor(Symbol.Colon, 2))
-                    throw new ArgumentException("Argument to setof must be of the form Var:Generator.");
+                    throw new SyntaxError("Argument to setof must be of the form Var:Generator.", input);
                 var v = c.Arguments[0];
                 var generator = c.Arguments[1];
                 return And(new Call(Symbol.Equal, output, new Call(Symbol.ArrayList)),
@@ -244,7 +244,7 @@ namespace BotL.Compiler
         {
             var c = functionArg as Call;
             if (c == null)
-                throw new ArgumentException("Invalid left hand side of set expression.");
+                throw new SyntaxError("Invalid left hand side of set expression.", functionArg);
             if (c.IsFunctor(Symbol.DollarSign, 1))
             {
                 // It's an update to a global variable

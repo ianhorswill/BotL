@@ -119,11 +119,10 @@ namespace BotL
         /// </summary>
         GoalVarMatch = 4*8,
         /// <summary>
-        /// Format: CFail
-        /// Forces the current rule to fail.
-        /// MAY ONLY APPEAR AS THE LAST INSTRUCTION OF A RULE
+        /// Format: CBuiltin BuiltinOpcode OptionalArgs...
+        /// A predicate whose operation is built into the VM
         /// </summary>
-        CFail = 5 * 8,
+        CBuiltin = 5 * 8,
 
         // These two must come last because of the test for call instructions in the engine
         // (used for tracing)

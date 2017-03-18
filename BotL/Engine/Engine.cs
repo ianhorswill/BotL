@@ -262,6 +262,81 @@ namespace BotL
                 ChoicePointStack[cTop++] = new ChoicePoint(goalFrame, startOfCall, headPredicate, 0, dTopSave, trailSave, UTop, eTop);
             #endregion
 
+            #region DoBuiltin
+            bool DoBuiltin(byte[] code, ref ushort pc, ushort frameBase)
+            {
+                var builtin = (Builtin) code[pc++];
+                switch (builtin)
+                {
+                    case Builtin.Fail:
+                        return false;
+
+                    case Builtin.Var:
+                        return DataStack[Deref(frameBase + code[pc++])].Type == TaggedValueType.Unbound;
+
+                    case Builtin.NonVar:
+                        return DataStack[Deref(frameBase + code[pc++])].Type != TaggedValueType.Unbound;
+
+                    case Builtin.UnsafeInitialize:
+                        Unbind(frameBase + code[pc++]);
+                        return true;
+
+                    case Builtin.UnsafeInitializeZero:
+                        DataStack[frameBase + code[pc++]].Set(0f);
+                        return true;
+
+                    case Builtin.UnsafeSet:
+                    {
+                        var lhs = code[pc++];
+                        var rhs = code[pc++];
+                        DataStack[frameBase + lhs] = DataStack[Deref(frameBase + rhs)];
+                        return true;
+                    }
+
+                    case Builtin.MaximizeUpdate:
+                    case Builtin.MaximizeUpdateAndRepeat:
+                        {
+                            var lhs = Deref(frameBase + code[pc++]); // Deref here is being paranoid
+                            var rhs = Deref(frameBase + code[pc++]);
+                            var rhsAsFloat = DataStack[rhs].AsFloat;
+                            if (DataStack[lhs].Type == TaggedValueType.Unbound
+                                || DataStack[lhs].AsFloat < rhsAsFloat)
+                            {
+                                DataStack[lhs].Set(rhsAsFloat);
+                                return builtin == Builtin.MaximizeUpdate;
+                            }
+                            return false;
+                        }
+
+                    case Builtin.MinimizeUpdate:
+                    case Builtin.MinimizeUpdateAndRepeat:
+                        {
+                            var lhs = Deref(frameBase + code[pc++]); // Deref here is being paranoid
+                            var rhs = Deref(frameBase + code[pc++]);
+                            var rhsAsFloat = DataStack[rhs].AsFloat;
+                            if (DataStack[lhs].Type == TaggedValueType.Unbound
+                                || DataStack[lhs].AsFloat > rhsAsFloat)
+                            {
+                                DataStack[lhs].Set(rhsAsFloat);
+                                return builtin == Builtin.MinimizeUpdate;
+                            }
+                            return false;
+                        }
+
+                    case Builtin.SumUpdateAndRepeat:
+                        {
+                            var lhs = frameBase + code[pc++];
+                            var rhs = Deref(frameBase + code[pc++]);
+                            DataStack[lhs].floatingPoint += DataStack[rhs].AsFloat;
+                            return false;
+                        }
+
+                    default:
+                        throw new InvalidOperationException("Unknown builtin opcode: "+goalCode[goalPc-1]);
+                }
+            }
+            #endregion
+
             try
             {
                 while (true)
@@ -586,9 +661,14 @@ namespace BotL
                             goalPc--;
                             break;
 
-                        case (int) Opcode.CFail + (int) Opcode.CLastCall:
-                        case (int) Opcode.CFail + (int) Opcode.CCall:
-                            goto fail;
+                        case (int) Opcode.CBuiltin + (int) Opcode.CLastCall:
+                        case (int) Opcode.CBuiltin + (int) Opcode.CCall:
+                        {
+                            var headBase = headPredicate.IsNestedPredicate ? EnvironmentStack[goalFrame].Base : dTop;
+                            if (!DoBuiltin(headCode, ref headPc, headBase)) goto fail;
+                            goalPc--;
+                        }
+                            break;
 
                         // Tail call a special predicate
                         case (int) Opcode.CSpecial + (int) Opcode.CLastCall:
@@ -633,11 +713,11 @@ namespace BotL
                                         throw new InvalidOperationException("Tail call to primop that returned callindirect.");
                                 }
                             }
-                            goto lastCallFact;
+                            goto goalPredicateSucceeded;
 
                         // Tail calling a fact
                         case (int) Opcode.CNoGoal + (int) Opcode.CLastCall:
-                            lastCallFact:
+                            goalPredicateSucceeded:
                             if (goalPredicate.IsTraced)
                             {
                                 TraceSucceed(dTop, headPredicate, headCode);
@@ -666,8 +746,10 @@ namespace BotL
                                 case Opcode.CGoal:
                                     break;
 
-                                case Opcode.CFail:
-                                    goto fail;
+                                case Opcode.CBuiltin:
+                                    if (!DoBuiltin(goalCode, ref goalPc, EnvironmentStack[goalFrame].Base))
+                                        goto fail;
+                                    break;
 
                                 case Opcode.CCut:
                                     cTop = EnvironmentStack[goalFrame].CallerCTop;
@@ -744,7 +826,7 @@ namespace BotL
                                 if (restartedClauseNumber == 0)
                                     dTop += headPredicate.Tempvars;
                             }
-                            goto continueCaller;
+                            goto continueGoalPredicate;
 
                         // (Non-tail) calling a fact
                         case (int) Opcode.CNoGoal + (int) Opcode.CCall:
@@ -754,7 +836,7 @@ namespace BotL
                                 TraceSucceed(dTop, headPredicate, headCode);
                             }
 
-                            continueCaller:
+                            continueGoalPredicate:
                             switch ((Opcode) goalCode[goalPc++])
                             {
                                 case Opcode.CGoal:
@@ -785,11 +867,16 @@ namespace BotL
                                     cTop = EnvironmentStack[goalFrame].CallerCTop;
                                     if (goalPc == goalCode.Length)
                                         // At end of goalPredicate, so return from it.
-                                        goto lastCallFact;
-                                    goto continueCaller;
+                                        goto goalPredicateSucceeded;
+                                    goto continueGoalPredicate;
 
-                                case Opcode.CFail:
-                                    goto fail;
+                                case Opcode.CBuiltin:
+                                    if (!DoBuiltin(goalCode, ref goalPc, EnvironmentStack[goalFrame].Base))
+                                        goto fail;
+                                    goto continueGoalPredicate;
+
+                                case Opcode.CNoGoal:
+                                    goto goalPredicateSucceeded;
 
                                 default:
                                     Debug.Assert(false, "CCall should be followed by CGoal");

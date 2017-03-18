@@ -100,12 +100,23 @@ namespace BotL.Unity
 
         public static float Distance(object arg1, object arg2)
         {
-            if (!(arg1 is GameObject o1))
-                throw new ArgumentTypeException("distance", 1, "Argument should be a GameObject", arg1);
-            if (!(arg2 is GameObject o2))
-                throw new ArgumentTypeException("distance", 2, "Argument should be a GameObject", arg1);
+            if (!(arg1 is Vector3 v1))
+            {
+                if ((arg1 is GameObject o1))
+                    v1 = o1.transform.position;
+                else
+                    throw new ArgumentTypeException("distance", 1, "Argument should be a GameObject", arg1);
+            }
 
-            return Vector3.Distance(o1.transform.position, o2.transform.position);
+            if (!(arg2 is Vector3 v2))
+            {
+                if ((arg2 is GameObject o2))
+                    v2 = o2.transform.position;
+                else
+                    throw new ArgumentTypeException("distance", 2, "Argument should be a GameObject", arg2);
+            }
+
+            return Vector3.Distance(v1, v2);
         }
 
         public static float DistanceSq(object arg1, object arg2)

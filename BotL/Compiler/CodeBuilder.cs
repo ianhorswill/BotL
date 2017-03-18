@@ -97,5 +97,11 @@ namespace BotL.Compiler
                 Emit(Predicate.GetObjectConstantIndex(o));
             }
         }
+
+        public void EmitBuiltin(Builtin builtinOpcode)
+        {
+            Emit(Opcode.CBuiltin);
+            Emit((byte)builtinOpcode);
+        }
     }
 }

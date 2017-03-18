@@ -95,50 +95,12 @@ namespace Test
         }
 
         [TestMethod]
-        public void MinMaxTest()
-        {
-            Compiler.Compile(@"dumbset(1)
-dumbset(2)
-dumbset(3)");
-            TestTrue("minimum(X,dumbset(X), M), M=1.0");
-            TestTrue("maximum(X,dumbset(X), M), M=3.0");
-        }
-
-        [TestMethod]
-        public void ArgMinMaxTest()
-        {
-            Compiler.Compile(@"dumbmap(a,1)
-dumbmap(b,2)
-dumbmap(c,3)");
-            TestTrue("arg_min(X,S, dumbmap(X, S), M), M=a");
-            TestTrue("arg_max(X, S, dumbmap(X, S), M), M=c");
-        }
-
-        [TestMethod]
-        public void SumTest()
-        {
-            TestTrue("sum(X, X in array(1,2,3), S), S=6.0");
-        }
-
-        [TestMethod]
         public void ItemTests()
         {
             TestTrue("X=array(1,2,3), X[1]=2");
             TestTrue("X=array(1,2,3), X[1]=Y, Y=2");
         }
-
-        [TestMethod]
-        public void InstantiationTestTests()
-        {
-            TestTrue("var(X)");
-            TestFalse("X=Y, Y=a, var(X)");
-            TestFalse("var(1)");
-
-            TestFalse("nonvar(X)");
-            TestTrue("X=Y, Y=a, nonvar(X)");
-            TestTrue("nonvar(1)");
-        }
-
+        
         [TestMethod]
         public void TypeTestTests()
         {

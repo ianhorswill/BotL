@@ -386,8 +386,10 @@ namespace BotL.Compiler
                 CompileMetaCall(c, b, e, lastCall);
             } else if (goal == Symbol.Fail || goal.Equals(false))
             {
-                b.Emit(Opcode.CFail);
+                b.EmitBuiltin(Builtin.Fail);
             }
+            else if (c != null && BuiltinTable.BuiltinOpcode(c).HasValue)
+                CompileBuiltin(c, b, e, lastCall);
             else
             {
                 b.EmitGoal(KB.Predicate(new PredicateIndicator(goal)));
@@ -395,6 +397,90 @@ namespace BotL.Compiler
                 // Else c is a symbol, so there's nothing to compile.
                 b.Emit(lastCall ? Opcode.CLastCall : Opcode.CCall);
             }
+        }
+
+        private static void CompileBuiltin(Call c, CodeBuilder b, BindingEnvironment e, bool lastCall)
+        {
+            // ReSharper disable once PossibleInvalidOperationException
+            var builtin = BuiltinTable.BuiltinOpcode(c).Value;
+            switch (builtin)
+            {
+                case Builtin.Var:
+                case Builtin.NonVar:
+                {
+                    if (c.Arguments[0] is Variable v)
+                    {
+                        if (e[v].FirstReferenceCompiled)
+                        {
+                            b.EmitBuiltin(builtin);
+                            b.Emit((byte) e[v].EnvironmentIndex);
+                        }
+                        // This is the first use of the variable; it can't be instantiated.
+                        else if (builtin == Builtin.NonVar)
+                                b.EmitBuiltin(Builtin.Fail);
+                        }
+                    // Else it's a compile-time constant, so never var
+                    else if (builtin == Builtin.Var)
+                            // Always fail
+                            b.EmitBuiltin(Builtin.Fail);
+                    // Always true, so no-op
+                }
+                    break;
+
+                case Builtin.UnsafeSet:
+                    {
+                    if (!(c.Arguments[0] is Variable lhs) || !(c.Arguments[1] is Variable rhs))
+                        throw new InvalidOperationException("Arguments to unsafe_set must be variables.");
+                    var lhsi = e[lhs];
+                    var rhsi = e[rhs];
+                    if (!rhsi.FirstReferenceCompiled || !lhsi.FirstReferenceCompiled)
+                        throw new InvalidOperationException("Argument to unsafe_set is uninstantiated variable");
+                    b.EmitBuiltin(builtin);
+                    b.Emit((byte) lhsi.EnvironmentIndex);
+                    b.Emit((byte) rhsi.EnvironmentIndex);
+                }
+                    break;
+
+                case Builtin.UnsafeInitialize:
+                case Builtin.UnsafeInitializeZero:
+                {
+                    if (!(c.Arguments[0] is Variable v))
+                        throw new InvalidOperationException("Argument to unsafe_initialize is not a variable");
+                    var vi = e[v];
+                    if (!vi.FirstReferenceCompiled)
+                    {
+                        b.EmitBuiltin(builtin);
+                        b.Emit((byte) vi.EnvironmentIndex);
+                        vi.FirstReferenceCompiled = true;
+                    }
+                    // Else nop
+                }
+                    break;
+
+                case Builtin.MaximizeUpdate:
+                case Builtin.MaximizeUpdateAndRepeat:
+                case Builtin.MinimizeUpdate:
+                case Builtin.MinimizeUpdateAndRepeat:
+                case Builtin.SumUpdateAndRepeat:
+                    {
+                    if (!(c.Arguments[0] is Variable lhs) || !(c.Arguments[1] is Variable rhs))
+                        throw new InvalidOperationException("Arguments to maximize/minimize/sum_update must be variables.");
+                    var lhsi = e[lhs];
+                    var rhsi = e[rhs];
+                    if (!rhsi.FirstReferenceCompiled || !lhsi.FirstReferenceCompiled)
+                        throw new InvalidOperationException("Argument to maximize/minimize/sum_update is uninstantiated variable");
+                    b.EmitBuiltin(builtin);
+                    b.Emit((byte) lhsi.EnvironmentIndex);
+                    b.Emit((byte) rhsi.EnvironmentIndex);
+                    break;
+                }
+
+                default:
+                    throw new InvalidOperationException("Attempt to compile unknown builtin "+ builtin);
+            }
+
+            if (lastCall)
+                b.Emit(Opcode.CNoGoal);
         }
 
         private static void CompileMetaCall(Call call, CodeBuilder b, BindingEnvironment e, bool lastCall)

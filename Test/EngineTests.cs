@@ -98,13 +98,6 @@ namespace Test
         }
 
         [TestMethod]
-        public void FailTest()
-        {
-            Compiler.Compile("failTest <-- fail");
-            Assert.IsFalse(Engine.Run("failTest"));
-        }
-
-        [TestMethod]
         public void BacktrackTest()
         {
             Compiler.Compile("btTestTramp <-- btTest, foo");

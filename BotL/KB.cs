@@ -43,8 +43,6 @@ namespace BotL
             Lock(Symbol.TruePredicate, 0);
             Compiler.Compiler.Compile("X = X");
             Lock("=", 2);
-            Compiler.Compiler.Compile("initialize_variable(_)");
-            Lock("initialize_variable", 1);
             Compiler.Compiler.Compile("initialize_accumulator(0.0)");
             Compiler.Compiler.Compile("is_true(true)");
             Lock("is_true", 1);

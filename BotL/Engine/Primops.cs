@@ -89,56 +89,6 @@ namespace BotL
                 DataStack[resultAddr].floatingPoint += DataStack[numAddr].AsFloat;
                 return CallStatus.Fail;
             });
-
-            DefinePrimop("aggregate_min", 2, (argBase, ignore) =>
-            {
-                var numAddr = Deref(argBase);
-                var resultAddr = Deref(argBase + 1);
-                var newValue = DataStack[numAddr].AsFloat;
-                if (DataStack[resultAddr].Type == TaggedValueType.Unbound
-                     || newValue < DataStack[resultAddr].floatingPoint)
-                    DataStack[resultAddr].Set(newValue);
-                return CallStatus.Fail;
-            });
-
-            DefinePrimop("aggregate_max", 2, (argBase, ignore) =>
-            {
-                var numAddr = Deref(argBase);
-                var resultAddr = Deref(argBase + 1);
-                var newValue = DataStack[numAddr].AsFloat;
-                if (DataStack[resultAddr].Type == TaggedValueType.Unbound
-                     || newValue > DataStack[resultAddr].floatingPoint)
-                    DataStack[resultAddr].Set(newValue);
-                return CallStatus.Fail;
-            });
-
-            DefinePrimop("aggregate_argmin", 4, (argBase, ignore) =>
-            {
-                var numAddr = Deref(argBase);
-                var numResultAddr = Deref(argBase + 1);
-                var newValue = DataStack[numAddr].AsFloat;
-                if (DataStack[numResultAddr].Type == TaggedValueType.Unbound
-                    || newValue < DataStack[numResultAddr].floatingPoint)
-                {
-                    DataStack[numResultAddr].Set(newValue);
-                    DataStack[Deref(argBase + 3)] = DataStack[Deref(argBase + 2)];
-                }
-                return CallStatus.Fail;
-            });
-
-            DefinePrimop("aggregate_argmax", 4, (argBase, ignore) =>
-            {
-                var numAddr = Deref(argBase);
-                var numResultAddr = Deref(argBase + 1);
-                var newValue = DataStack[numAddr].AsFloat;
-                if (DataStack[numResultAddr].Type == TaggedValueType.Unbound
-                    || newValue > DataStack[numResultAddr].floatingPoint)
-                {
-                    DataStack[numResultAddr].Set(newValue);
-                    DataStack[Deref(argBase + 3)] = DataStack[Deref(argBase + 2)];
-                }
-                return CallStatus.Fail;
-            });
             #endregion
 
             #region Type testing

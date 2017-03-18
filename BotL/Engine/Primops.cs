@@ -81,16 +81,6 @@ namespace BotL
             DefinePrimop("=<", 2, (argBase, ignore) => (DataStack[Deref(argBase)].AsFloat <= DataStack[Deref(argBase + 1)].AsFloat) ? CallStatus.DeterministicSuccess : CallStatus.Fail);
             #endregion
 
-            #region Utility primops for aggregation (min/max, summation)
-            DefinePrimop("aggregate_sum", 2, (argBase, ignore) =>
-            {
-                var numAddr = Deref(argBase);
-                var resultAddr = Deref(argBase + 1);
-                DataStack[resultAddr].floatingPoint += DataStack[numAddr].AsFloat;
-                return CallStatus.Fail;
-            });
-            #endregion
-
             #region Type testing
             // Binding tests
             DefinePrimop("var", 1, (argBase, ignore) => (DataStack[Deref(argBase)].Type == TaggedValueType.Unbound) ? CallStatus.DeterministicSuccess : CallStatus.Fail);
@@ -137,7 +127,7 @@ namespace BotL
                 return CallStatus.DeterministicSuccess;
             });
 
-            DefinePrimop("writenl", 1, (argBase, ignore) =>
+            DefinePrimop("write_line", 1, (argBase, ignore) =>
             {
                 Repl.StandardOutput.WriteLine(DataStack[Deref(argBase)]);
                 return CallStatus.DeterministicSuccess;

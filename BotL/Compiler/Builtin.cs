@@ -79,7 +79,17 @@ namespace BotL.Compiler
         /// <summary>
         /// Add second argument to first and fail.
         /// </summary>
-        SumUpdateAndRepeat
+        SumUpdateAndRepeat,
+        LessThan,
+        LessEq,
+        GreaterThan,
+        GreaterEq,
+        IntegerTest,
+        FloatTest,
+        NumberTest,
+        StringTest,
+        SymbolTest,
+        MissingTest
     }
 
     internal static class BuiltinTable
@@ -96,6 +106,16 @@ namespace BotL.Compiler
             DefineBuiltin("%maximize_update_and_repeat", 2, Builtin.MaximizeUpdateAndRepeat);
             DefineBuiltin("%minimize_update_and_repeat", 2, Builtin.MinimizeUpdateAndRepeat);
             DefineBuiltin("%sum_update_and_repeat", 2, Builtin.SumUpdateAndRepeat);
+            DefineBuiltin("<", 2, Builtin.LessThan);
+            DefineBuiltin("=<", 2, Builtin.LessEq);
+            DefineBuiltin(">", 2, Builtin.GreaterThan);
+            DefineBuiltin(">=", 2, Builtin.GreaterEq);
+            DefineBuiltin("integer", 1, Builtin.IntegerTest);
+            DefineBuiltin("float", 1, Builtin.FloatTest);
+            DefineBuiltin("number", 1, Builtin.NumberTest);
+            DefineBuiltin("string", 1, Builtin.StringTest);
+            DefineBuiltin("symbol", 1, Builtin.SymbolTest);
+            DefineBuiltin("missing", 1, Builtin.MissingTest);
         }
 
         static readonly Dictionary<PredicateIndicator, Builtin> Table = new Dictionary<PredicateIndicator, Builtin>();

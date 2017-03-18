@@ -475,6 +475,41 @@ namespace BotL.Compiler
                     break;
                 }
 
+                case Builtin.LessThan:
+                case Builtin.GreaterThan:
+                case Builtin.LessEq:
+                case Builtin.GreaterEq:
+                    {
+                    b.EmitBuiltin(builtin);
+                    CompileFunctionalExpression(c.Arguments[0], b, e);
+                    b.Emit(FOpcode.Return);
+                    CompileFunctionalExpression(c.Arguments[1], b, e);
+                    b.Emit(FOpcode.Return);
+                    break;
+                }
+
+                case Builtin.IntegerTest:
+                case Builtin.FloatTest:
+                case Builtin.NumberTest:
+                case Builtin.StringTest:
+                case Builtin.SymbolTest:
+                case Builtin.MissingTest:
+                    {
+                        var arg = c.Arguments[0];
+                        if (!(arg is Variable v) || e[v].FirstReferenceCompiled)
+                        {
+                            b.EmitBuiltin(builtin);
+                            CompileFunctionalExpression(arg, b, e, false);
+                            b.Emit(FOpcode.Return);
+                        }
+                        else
+                        {
+                            // argument is a variable known at compile-time to be uninstantiated.
+                            b.EmitBuiltin(Builtin.Fail);
+                        }
+                        break;
+                    }
+
                 default:
                     throw new InvalidOperationException("Attempt to compile unknown builtin "+ builtin);
             }
@@ -532,7 +567,7 @@ namespace BotL.Compiler
         /// <summary>
         /// Emits code for functional expression EXP.  Does not emit the preamble or return instruction.
         /// </summary>
-        private static void CompileFunctionalExpression(object exp, CodeBuilder b, BindingEnvironment e)
+        private static void CompileFunctionalExpression(object exp, CodeBuilder b, BindingEnvironment e, bool checkInstantiation=true)
         {
             var v = exp as Variable;
             var c = exp as Call;
@@ -545,7 +580,7 @@ namespace BotL.Compiler
             else if (v != null)
             {
                 // It's a variable reference
-                b.Emit(FOpcode.Load);
+                b.Emit(checkInstantiation?FOpcode.Load:FOpcode.LoadUnchecked);
                 var variableInfo = e[v];
                 if (variableInfo.Type == VariableType.Void || !variableInfo.FirstReferenceCompiled)
                 {

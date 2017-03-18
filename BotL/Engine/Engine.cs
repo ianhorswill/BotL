@@ -25,6 +25,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Reflection;
 using BotL.Compiler;
 using BotL.Parser;
 using static BotL.Repl;
@@ -263,7 +264,7 @@ namespace BotL
             #endregion
 
             #region DoBuiltin
-            bool DoBuiltin(byte[] code, ref ushort pc, ushort frameBase)
+            bool DoBuiltin(Predicate predicate, byte[] code, ref ushort pc, ushort frameBase)
             {
                 var builtin = (Builtin) code[pc++];
                 switch (builtin)
@@ -329,6 +330,85 @@ namespace BotL
                             var rhs = Deref(frameBase + code[pc++]);
                             DataStack[lhs].floatingPoint += DataStack[rhs].AsFloat;
                             return false;
+                        }
+
+                    case Builtin.LessThan:
+                    {
+                        pc = FunctionalExpression.Eval(predicate, code, pc, frameBase, dTop);
+                        pc = FunctionalExpression.Eval(predicate, code, pc, frameBase, (ushort)(dTop+1));
+                        var leftArg = DataStack[dTop + FunctionalExpression.EvalStackOffset].AsFloat;
+                        var rightArg = DataStack[dTop + 1 + FunctionalExpression.EvalStackOffset].AsFloat;
+                        return leftArg < rightArg;
+                    }
+
+                    case Builtin.LessEq:
+                        {
+                            pc = FunctionalExpression.Eval(predicate, code, pc, frameBase, dTop);
+                            pc = FunctionalExpression.Eval(predicate, code, pc, frameBase, (ushort)(dTop + 1));
+                            var leftArg = DataStack[dTop + FunctionalExpression.EvalStackOffset].AsFloat;
+                            var rightArg = DataStack[dTop + 1 + FunctionalExpression.EvalStackOffset].AsFloat;
+                            return leftArg <= rightArg;
+                        }
+
+                    case Builtin.GreaterThan:
+                        {
+                            pc = FunctionalExpression.Eval(predicate, code, pc, frameBase, dTop);
+                            pc = FunctionalExpression.Eval(predicate, code, pc, frameBase, (ushort)(dTop + 1));
+                            var leftArg = DataStack[dTop + FunctionalExpression.EvalStackOffset].AsFloat;
+                            var rightArg = DataStack[dTop + 1 + FunctionalExpression.EvalStackOffset].AsFloat;
+                            return leftArg > rightArg;
+                        }
+
+                    case Builtin.GreaterEq:
+                        {
+                            pc = FunctionalExpression.Eval(predicate, code, pc, frameBase, dTop);
+                            pc = FunctionalExpression.Eval(predicate, code, pc, frameBase, (ushort)(dTop + 1));
+                            var leftArg = DataStack[dTop + FunctionalExpression.EvalStackOffset].AsFloat;
+                            var rightArg = DataStack[dTop + 1 + FunctionalExpression.EvalStackOffset].AsFloat;
+                            return leftArg >= rightArg;
+                        }
+
+                    case Builtin.IntegerTest:
+                        {
+                            pc = FunctionalExpression.Eval(predicate, code, pc, frameBase, dTop);
+                            return DataStack[dTop + FunctionalExpression.EvalStackOffset].Type == TaggedValueType.Integer;
+                        }
+
+                    case Builtin.FloatTest:
+                        {
+                            pc = FunctionalExpression.Eval(predicate, code, pc, frameBase, dTop);
+                            return DataStack[dTop + FunctionalExpression.EvalStackOffset].Type == TaggedValueType.Float;
+                        }
+
+                    case Builtin.NumberTest:
+                        {
+                            pc = FunctionalExpression.Eval(predicate, code, pc, frameBase, dTop);
+                            var argType = DataStack[dTop + FunctionalExpression.EvalStackOffset].Type;
+                            return argType == TaggedValueType.Integer || argType == TaggedValueType.Float;
+                        }
+
+                    case Builtin.StringTest:
+                        {
+                            pc = FunctionalExpression.Eval(predicate, code, pc, frameBase, dTop);
+                            var addr = dTop + FunctionalExpression.EvalStackOffset;
+                            return DataStack[addr].Type == TaggedValueType.Reference
+                                   && DataStack[addr].reference is string;
+                        }
+
+                    case Builtin.SymbolTest:
+                        {
+                            pc = FunctionalExpression.Eval(predicate, code, pc, frameBase, dTop);
+                            var addr = dTop + FunctionalExpression.EvalStackOffset;
+                            return DataStack[addr].Type == TaggedValueType.Reference
+                                   && DataStack[addr].reference is Symbol;
+                        }
+
+                    case Builtin.MissingTest:
+                        {
+                            pc = FunctionalExpression.Eval(predicate, code, pc, frameBase, dTop);
+                            var addr = dTop + FunctionalExpression.EvalStackOffset;
+                            return DataStack[addr].Type == TaggedValueType.Reference
+                                   && DataStack[addr].reference is Missing;
                         }
 
                     default:
@@ -665,7 +745,7 @@ namespace BotL
                         case (int) Opcode.CBuiltin + (int) Opcode.CCall:
                         {
                             var headBase = headPredicate.IsNestedPredicate ? EnvironmentStack[goalFrame].Base : dTop;
-                            if (!DoBuiltin(headCode, ref headPc, headBase)) goto fail;
+                            if (!DoBuiltin(headPredicate, headCode, ref headPc, headBase)) goto fail;
                             goalPc--;
                         }
                             break;
@@ -747,7 +827,7 @@ namespace BotL
                                     break;
 
                                 case Opcode.CBuiltin:
-                                    if (!DoBuiltin(goalCode, ref goalPc, EnvironmentStack[goalFrame].Base))
+                                    if (!DoBuiltin(goalPredicate, goalCode, ref goalPc, EnvironmentStack[goalFrame].Base))
                                         goto fail;
                                     break;
 
@@ -871,7 +951,7 @@ namespace BotL
                                     goto continueGoalPredicate;
 
                                 case Opcode.CBuiltin:
-                                    if (!DoBuiltin(goalCode, ref goalPc, EnvironmentStack[goalFrame].Base))
+                                    if (!DoBuiltin(goalPredicate, goalCode, ref goalPc, EnvironmentStack[goalFrame].Base))
                                         goto fail;
                                     goto continueGoalPredicate;
 

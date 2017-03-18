@@ -64,6 +64,10 @@ namespace BotL
         /// </summary>
         Load,
         /// <summary>
+        /// Like load, but doesn't throw an exception if variable in uninstantiated.
+        /// </summary>
+        LoadUnchecked,
+        /// <summary>
         /// Format: LoadGlobal Index
         /// Pushes the value of the specified global variable on the stack.  Index is the position of the
         /// global variable object itself in the object constant table.

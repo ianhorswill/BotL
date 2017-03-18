@@ -37,16 +37,6 @@ namespace Test
     public class PrimopTests : BotLTestClass
     {
         [TestMethod]
-        public void OrdinalTests()
-        {
-            TestTrue("1 < 2");
-            TestFalse("1 < 1");
-            TestTrue("1 < 2, true");
-            TestFalse("1 < 1, true");
-            TestFalse("1 < 2, fail");
-        }
-
-        [TestMethod]
         public void InArrayTest()
         {
             TestTrue("1 in array(1, 2, 3)");
@@ -101,35 +91,6 @@ namespace Test
             TestTrue("X=array(1,2,3), X[1]=Y, Y=2");
         }
         
-        [TestMethod]
-        public void TypeTestTests()
-        {
-            TestTrue("float(1.0)");
-            TestFalse("float(1)");
-            TestFalse("float(X)");
-            TestTrue("X=Y, Y=1.0, float(X)");
-
-            TestTrue("integer(1)");
-            TestFalse("integer(1.5)");
-            TestFalse("integer(X)");
-            TestTrue("X=Y, Y=1, integer(X)");
-
-            TestTrue("number(1.0)");
-            TestTrue("number(1)");
-            TestFalse("number(X)");
-            TestTrue("X=Y, Y=1.0, number(X)");
-
-            TestTrue("string(\"a\")");
-            TestFalse("string(1)");
-            TestFalse("string(X)");
-            TestTrue("X=Y, Y=\"a\", string(X)");
-
-            TestTrue("symbol(a)");
-            TestFalse("symbol(1)");
-            TestFalse("symbol(X)");
-            TestTrue("X=Y, Y=a, symbol(X)");
-        }
-
         [TestMethod, ExpectedException(typeof(ArgumentException))]
         public void TestLoad()
         {

@@ -58,7 +58,8 @@ namespace BotL
 
             while (true)
             {
-                switch ((FOpcode) clause[pc++])
+                var fOpcode = (FOpcode) clause[pc++];
+                switch (fOpcode)
                 {
                     case FOpcode.Return:
                         return pc;
@@ -84,8 +85,9 @@ namespace BotL
                         break;
 
                     case FOpcode.Load:
+                    case FOpcode.LoadUnchecked:
                         var address = Deref(frameBase + clause[pc++]);
-                        if (DataStack[address].Type == TaggedValueType.Unbound)
+                        if (DataStack[address].Type == TaggedValueType.Unbound && fOpcode == FOpcode.Load)
                             throw new InstantiationException("Uninstantiated variable in functional expression");
                         DataStack[stack++] = DataStack[address];
                         break;

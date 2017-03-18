@@ -75,6 +75,7 @@ namespace BotL
                     // ReSharper disable once PossibleNullReferenceException
                     if (command.StartsWith("load "))
                     {
+                        // Load a file
                         try
                         {
                             Compiler.Compiler.CompileFile(command.Substring(5));
@@ -87,6 +88,7 @@ namespace BotL
                     }
                     else if (command.StartsWith("rule "))
                     {
+                        // Compile a rule
                         try
                         {
                             Compiler.Compiler.Compile(command.Substring("rule ".Length));
@@ -97,10 +99,25 @@ namespace BotL
                             StandardError.WriteLine(e.Message);
                         }
                     }
+                    else if (command.StartsWith("transform "))
+                    {
+                        // Show the transformed and macroexpanded form of a rule
+                        try
+                        {
+                            var expression = new ExpressionParser(command.Substring("transform ".Length)).Read();
+                            var transformed = Compiler.Transform.TransformTopLevel(expression);
+                            StandardOutput.WriteLine(transformed);
+                        }
+                        catch (Exception e)
+                        {
+                            StandardError.WriteLine(e.Message);
+                        }
+                    }
                     else if (command.StartsWith("table ") || command.StartsWith("function ")
                              || command.StartsWith("trace ") || command.StartsWith("notrace ") 
                              || command.StartsWith("global ") || command.StartsWith("require "))
                     {
+                        // Process a declaration
                         try
                         {
                             Compiler.Compiler.Compile(command);
@@ -112,6 +129,7 @@ namespace BotL
                     }
                     else
                     {
+                        // It's a query to compile and run
                         var success = false;
                         var completed = false;
 #if DEBUG

@@ -114,7 +114,7 @@ namespace Test
 
             writer = new StringWriter();
             Repl.StandardOutput = writer;
-            TestTrue("writenl(1)");
+            TestTrue("write_line(1)");
             writer.Flush();
             Assert.AreEqual("1\r\n", writer.ToString());
         }

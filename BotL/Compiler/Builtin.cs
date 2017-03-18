@@ -80,10 +80,20 @@ namespace BotL.Compiler
         /// Add second argument to first and fail.
         /// </summary>
         SumUpdateAndRepeat,
+        /// <summary>
+        /// Test that a functional expression evaluates to a non-false value
+        /// Used for treating method calls as predicates
+        /// </summary>
+        TestNotFalse,
+
+        // Numeric comparisons
         LessThan,
         LessEq,
         GreaterThan,
         GreaterEq,
+
+        // Type tests
+
         IntegerTest,
         FloatTest,
         NumberTest,
@@ -116,6 +126,7 @@ namespace BotL.Compiler
             DefineBuiltin("string", 1, Builtin.StringTest);
             DefineBuiltin("symbol", 1, Builtin.SymbolTest);
             DefineBuiltin("missing", 1, Builtin.MissingTest);
+            DefineBuiltin("%not_false", 1, Builtin.TestNotFalse);
         }
 
         static readonly Dictionary<PredicateIndicator, Builtin> Table = new Dictionary<PredicateIndicator, Builtin>();

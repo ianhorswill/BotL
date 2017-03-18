@@ -494,6 +494,7 @@ namespace BotL.Compiler
                 case Builtin.StringTest:
                 case Builtin.SymbolTest:
                 case Builtin.MissingTest:
+                case Builtin.TestNotFalse:
                     {
                         var arg = c.Arguments[0];
                         if (!(arg is Variable v) || e[v].FirstReferenceCompiled)

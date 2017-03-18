@@ -262,12 +262,12 @@ namespace BotL.Compiler
                     return Call.AddArgument(c.Arguments[1], c.Arguments[0]);
             } else if (c.IsFunctor(Symbol.Dot, 2))
             {
-                if (c.Arguments[1] is Symbol)
-                {
-                    // It's a field reference
-                    return new Call("is_true", literal);
-                }
-                return new Call("is_true", new Call("non_false", literal));
+                //if (c.Arguments[1] is Symbol)
+                //{
+                //    // It's a field reference
+                //    return new Call("%is_true", literal);
+                //}
+                return new Call("%not_false", literal);
             }
             return literal;
         }

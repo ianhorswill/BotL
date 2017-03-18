@@ -411,6 +411,15 @@ namespace BotL
                                    && DataStack[addr].reference is Missing;
                         }
 
+                    case Builtin.TestNotFalse:
+                        {
+                            pc = FunctionalExpression.Eval(predicate, code, pc, frameBase, dTop);
+                            var addr = dTop + FunctionalExpression.EvalStackOffset;
+                            // Accept anything but the constant false
+                            return DataStack[addr].Type != TaggedValueType.Boolean
+                                   || DataStack[addr].boolean;
+                        }
+
                     default:
                         throw new InvalidOperationException("Unknown builtin opcode: "+goalCode[goalPc-1]);
                 }

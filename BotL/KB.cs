@@ -35,7 +35,7 @@ namespace BotL
     {
         static KB()
         {
-            Primops.DefinePrimops();  // Must come first or calls to primops in the librarty code below get confused.
+            Primops.DefinePrimops(); // Must come first or calls to primops in the librarty code below get confused.
             Lock("|", 2);
             Lock("not", 1);
             Lock("fail", 0);
@@ -43,9 +43,6 @@ namespace BotL
             Lock(Symbol.TruePredicate, 0);
             Compiler.Compiler.Compile("X = X");
             Lock("=", 2);
-            Compiler.Compiler.Compile("initialize_accumulator(0.0)");
-            Compiler.Compiler.Compile("is_true(true)");
-            Lock("is_true", 1);
         }
 
         /// <summary>

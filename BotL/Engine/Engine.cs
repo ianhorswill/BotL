@@ -838,7 +838,7 @@ namespace BotL
                                 case Opcode.CBuiltin:
                                     if (!DoBuiltin(goalPredicate, goalCode, ref goalPc, EnvironmentStack[goalFrame].Base))
                                         goto fail;
-                                    break;
+                                    goto continuationLoop;
 
                                 case Opcode.CCut:
                                     cTop = EnvironmentStack[goalFrame].CallerCTop;

@@ -58,9 +58,21 @@ namespace BotL.Compiler
                                                   Or(And(generator,
                                                          new Call("%maximize_update_and_repeat", result, score)),
                                                      new Call("nonvar", result))));
+            DeclareMacro("arg_min", 3,
+                (arg, scoreExpression, result) => {
+                    var score = Variable.MakeGenerated("*score*");
+                    return new Call("arg_min", arg, score, new Call(Symbol.Equal, score, scoreExpression), result);
+                });
+            Functions.DeclareFunction("arg_min", 2);
+            DeclareMacro("arg_max", 3,
+                (arg, scoreExpression, result) => {
+                    var score = Variable.MakeGenerated("*score*");
+                    return new Call("arg_max", arg, score, new Call(Symbol.Equal, score, scoreExpression), result);
+                });
+            Functions.DeclareFunction("arg_max", 2);
             DeclareMacro("arg_min", 4,
                 (arg, score, generator, result) => {
-                    var temp = Variable.MakeGenerated("*temp*");
+                    var temp = Variable.MakeGenerated("*MinScore*");
                     return Or(And(GenerateArgmaxInit(result),
                                   new Call("%init", temp),
                                   new Call("%init", score),
@@ -70,9 +82,10 @@ namespace BotL.Compiler
                                   Symbol.Fail),
                               new Call("nonvar", result));
                 });
+            Functions.DeclareFunction("arg_min", 3);
             DeclareMacro("arg_max", 4,
                 (arg, score, generator, result) => {
-                    var temp = Variable.MakeGenerated("*temp*");
+                    var temp = Variable.MakeGenerated("*MaxScore*");
                     return Or(And(GenerateArgmaxInit(result),
                                   new Call("%init", temp),
                                   new Call("%init", score),
@@ -80,13 +93,20 @@ namespace BotL.Compiler
                                   new Call("%maximize_update", temp, score),
                                   GenerateArgmaxUpdate(result, arg),
                                   Symbol.Fail),
-                              new Call("nonvar", result));
+                              new Call("nonvar", temp));
                 });
+            Functions.DeclareFunction("arg_max", 3);
             DeclareMacro("sum", 3,
-                            (score, generator, result) => And(new Call("%init_zero", result),
-                                                              Or(And(generator,
-                                                                     new Call("%sum_update_and_repeat", result, score)),
-                                                                 Symbol.TruePredicate)));
+                            (score, generator, result) =>
+                            {
+                                var rtemp = Variable.MakeGenerated("*Sum*");
+                                return And(new Call("%init_zero", rtemp),
+                                    Or(And(generator,
+                                            new Call("%sum_update_and_repeat", rtemp, score)),
+                                        And(new Call("nonvar", rtemp),
+                                            new Call(Symbol.Equal, rtemp, result))));
+                            });
+            Functions.DeclareFunction("sum", 2);
 
             DeclareMacro("set", 1, arg =>
             {

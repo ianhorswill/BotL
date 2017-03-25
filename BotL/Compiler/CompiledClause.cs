@@ -22,6 +22,9 @@
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
 #endregion
+
+using System.Collections.Generic;
+
 namespace BotL
 {
     /// <summary>
@@ -61,5 +64,26 @@ namespace BotL
         {
             return $"CompiledClause<{Source}>";
         }
+
+        #region Warning handling
+        private readonly Dictionary<CompiledClause, List<string>> WarningTable = new Dictionary<CompiledClause, List<string>>();
+        internal void AddWarning(string format, params object[] args)
+        {
+            var warning = string.Format(format, args);
+            if (WarningTable.TryGetValue(this, out List<string> warningList))
+                warningList.Add(warning);
+            else
+                WarningTable[this] = new List<string> {warning};
+        }
+
+        internal IEnumerable<string> Warnings
+        {
+            get
+            {
+                if (WarningTable.TryGetValue(this, out List<string> warnings))
+                    foreach (var w in warnings) yield return w;
+            }
+        }
+        #endregion
     }
 }

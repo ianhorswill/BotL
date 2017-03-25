@@ -23,6 +23,7 @@
 // --------------------------------------------------------------------------------------------------------------------
 #endregion
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 
@@ -106,6 +107,56 @@ namespace BotL
         internal readonly Table Table;
 
         public bool IsSpecial => (PrimopImplementation != null || Table != null);
+        public bool IsRulePredicate => !IsSpecial;
+        public bool IsDefined => IsLocked || FirstClause != null;
+
+        internal IEnumerable<CompiledClause> Clauses
+        {
+            get
+            {
+                if (FirstClause != null)
+                    yield return FirstClause;
+
+                if (ExtraClauses != null)
+                {
+                    foreach (var c in ExtraClauses)
+                        yield return c;
+                }
+            }
+        }
+
+        internal IEnumerable<Predicate> ReferencedPredicates
+        {
+            get
+            {
+                if (objectConstants == null)
+                    yield break;
+
+                foreach (var c in objectConstants)
+                {
+                    var p = c as Predicate;
+                    if (p != null) yield return p;
+                }
+            }
+        }
+
+        internal IEnumerable<Predicate> ReferencedUserPredicates
+        {
+            get
+            {
+                if (objectConstants == null)
+                    yield break;
+
+                foreach (var c in objectConstants)
+                {
+                    var p = c as Predicate;
+                    if (p != null && p.IsUserDefined) yield return p;
+                }
+            }
+        }
+
+        public bool IsUserDefined => (IsRulePredicate && !IsLocked) || IsTable;
+        public bool IsTable => Table != null;
 
         #endregion
 

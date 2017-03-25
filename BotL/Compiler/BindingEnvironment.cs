@@ -35,6 +35,14 @@ namespace BotL.Compiler
         private readonly Dictionary<Variable, VariableInfo> variableInfoTable = new Dictionary<Variable, VariableInfo>();
         private ushort nextIndex;
 
+        internal IEnumerable<VariableInfo> Variables
+        {
+            get
+            {
+                foreach (var pair in variableInfoTable)
+                    yield return pair.Value;
+            }
+        }
 
         public void IncrementVoidVariableReferences()
         {
@@ -91,7 +99,7 @@ namespace BotL.Compiler
                 {
                     v = new Variable(s);
                     variableTable[s] = v;
-                    variableInfoTable[v] = new VariableInfo();
+                    variableInfoTable[v] = new VariableInfo(v);
                 }
                 return v;
             }
@@ -106,7 +114,7 @@ namespace BotL.Compiler
                 VariableInfo i;
                 if (variableInfoTable.TryGetValue(v, out i))
                     return i;
-                variableInfoTable[v] = i = new VariableInfo();
+                variableInfoTable[v] = i = new VariableInfo(v);
                 return i;
             }
         }

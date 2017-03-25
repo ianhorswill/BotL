@@ -86,7 +86,7 @@ namespace BotL
         public static void LoadTable(string path)
         {
             var table = Compiler.Compiler.LoadTable(path);
-            Predicates[new PredicateIndicator(table.Name, table.Arity)] = table;
+            PredicateTable[new PredicateIndicator(table.Name, table.Arity)] = table;
         }
 
         /// <summary>
@@ -109,15 +109,38 @@ namespace BotL
             Predicate(new PredicateIndicator(name, arity)).IsLocked = true;
         }
 
-        private static readonly Dictionary<PredicateIndicator, Predicate> Predicates = new Dictionary<PredicateIndicator, Predicate>();
+        private static readonly Dictionary<PredicateIndicator, Predicate> PredicateTable = new Dictionary<PredicateIndicator, Predicate>();
+
+        internal static IEnumerable<Predicate> AllPredicates
+        {
+            get
+            {
+                foreach (var pair in PredicateTable)
+                {
+                    yield return pair.Value;
+                }
+            }
+        }
+
+        internal static IEnumerable<Predicate> AllRulePredicates
+        {
+            get
+            {
+                foreach (var pair in PredicateTable)
+                {
+                    if (pair.Value.IsRulePredicate)
+                        yield return pair.Value;
+                }
+            }
+        }
 
         internal static Predicate Predicate(PredicateIndicator s)
         {
             Predicate result;
-            if (!Predicates.TryGetValue(s, out result))
+            if (!PredicateTable.TryGetValue(s, out result))
             {
                 result = new Predicate(s.Functor, s.Arity);
-                Predicates[s] = result;
+                PredicateTable[s] = result;
             }
             return result;
         }
@@ -170,7 +193,7 @@ namespace BotL
         /// <param name="implementation">Delegate to implement the primop</param>
         private static void DefinePrimop(Symbol name, int arity, byte tempVars, Compiler.Compiler.PredicateImplementation implementation)
         {
-            Predicates[new PredicateIndicator(name, arity)] = Compiler.Compiler.MakePrimop(name, arity, implementation, tempVars);
+            PredicateTable[new PredicateIndicator(name, arity)] = Compiler.Compiler.MakePrimop(name, arity, implementation, tempVars);
         }
 
         /// <summary>
@@ -186,7 +209,7 @@ namespace BotL
         /// </summary>
         private static void DefineTable(Symbol name, int arity)
         {
-            Predicates[new PredicateIndicator(name, arity)] = Compiler.Compiler.MakeTable(name, arity);
+            PredicateTable[new PredicateIndicator(name, arity)] = Compiler.Compiler.MakeTable(name, arity);
         }
 
         /// <summary>
@@ -194,7 +217,7 @@ namespace BotL
         /// </summary>
         internal static void DefineTable(PredicateIndicator p)
         {
-            Predicates[p] = Compiler.Compiler.MakeTable(p.Functor, p.Arity);
+            PredicateTable[p] = Compiler.Compiler.MakeTable(p.Functor, p.Arity);
         }
 
         /// <summary>
@@ -210,7 +233,7 @@ namespace BotL
         /// </summary>
         private static void AddTableRow(Symbol name, int arity, params object[] row)
         {
-            Predicates[new PredicateIndicator(name, arity)].Table.AddRow(row);
+            PredicateTable[new PredicateIndicator(name, arity)].Table.AddRow(row);
         }
     }
 }

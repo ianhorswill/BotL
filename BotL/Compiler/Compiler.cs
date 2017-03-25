@@ -61,7 +61,7 @@ namespace BotL.Compiler
             }
         }
 
-        static HashSet<string> LoadedSourceFiles = new HashSet<string>();
+        static readonly HashSet<string> LoadedSourceFiles = new HashSet<string>();
         static string CanonicalizeSourceName(object name)
         {
             var path = name as string;
@@ -203,20 +203,35 @@ namespace BotL.Compiler
             if (forceVoidVariables)
                 e.IncrementVoidVariableReferences();
             AllocateVariables(assertion, e);
+
+            CompiledClause clause;
             if (Call.IsFunctor(assertion, Symbol.Implication, 2))
             {
                 var implication = assertion as Call;
                 // ReSharper disable once PossibleNullReferenceException
                 var head = implication.Arguments[0];
                 var body = implication.Arguments[1];
-                Predicate.AddClause(new PredicateIndicator(head), CompileRule(assertion, head, body, e));
+                clause = CompileRule(assertion, head, body, e);
+                Predicate.AddClause(new PredicateIndicator(head), clause);
             }
             else
             {
-                Predicate.AddClause(new PredicateIndicator(assertion), CompileFact(assertion, e));
+                clause = CompileFact(assertion, e);
+                Predicate.AddClause(new PredicateIndicator(assertion), clause);
             }
+            GenerateSingletonWarnings(clause, e);
             return e;
         }
+
+        private static void GenerateSingletonWarnings(CompiledClause clause, BindingEnvironment e)
+        {
+            foreach (var v in e.Variables)
+            {
+                if (v.IsSingleton && !v.Variable.IsGenerated && !v.Variable.Name.Name.StartsWith("_"))
+                    clause.AddWarning("Singleton variable {0} - might be a typo", v.Variable.Name);
+            }
+        }
+
         #endregion
 
         #region Compiling facts (rules with no body)

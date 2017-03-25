@@ -24,6 +24,7 @@
 #endregion
 using System;
 using System.IO;
+using BotL.Compiler;
 using BotL.Parser;
 using BotL.Unity;
 
@@ -47,6 +48,7 @@ namespace BotL
             StandardError = error;
             while (true)
             {
+                Lint.Check(StandardError);
                 Console.Write("> ");
                 var command = StandardInput.ReadLine();
                 GlobalVariable.Time.Value.Set(System.Environment.TickCount);

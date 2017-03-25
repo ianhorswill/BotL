@@ -40,6 +40,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Compiler\Builtin.cs" />
+    <Compile Include="Compiler\Lint.cs" />
     <Compile Include="Engine\ArgumentTypeException.cs" />
     <Compile Include="Parser\Call.cs" />
     <Compile Include="Engine\CallStatus.cs" />

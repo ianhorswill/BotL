@@ -109,6 +109,71 @@ namespace BotL
         internal ELNode FirstChild;
         #endregion
 
+        public int ChildIntValue
+        {
+            get
+            {
+                if (FirstChild != null)
+                {
+                    if (!IsExclusive)
+                        throw new InvalidOperationException("ChildIntValue called on non-exclusive node: " + this);
+                    if (FirstChild.Key.Type != TaggedValueType.Integer)
+                        throw new InvalidOperationException(
+                            "ChildIntValue called on node whose child key is the wrong type: " + FirstChild.Key.Value);
+                    return FirstChild.Key.integer;
+                }
+                throw new InvalidOperationException("ChildIntValue called on node with no children: " + this);
+            }
+        }
+
+        public float ChildFloatValue
+        {
+            get
+            {
+                if (FirstChild != null)
+                {
+                    if (!IsExclusive)
+                        throw new InvalidOperationException("ChildFloatValue called on non-exclusive node: " + this);
+                    if (FirstChild.Key.Type != TaggedValueType.Float && FirstChild.Key.Type != TaggedValueType.Integer)
+                        throw new InvalidOperationException(
+                            "ChildFloatValue called on node whose child key is the wrong type: " + FirstChild.Key.Value);
+                    return FirstChild.Key.AsFloat;
+                }
+                throw new InvalidOperationException("ChildIntValue called on node with no children: " + this);
+            }
+        }
+
+        public bool ChildBoolValue
+        {
+            get
+            {
+                if (FirstChild != null)
+                {
+                    if (!IsExclusive)
+                        throw new InvalidOperationException("ChildBoolValue called on non-exclusive node: " + this);
+                    if (FirstChild.Key.Type != TaggedValueType.Boolean)
+                        throw new InvalidOperationException(
+                            "ChildBoolValue called on node whose child key is the wrong type: " + FirstChild.Key.Value);
+                    return FirstChild.Key.boolean;
+                }
+                throw new InvalidOperationException("ChildBoolValue called on node with no children: " + this);
+            }
+        }
+
+        public object ChildValue
+        {
+            get
+            {
+                if (FirstChild != null)
+                {
+                    if (!IsExclusive)
+                        throw new InvalidOperationException("ChildValue called on non-exclusive node: " + this);
+                    
+                    return FirstChild.Key.Value;
+                }
+                throw new InvalidOperationException("ChildValue called on node with no children: " + this);
+            }
+        }
         /// <summary>
         /// Find a child matching the specified key.
         /// </summary>

@@ -91,7 +91,7 @@ namespace BotL
                         return floatingPoint;
 
                     default:
-                        throw new InvalidOperationException("Attempt to convert a non-number to a float.");
+                        throw new InvalidOperationException("Attempt to convert a non-number to a float: "+ValueOrUnbound);
                 }
             }
         }
@@ -145,8 +145,8 @@ namespace BotL
                 Set((bool)value);
             else if (value is int)
                 Set((int)value);
-            else if (value is float)
-                Set((float)value);
+            else if (value is float || value is double)
+                Set(Convert.ToSingle(value));
             else
                 SetReference(value);
         }

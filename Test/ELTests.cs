@@ -28,7 +28,7 @@ using BotL;
 namespace Test
 {
     [TestClass]
-    public class ELTests
+    public class ELTests : BotLTestClass
     {
         [TestMethod]
         public void ReadNonExclusiveTest()
@@ -108,14 +108,36 @@ namespace Test
             TestTrue("assert(/ewtest/a:3 >> X), assert(X/foo), /ewtest/a:3/foo");
         }
 
-        private void TestFalse(string code)
+        [TestMethod]
+        public void ChildValue()
         {
-            Assert.IsFalse(Engine.Run(code));
+            ELNode.Store(ELNode.Root/"ChildValue"%10);
+            Assert.AreEqual(10, (ELNode.Root/"ChildValue").ChildValue);
+            ELNode.Store(ELNode.Root / "ChildValue" % "foo");
+            Assert.AreEqual("foo", (ELNode.Root / "ChildValue").ChildValue);
         }
 
-        private void TestTrue(string code)
+        [TestMethod]
+        public void ChildIntValue()
         {
-            Assert.IsTrue(Engine.Run(code));
+            ELNode.Store(ELNode.Root / "ChildIntValue" % 10);
+            Assert.AreEqual(10, (ELNode.Root / "ChildIntValue").ChildIntValue);
+        }
+
+        [TestMethod]
+        public void ChildFloatValue()
+        {
+            ELNode.Store(ELNode.Root / "ChildFloatValue" % 10.0);
+            Assert.AreEqual(10.0, (ELNode.Root / "ChildFloatValue").ChildFloatValue);
+            ELNode.Store(ELNode.Root / "ChildFloatValue" % 10);
+            Assert.AreEqual(10.0, (ELNode.Root / "ChildFloatValue").ChildFloatValue);
+        }
+
+        [TestMethod]
+        public void ChildBoolValue()
+        {
+            ELNode.Store(ELNode.Root / "ChildBoolValue" % true);
+            Assert.IsTrue((ELNode.Root / "ChildBoolValue").ChildBoolValue);
         }
     }
 }

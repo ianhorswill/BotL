@@ -178,6 +178,15 @@ namespace BotL.Compiler
                 }
                     break;
 
+                case "externally_called":
+                    {
+                        var spec = arg as Call;
+                        if (spec == null || !spec.IsFunctor(Symbol.Slash, 2))
+                            throw new ArgumentException("Invalid predicate specified in externally_called declaration");
+                        KB.Predicate((Symbol)spec.Arguments[0], (int)spec.Arguments[1]).IsExternallyCalled = true;
+                    }
+                    break;
+
                 default:
                     return false;
             }

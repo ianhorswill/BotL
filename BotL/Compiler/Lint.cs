@@ -29,7 +29,7 @@ namespace BotL.Compiler
         private static void WarnUnreferenced(TextWriter output, Dictionary<Predicate, List<Predicate>> refs)
         {
             foreach (var p in KB.AllRulePredicates)
-                if (p.IsUserDefined && !refs.ContainsKey(p))
+                if (p.IsUserDefined && !refs.ContainsKey(p) && !p.IsExternallyCalled)
                     Warn(output, "unused predicate {0}", p);
         }
 

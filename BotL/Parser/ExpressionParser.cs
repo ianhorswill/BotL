@@ -52,6 +52,7 @@ namespace BotL.Parser
             DefinePrefixOperator("signature", 25);
             DefinePrefixOperator("trace", 25);
             DefinePrefixOperator("notrace", 25);
+            DefinePrefixOperator("externally_called", 25);
 
             DefineBinaryOperator("=", 30);
             DefineBinaryOperator("+=", 30);

@@ -157,6 +157,7 @@ namespace BotL
 
         public bool IsUserDefined => (IsRulePredicate && !IsLocked) || IsTable;
         public bool IsTable => Table != null;
+        public bool IsExternallyCalled;
 
         #endregion
 

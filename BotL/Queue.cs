@@ -1,4 +1,28 @@
-﻿using System;
+﻿#region Copyright
+// --------------------------------------------------------------------------------------------------------------------
+// <copyright file="Queue.cs" company="Ian Horswill">
+// Copyright (C) 2017 Ian Horswill
+//  
+// Permission is hereby granted, free of charge, to any person obtaining a copy of
+// this software and associated documentation files (the "Software"), to deal in the
+// Software without restriction, including without limitation the rights to use, copy,
+// modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
+// and to permit persons to whom the Software is furnished to do so, subject to the
+// following conditions:
+//  
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+// 
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+// INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+// PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+// HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+// OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+// SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+// </copyright>
+// --------------------------------------------------------------------------------------------------------------------
+#endregion
+using System;
 using System.Collections;
 using System.Text;
 using BotL.Compiler;
@@ -175,7 +199,7 @@ namespace BotL
                     {
                         if (queue.Count == 0)
                             return CallStatus.Fail;
-                        UndoStack[uTop++].Set(RestoreHead, queue, queue.head);
+                        UndoStack[UTop++].Set(RestoreHead, queue, queue.head);
                         var value = queue.Dequeue();
 
                         if (DataStack[vAddr].Type == TaggedValueType.Unbound)
@@ -190,7 +214,7 @@ namespace BotL
                     case MatchMode.Generate:
                     {
                         // Generate mode
-                        UndoStack[uTop++].Set(RestoreTail, queue, queue.tail);
+                        UndoStack[UTop++].Set(RestoreTail, queue, queue.tail);
                         if (DataStack[vAddr].Type == TaggedValueType.Unbound)
                             throw new InstantiationException("Attempt to write uninstantiated variable to queue");
                         queue.Enqueue(DataStack[vAddr].Value);
@@ -221,7 +245,7 @@ namespace BotL
                     {
                         if (queue.Count < seq.Length)
                             return CallStatus.Fail;
-                        UndoStack[uTop++].Set(RestoreHead, queue, queue.head);
+                        UndoStack[UTop++].Set(RestoreHead, queue, queue.head);
 
                         foreach (var word in seq)
                             if (!Equals(word, queue.Dequeue()))
@@ -231,7 +255,7 @@ namespace BotL
                     case MatchMode.Generate:
                     {
                         // Generate mode
-                        UndoStack[uTop++].Set(RestoreTail, queue, queue.tail);
+                        UndoStack[UTop++].Set(RestoreTail, queue, queue.tail);
                         foreach (var word in seq)
                             queue.Enqueue(word);
                         return CallStatus.DeterministicSuccess;

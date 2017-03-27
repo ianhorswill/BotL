@@ -31,8 +31,14 @@ using static BotL.Engine;
 
 namespace BotL
 {
+    /// <summary>
+    /// Definitions related to primitive predicates
+    /// </summary>
     public static class Primops
     {
+        /// <summary>
+        /// Add the built-in primops to the KB.
+        /// </summary>
         internal static void DefinePrimops()
         {
             Table.DefineTablePrimops();
@@ -73,66 +79,6 @@ namespace BotL
             DefinePrimop(">=", 2, (argBase, ignore) => (DataStack[Deref(argBase)].AsFloat >= DataStack[Deref(argBase + 1)].AsFloat) ? CallStatus.DeterministicSuccess : CallStatus.Fail);
             DefinePrimop("<", 2, (argBase, ignore) => (DataStack[Deref(argBase)].AsFloat < DataStack[Deref(argBase + 1)].AsFloat) ? CallStatus.DeterministicSuccess : CallStatus.Fail);
             DefinePrimop("=<", 2, (argBase, ignore) => (DataStack[Deref(argBase)].AsFloat <= DataStack[Deref(argBase + 1)].AsFloat) ? CallStatus.DeterministicSuccess : CallStatus.Fail);
-            #endregion
-
-            #region Utility primops for aggregation (min/max, summation)
-            DefinePrimop("aggregate_sum", 2, (argBase, ignore) =>
-            {
-                var numAddr = Deref(argBase);
-                var resultAddr = Deref(argBase + 1);
-                DataStack[resultAddr].floatingPoint += DataStack[numAddr].AsFloat;
-                return CallStatus.Fail;
-            });
-
-            DefinePrimop("aggregate_min", 2, (argBase, ignore) =>
-            {
-                var numAddr = Deref(argBase);
-                var resultAddr = Deref(argBase + 1);
-                var newValue = DataStack[numAddr].AsFloat;
-                if (DataStack[resultAddr].Type == TaggedValueType.Unbound
-                     || newValue < DataStack[resultAddr].floatingPoint)
-                    DataStack[resultAddr].Set(newValue);
-                return CallStatus.Fail;
-            });
-
-            DefinePrimop("aggregate_max", 2, (argBase, ignore) =>
-            {
-                var numAddr = Deref(argBase);
-                var resultAddr = Deref(argBase + 1);
-                var newValue = DataStack[numAddr].AsFloat;
-                if (DataStack[resultAddr].Type == TaggedValueType.Unbound
-                     || newValue > DataStack[resultAddr].floatingPoint)
-                    DataStack[resultAddr].Set(newValue);
-                return CallStatus.Fail;
-            });
-
-            DefinePrimop("aggregate_argmin", 4, (argBase, ignore) =>
-            {
-                var numAddr = Deref(argBase);
-                var numResultAddr = Deref(argBase + 1);
-                var newValue = DataStack[numAddr].AsFloat;
-                if (DataStack[numResultAddr].Type == TaggedValueType.Unbound
-                    || newValue < DataStack[numResultAddr].floatingPoint)
-                {
-                    DataStack[numResultAddr].Set(newValue);
-                    DataStack[Deref(argBase + 3)] = DataStack[Deref(argBase + 2)];
-                }
-                return CallStatus.Fail;
-            });
-
-            DefinePrimop("aggregate_argmax", 4, (argBase, ignore) =>
-            {
-                var numAddr = Deref(argBase);
-                var numResultAddr = Deref(argBase + 1);
-                var newValue = DataStack[numAddr].AsFloat;
-                if (DataStack[numResultAddr].Type == TaggedValueType.Unbound
-                    || newValue > DataStack[numResultAddr].floatingPoint)
-                {
-                    DataStack[numResultAddr].Set(newValue);
-                    DataStack[Deref(argBase + 3)] = DataStack[Deref(argBase + 2)];
-                }
-                return CallStatus.Fail;
-            });
             #endregion
 
             #region Type testing
@@ -181,7 +127,7 @@ namespace BotL
                 return CallStatus.DeterministicSuccess;
             });
 
-            DefinePrimop("writenl", 1, (argBase, ignore) =>
+            DefinePrimop("write_line", 1, (argBase, ignore) =>
             {
                 Repl.StandardOutput.WriteLine(DataStack[Deref(argBase)]);
                 return CallStatus.DeterministicSuccess;
@@ -431,7 +377,7 @@ namespace BotL
                 var gv = GlobalVariable.Find(name);
                 if (gv == null)
                     throw new ArgumentException("Unknown global variable: " + name);
-                UndoStack[uTop++].Set(UndoTrySetGlobal, gv, ref gv.Value);
+                UndoStack[UTop++].Set(UndoTrySetGlobal, gv, ref gv.Value);
                 gv.Value = DataStack[valueAddr];
                 return CallStatus.DeterministicSuccess;
             });

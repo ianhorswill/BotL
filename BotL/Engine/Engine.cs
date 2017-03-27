@@ -25,6 +25,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Reflection;
 using BotL.Compiler;
 using BotL.Parser;
 using static BotL.Repl;
@@ -33,26 +34,92 @@ namespace BotL
 {
     public static class Engine
     {
+        /// <summary>
+        /// How much space to reserve for the DataStack array
+        /// </summary>
         private const int DStackSize = 2000;
+        /// <summary>
+        /// Size for the EnvironmentStack array
+        /// </summary>
         private const int EStackSize = DStackSize / 2;
+        /// <summary>
+        /// Size for the ChoicePointStack array
+        /// </summary>
         private const int CStackSize = DStackSize / 3;
+        /// <summary>
+        /// Size for the UndoStack array
+        /// </summary>
         private const int UStackSize = DStackSize / 2;
+        /// <summary>
+        /// Holds arguments for predicates.
+        /// Environment stack points into here to specify where the arguments of a given invocation are stored.
+        /// </summary>
         internal static readonly TaggedValue[] DataStack = new TaggedValue[DStackSize];
+        /// <summary>
+        /// Activation frames for individual predicate invocations.
+        /// Arguments for the invocation are stored in the DataStack,
+        /// at the offset specified by the base address in this frame.
+        /// Restart information for backtracking an invocation is stored in the ChoicePointStack.
+        /// </summary>
         internal static readonly Environment[] EnvironmentStack = new Environment[EStackSize];
+        /// <summary>
+        /// Stack of restart information for invocations of backtrackable predicates in the environment stack.
+        /// Each entry in the environment stack has at most one entry in the choicepointstack.  However,
+        /// many calls are deterministic, meaning they can't be restarted, and so they have no entry here.
+        /// As a consequence, when backtracking occurs, the system proceeds directly to whatever previous
+        /// predicate *was* restartable.
+        /// </summary>
         static readonly ChoicePoint[] ChoicePointStack = new ChoicePoint[CStackSize];
+        /// <summary>
+        /// Log of variables that have been bound to values and which will consequently need to be unbound
+        /// if backtracking in the future.  A choicepoint specifies how far down the tail needs to be unwound
+        /// if we restart that choicepoint.
+        /// </summary>
         private static readonly ushort[] Trail = new ushort[DStackSize];
+        /// <summary>
+        /// The top of the trail (which is ultimately a stack).
+        /// This is a field rather than a local variable of Engine.Run() because code outside of Run() needs
+        /// to be able to bind variables, and hence to push the trail.
+        /// </summary>
         internal static ushort TrailTop;
+        /// <summary>
+        /// A stack of operations to perform when backtracking.  So like the Trail, but for operations other
+        /// than resetting variable bindings.  The trail is a specialized undo stack.
+        /// Each choicepoint records how far down to unwind the undo stack.
+        /// We assume that undoing is a rarer operation than trailing, so it's somewhat more expensive.
+        /// </summary>
         internal static readonly UndoRecord[] UndoStack = new UndoRecord[UStackSize];
-        internal static ushort uTop;         // Undo stack pointer
+        /// <summary>
+        /// Top of the undo stack.  Like the trail top, this is a field rather than a local variable of Run()
+        /// because primops need to be able to push undo records.
+        /// </summary>
+        internal static ushort UTop;
 
 #if DEBUG
+        /// <summary>
+        /// We are single-stepping the VM.  Don't set this unless you are using the REPL and want to
+        /// watch the VM run instruction by instruction.
+        /// </summary>
         public static bool SingleStep;
 #endif
 
         #region Front end overloads of Run
+        /// <summary>
+        /// The name of the scratch predicate used by the repl to compile top-level queries into.
+        /// </summary>
         private static readonly Symbol TopLevelGoal = Symbol.Intern("top_level_goal");
-
+        /// <summary>
+        /// The compiler's model of the environment for the top-level goal.
+        /// This is used by TopLevelResultBindings to return the values of variables from the last
+        /// call to Run(string goal).  It is not used otherwise.
+        /// </summary>
         private static BindingEnvironment topLevelBindingEnvironment;
+
+        /// <summary>
+        /// Compile and run some code.
+        /// </summary>
+        /// <param name="goal">Source code to compile and run.</param>
+        /// <returns>True if the query succeeded.</returns>
         public static bool Run(string goal)
         {
             KB.Predicate(new PredicateIndicator(TopLevelGoal, 0)).Clear();
@@ -60,6 +127,9 @@ namespace BotL
             return Run(TopLevelGoal);
         }
 
+        /// <summary>
+        /// Iterator to return the bindings of all the variables in the last query run by Run(string goal).
+        /// </summary>
         public static IEnumerable<KeyValuePair<Symbol, object>> TopLevelResultBindings
         {
             get
@@ -69,47 +139,116 @@ namespace BotL
             }
         }
 
+        /// <summary>
+        /// Runs an already-compiled predicate.  The predicate may not take arguments.
+        /// </summary>
+        /// <param name="entryPoint">Symbol naming the predicate.</param>
+        /// <returns>True if the predicate succeeded.</returns>
         public static bool Run(Symbol entryPoint)
         {
             return Run(KB.Predicate(new PredicateIndicator(entryPoint)));
         }
         #endregion
 
+        #region Trampoline used to start user code
+        //
+        // Trampoline
+        // This isn't a real predicate.  It's a hand-coded placeholder that is stored into the PC
+        // when the VM starts up so that it will invoke the actual predicate the user is trying to run.
+        //
+
         private static readonly byte[] Trampoline = { (byte)Opcode.CLastCall };
 
+        /// <summary>
+        /// The clause used to start execution.  This will only ever appear on the bottom of the environment
+        /// stack.
+        /// </summary>
         private static readonly CompiledClause TrampolineRule =
             new CompiledClause(null, Trampoline, 0, null);
 
-        // Just a placeholder so goalPredicate will always be non-null.
+        /// <summary>
+        /// This is just a placeholder predicate so that the TrampolineRule has a predicate it belongs to
+        /// and hence goalPredicate will be non-null even for the fake frame at the bottom of the
+        /// environment stack.
+        /// </summary>
         static readonly Predicate TrampolinePredicate = new Predicate(Symbol.Intern("trampoline"), 0);
+        #endregion
 
-        private static bool Run(Predicate headPredicate)
+        #region Virutal machine interpreter
+        /// <summary>
+        /// Run a specified predicate without any arguments.
+        /// 
+        /// The VM interpreter is inside this method.
+        /// 
+        /// WARNING: this is not reentrant!  Don't call it from inside a primop or other C# code called
+        /// from within BotL code.
+        /// </summary>
+        /// <param name="topLevelPredicate">Predicate to call</param>
+        /// <returns>True if the predicate succeeds.</returns>
+        private static bool Run(Predicate topLevelPredicate)
         {
             #region Startup
-            ushort dTop = 0;         // Data stack pointer
-            ushort eTop = 0;         // Environment stack pointer
-            ushort cTop = 0;         // Choicepoint stack pointer
-            ushort startOfCall = 0;  // Position of start of call to current predicate
-            ushort trailSave = 0;    // Trail pointer at start of call
-            ushort dTopSave = 0;     // Data stack point at start of call
-            ushort restartedClauseNumber = 0;
-            TrailTop = 0;
-            uTop = 0;
+            // Data stack pointer
+            ushort dTop = 0;
+            // Environment stack pointer
+            ushort eTop = 0;
+            // Choicepoint stack pointer
+            ushort cTop = 0;
 
-            byte[] goal = Trampoline;
+            //
+            // Information captured at the start of a call
+            //
+
+            // Position within the caller's bytecode of start of the call currently being initiated
+            ushort startOfCall = 0;
+            // Trail pointer as of the start of the current call
+            ushort trailSave = 0;
+            // Data stack pointer as of the start of call
+            ushort dTopSave = 0;
+            // Index within the predicate we just restarted of the specific clause we are now trying
+            ushort restartedClauseNumber = 0;
+
+            //
+            // Undo information
+            //
+            TrailTop = 0;
+            UTop = 0;
+
+            // Caller predicate currently running, i.e. the current goal
+            // This initial value for this is *not* topLevelPredicate because the latter
+            // might have multiple clauses and if a predicate backtracks we need to temporarily restore
+            // its caller.  So we set the goal to be a trampoline predicate that does nothing but call
+            // whatever was stored in headPredicate without any arguments.
             Predicate goalPredicate = TrampolinePredicate;
-            
+            // Compiled bytecode for the specific clause (rule) of the goalPredicate being run.
+            byte[] goalCode = Trampoline;
+            // Current instruction within goalCode
+            ushort goalPc = 0;
+
+            // headPredicate is subgoal predicate we are currently trying to call.
+            // This is initially the topLevelPredicate. It gets called by the trampoline.
+            Predicate headPredicate = topLevelPredicate;
+
+            // If the top-level predicate has no clauses, fail right now.
             if (headPredicate.FirstClause == null)
                 return false;
 
-            // Get the first rule
+            // The current CompiledClause that we're trying for the head (callee subgoal).
             var headRule = headPredicate.FirstClause;
-            byte[] head = headRule.Code;
-            ushort goalFrame = eTop++;
-            // ReSharper disable once ExpressionIsAlwaysNull
-            EnvironmentStack[goalFrame] = new Environment(goalPredicate, TrampolineRule, dTop, 0, cTop, 0);
+            // The compiled bytecode from headRule.
+            byte[] headCode = headRule.Code;
+            // Current instruction within headCode
             ushort headPc = 0;
-            ushort goalPc = 0;
+
+            //
+            // Push the initial stack frame for the trampoline
+            //
+
+            // The EnvironmentStack frame for the current goal, i.e. the goalPredicate, which is generally
+            // trying to call some subgoal, headPredicate, whose environment frame won't be set up until
+            // we finish calling into the subgoal and it becomes goalPredicate.
+            ushort goalFrame = eTop++;
+            EnvironmentStack[goalFrame] = new Environment(goalPredicate, TrampolineRule, dTop, 0, cTop, 0);
 
             // cTop before the call the to current head.
             // The callee saves this value in the environment upon entry to a clause
@@ -121,7 +260,170 @@ namespace BotL
 
             // Allocate new choice frame, if necessary
             if (headPredicate.ExtraClauses != null)
-                ChoicePointStack[cTop++] = new ChoicePoint(goalFrame, startOfCall, headPredicate, 0, dTopSave, trailSave, uTop, eTop);
+                ChoicePointStack[cTop++] = new ChoicePoint(goalFrame, startOfCall, headPredicate, 0, dTopSave, trailSave, UTop, eTop);
+            #endregion
+
+            #region DoBuiltin
+            bool DoBuiltin(Predicate predicate, byte[] code, ref ushort pc, ushort frameBase)
+            {
+                var builtin = (Builtin) code[pc++];
+                switch (builtin)
+                {
+                    case Builtin.Fail:
+                        return false;
+
+                    case Builtin.Var:
+                        return DataStack[Deref(frameBase + code[pc++])].Type == TaggedValueType.Unbound;
+
+                    case Builtin.NonVar:
+                        return DataStack[Deref(frameBase + code[pc++])].Type != TaggedValueType.Unbound;
+
+                    case Builtin.UnsafeInitialize:
+                        Unbind(frameBase + code[pc++]);
+                        return true;
+
+                    case Builtin.UnsafeInitializeZero:
+                        DataStack[frameBase + code[pc++]].Set(0f);
+                        return true;
+
+                    case Builtin.UnsafeSet:
+                    {
+                        var lhs = code[pc++];
+                        var rhs = code[pc++];
+                        DataStack[frameBase + lhs] = DataStack[Deref(frameBase + rhs)];
+                        return true;
+                    }
+
+                    case Builtin.MaximizeUpdate:
+                    case Builtin.MaximizeUpdateAndRepeat:
+                        {
+                            var lhs = Deref(frameBase + code[pc++]); // Deref here is being paranoid
+                            var rhs = Deref(frameBase + code[pc++]);
+                            var rhsAsFloat = DataStack[rhs].AsFloat;
+                            if (DataStack[lhs].Type == TaggedValueType.Unbound
+                                || DataStack[lhs].AsFloat < rhsAsFloat)
+                            {
+                                DataStack[lhs].Set(rhsAsFloat);
+                                return builtin == Builtin.MaximizeUpdate;
+                            }
+                            return false;
+                        }
+
+                    case Builtin.MinimizeUpdate:
+                    case Builtin.MinimizeUpdateAndRepeat:
+                        {
+                            var lhs = Deref(frameBase + code[pc++]); // Deref here is being paranoid
+                            var rhs = Deref(frameBase + code[pc++]);
+                            var rhsAsFloat = DataStack[rhs].AsFloat;
+                            if (DataStack[lhs].Type == TaggedValueType.Unbound
+                                || DataStack[lhs].AsFloat > rhsAsFloat)
+                            {
+                                DataStack[lhs].Set(rhsAsFloat);
+                                return builtin == Builtin.MinimizeUpdate;
+                            }
+                            return false;
+                        }
+
+                    case Builtin.SumUpdateAndRepeat:
+                        {
+                            var lhs = frameBase + code[pc++];
+                            var rhs = Deref(frameBase + code[pc++]);
+                            DataStack[lhs].floatingPoint += DataStack[rhs].AsFloat;
+                            return false;
+                        }
+
+                    case Builtin.LessThan:
+                    {
+                        pc = FunctionalExpression.Eval(predicate, code, pc, frameBase, dTop);
+                        pc = FunctionalExpression.Eval(predicate, code, pc, frameBase, (ushort)(dTop+1));
+                        var leftArg = DataStack[dTop + FunctionalExpression.EvalStackOffset].AsFloat;
+                        var rightArg = DataStack[dTop + 1 + FunctionalExpression.EvalStackOffset].AsFloat;
+                        return leftArg < rightArg;
+                    }
+
+                    case Builtin.LessEq:
+                        {
+                            pc = FunctionalExpression.Eval(predicate, code, pc, frameBase, dTop);
+                            pc = FunctionalExpression.Eval(predicate, code, pc, frameBase, (ushort)(dTop + 1));
+                            var leftArg = DataStack[dTop + FunctionalExpression.EvalStackOffset].AsFloat;
+                            var rightArg = DataStack[dTop + 1 + FunctionalExpression.EvalStackOffset].AsFloat;
+                            return leftArg <= rightArg;
+                        }
+
+                    case Builtin.GreaterThan:
+                        {
+                            pc = FunctionalExpression.Eval(predicate, code, pc, frameBase, dTop);
+                            pc = FunctionalExpression.Eval(predicate, code, pc, frameBase, (ushort)(dTop + 1));
+                            var leftArg = DataStack[dTop + FunctionalExpression.EvalStackOffset].AsFloat;
+                            var rightArg = DataStack[dTop + 1 + FunctionalExpression.EvalStackOffset].AsFloat;
+                            return leftArg > rightArg;
+                        }
+
+                    case Builtin.GreaterEq:
+                        {
+                            pc = FunctionalExpression.Eval(predicate, code, pc, frameBase, dTop);
+                            pc = FunctionalExpression.Eval(predicate, code, pc, frameBase, (ushort)(dTop + 1));
+                            var leftArg = DataStack[dTop + FunctionalExpression.EvalStackOffset].AsFloat;
+                            var rightArg = DataStack[dTop + 1 + FunctionalExpression.EvalStackOffset].AsFloat;
+                            return leftArg >= rightArg;
+                        }
+
+                    case Builtin.IntegerTest:
+                        {
+                            pc = FunctionalExpression.Eval(predicate, code, pc, frameBase, dTop);
+                            return DataStack[dTop + FunctionalExpression.EvalStackOffset].Type == TaggedValueType.Integer;
+                        }
+
+                    case Builtin.FloatTest:
+                        {
+                            pc = FunctionalExpression.Eval(predicate, code, pc, frameBase, dTop);
+                            return DataStack[dTop + FunctionalExpression.EvalStackOffset].Type == TaggedValueType.Float;
+                        }
+
+                    case Builtin.NumberTest:
+                        {
+                            pc = FunctionalExpression.Eval(predicate, code, pc, frameBase, dTop);
+                            var argType = DataStack[dTop + FunctionalExpression.EvalStackOffset].Type;
+                            return argType == TaggedValueType.Integer || argType == TaggedValueType.Float;
+                        }
+
+                    case Builtin.StringTest:
+                        {
+                            pc = FunctionalExpression.Eval(predicate, code, pc, frameBase, dTop);
+                            var addr = dTop + FunctionalExpression.EvalStackOffset;
+                            return DataStack[addr].Type == TaggedValueType.Reference
+                                   && DataStack[addr].reference is string;
+                        }
+
+                    case Builtin.SymbolTest:
+                        {
+                            pc = FunctionalExpression.Eval(predicate, code, pc, frameBase, dTop);
+                            var addr = dTop + FunctionalExpression.EvalStackOffset;
+                            return DataStack[addr].Type == TaggedValueType.Reference
+                                   && DataStack[addr].reference is Symbol;
+                        }
+
+                    case Builtin.MissingTest:
+                        {
+                            pc = FunctionalExpression.Eval(predicate, code, pc, frameBase, dTop);
+                            var addr = dTop + FunctionalExpression.EvalStackOffset;
+                            return DataStack[addr].Type == TaggedValueType.Reference
+                                   && DataStack[addr].reference is Missing;
+                        }
+
+                    case Builtin.TestNotFalse:
+                        {
+                            pc = FunctionalExpression.Eval(predicate, code, pc, frameBase, dTop);
+                            var addr = dTop + FunctionalExpression.EvalStackOffset;
+                            // Accept anything but the constant false
+                            return DataStack[addr].Type != TaggedValueType.Boolean
+                                   || DataStack[addr].boolean;
+                        }
+
+                    default:
+                        throw new InvalidOperationException("Unknown builtin opcode: "+goalCode[goalPc-1]);
+                }
+            }
             #endregion
 
             try
@@ -132,17 +434,17 @@ namespace BotL
                     //Debug.Assert(
                     //    (goal == Trampoline && startOfCall == 0) || goal[startOfCall - 2] == (byte) Opcode.CGoal,
                     //    "Invalid startOfCall value");
-                    var headInstruction = (Opcode) head[headPc++];
-                    var goalInstruction = (Opcode) goal[goalPc++];
+                    var headInstruction = (Opcode) headCode[headPc++];
+                    var goalInstruction = (Opcode) goalCode[goalPc++];
 
 #if DEBUG
                     if (
-                        !CheckDebug(goalFrame, headInstruction, goalInstruction, headPredicate, head, headPc, eTop, cTop,
+                        !CheckDebug(goalFrame, headInstruction, goalInstruction, headPredicate, headCode, headPc, eTop, cTop,
                             dTop)) return false;
 #endif
                     if (goalInstruction >= Opcode.CCall && headPredicate.IsTraced)
                     {
-                        TraceCall(headPredicate, dTop, head, headPc, headRule);
+                        TraceCall(headPredicate, dTop, headCode, headPc, headRule);
                     }
 
                     switch ((int) headInstruction + (int) goalInstruction)
@@ -153,34 +455,34 @@ namespace BotL
                         // Constant/Constant matching
                         //
                         case (int) Opcode.HeadConst + (int) Opcode.GoalConst:
-                            var headCType = (OpcodeConstantType) head[headPc++];
-                            var goalCType = (OpcodeConstantType) goal[goalPc++];
+                            var headCType = (OpcodeConstantType) headCode[headPc++];
+                            var goalCType = (OpcodeConstantType) goalCode[goalPc++];
                             if (headCType == goalCType)
                             {
                                 switch (headCType)
                                 {
                                     case OpcodeConstantType.Boolean:
                                     case OpcodeConstantType.SmallInteger:
-                                        if (head[headPc++] != goal[goalPc++])
+                                        if (headCode[headPc++] != goalCode[goalPc++])
                                             goto fail;
                                         break;
 
                                     case OpcodeConstantType.Integer:
-                                        if (headPredicate.GetIntConstant(head[headPc++])
-                                            != goalPredicate.GetIntConstant(goal[goalPc++]))
+                                        if (headPredicate.GetIntConstant(headCode[headPc++])
+                                            != goalPredicate.GetIntConstant(goalCode[goalPc++]))
                                             goto fail;
                                         break;
 
                                     case OpcodeConstantType.Float:
                                         // ReSharper disable once CompareOfFloatsByEqualityOperator
-                                        if (headPredicate.GetFloatConstant(head[headPc++])
-                                            != goalPredicate.GetFloatConstant(goal[goalPc++]))
+                                        if (headPredicate.GetFloatConstant(headCode[headPc++])
+                                            != goalPredicate.GetFloatConstant(goalCode[goalPc++]))
                                             goto fail;
                                         break;
 
                                     case OpcodeConstantType.Object:
-                                        var headValue = headPredicate.GetObjectConstant<object>(head[headPc++]);
-                                        var goalValue = goalPredicate.GetObjectConstant<object>(goal[goalPc++]);
+                                        var headValue = headPredicate.GetObjectConstant<object>(headCode[headPc++]);
+                                        var goalValue = goalPredicate.GetObjectConstant<object>(goalCode[goalPc++]);
                                         if (!Equals(headValue, goalValue))
                                             goto fail;
                                         break;
@@ -188,9 +490,9 @@ namespace BotL
                                     case OpcodeConstantType.FunctionalExpression:
                                     {
                                         // Get the value of the functional expression
-                                        headPc = FunctionalExpression.Eval(headPredicate, head, headPc, dTop, dTop);
+                                        headPc = FunctionalExpression.Eval(headPredicate, headCode, headPc, dTop, dTop);
                                         var resultAddress = dTop + FunctionalExpression.EvalStackOffset;
-                                        goalPc = FunctionalExpression.Eval(goalPredicate, goal, goalPc,
+                                        goalPc = FunctionalExpression.Eval(goalPredicate, goalCode, goalPc,
                                             EnvironmentStack[goalFrame].Base,
                                             (ushort) (dTop + 1));
                                         // Goal result is not ad address resultAddress+1
@@ -228,71 +530,71 @@ namespace BotL
                             else if (headCType == OpcodeConstantType.FunctionalExpression)
                             {
                                 // Get the value of the functional expression
-                                headPc = FunctionalExpression.Eval(headPredicate, head, headPc, dTop, dTop);
+                                headPc = FunctionalExpression.Eval(headPredicate, headCode, headPc, dTop, dTop);
                                 var resultAddress = dTop + FunctionalExpression.EvalStackOffset;
                                 switch (goalCType)
                                 {
                                     case OpcodeConstantType.Boolean:
-                                        if (!DataStack[resultAddress].Equal(goal[goalPc++] != 0))
+                                        if (!DataStack[resultAddress].Equal(goalCode[goalPc++] != 0))
                                             goto fail;
                                         break;
 
                                     case OpcodeConstantType.SmallInteger:
-                                        if (!DataStack[resultAddress].Equal((sbyte) goal[goalPc++]))
+                                        if (!DataStack[resultAddress].Equal((sbyte) goalCode[goalPc++]))
                                             goto fail;
                                         break;
 
                                     case OpcodeConstantType.Integer:
                                         if (
-                                            !DataStack[resultAddress].Equal(goalPredicate.GetIntConstant(goal[goalPc++])))
+                                            !DataStack[resultAddress].Equal(goalPredicate.GetIntConstant(goalCode[goalPc++])))
                                             goto fail;
                                         break;
                                     case OpcodeConstantType.Float:
                                         if (
                                             !DataStack[resultAddress].Equal(
-                                                goalPredicate.GetFloatConstant(goal[goalPc++])))
+                                                goalPredicate.GetFloatConstant(goalCode[goalPc++])))
                                             goto fail;
                                         break;
                                     case OpcodeConstantType.Object:
                                         if (
                                             !DataStack[resultAddress].EqualReference(
-                                                goalPredicate.GetObjectConstant<object>(goal[goalPc++])))
+                                                goalPredicate.GetObjectConstant<object>(goalCode[goalPc++])))
                                             goto fail;
                                         break;
                                 }
                             }
                             else if (goalCType == OpcodeConstantType.FunctionalExpression)
                             {
-                                goalPc = FunctionalExpression.Eval(goalPredicate, goal, goalPc,
+                                goalPc = FunctionalExpression.Eval(goalPredicate, goalCode, goalPc,
                                     EnvironmentStack[goalFrame].Base, dTop);
                                 var resultAddress = dTop + FunctionalExpression.EvalStackOffset;
                                 switch (headCType)
                                 {
                                     case OpcodeConstantType.Boolean:
-                                        if (!DataStack[resultAddress].Equal(head[headPc++] != 0))
+                                        if (!DataStack[resultAddress].Equal(headCode[headPc++] != 0))
                                             goto fail;
                                         break;
 
                                     case OpcodeConstantType.SmallInteger:
-                                        if (!DataStack[resultAddress].Equal((sbyte) head[headPc++]))
+                                        if (!DataStack[resultAddress].Equal((sbyte) headCode[headPc++]))
                                             goto fail;
                                         break;
 
                                     case OpcodeConstantType.Integer:
                                         if (
-                                            !DataStack[resultAddress].Equal(headPredicate.GetIntConstant(head[headPc++])))
+                                            !DataStack[resultAddress].Equal(headPredicate.GetIntConstant(headCode[headPc++])))
                                             goto fail;
                                         break;
                                     case OpcodeConstantType.Float:
                                         if (
                                             !DataStack[resultAddress].Equal(
-                                                headPredicate.GetFloatConstant(head[headPc++])))
+                                                headPredicate.GetFloatConstant(headCode[headPc++])))
                                             goto fail;
                                         break;
                                     case OpcodeConstantType.Object:
                                         if (
                                             !DataStack[resultAddress].EqualReference(
-                                                goalPredicate.GetObjectConstant<object>(goal[goalPc++])))
+                                                goalPredicate.GetObjectConstant<object>(goalCode[goalPc++])))
                                             goto fail;
                                         break;
                                 }
@@ -301,8 +603,8 @@ namespace BotL
                             {
                                 // Mixed float match
                                 // ReSharper disable once CompareOfFloatsByEqualityOperator
-                                if (headPredicate.GetFloatConstant(headCType, head[headPc++])
-                                    != goalPredicate.GetFloatConstant(goalCType, goal[goalPc++]))
+                                if (headPredicate.GetFloatConstant(headCType, headCode[headPc++])
+                                    != goalPredicate.GetFloatConstant(goalCType, goalCode[goalPc++]))
                                     goto fail;
                             }
                             else
@@ -328,11 +630,11 @@ namespace BotL
 
                         case (int) Opcode.HeadVoid + (int) Opcode.GoalConst:
                             // Don't bother reading the constant
-                            if ((OpcodeConstantType) goal[goalPc++] == OpcodeConstantType.FunctionalExpression)
+                            if ((OpcodeConstantType) goalCode[goalPc++] == OpcodeConstantType.FunctionalExpression)
                             {
                                 // skip to the end of the expression
                                 // ReSharper disable once EmptyEmbeddedStatement
-                                while ((FOpcode) goal[goalPc++] != FOpcode.Return) ;
+                                while ((FOpcode) goalCode[goalPc++] != FOpcode.Return) ;
                             }
                             else
                                 goalPc++;
@@ -340,10 +642,10 @@ namespace BotL
 
                         case (int) Opcode.HeadConst + (int) Opcode.GoalVoid:
                             // Don't bother reading the constant
-                            if ((OpcodeConstantType) head[headPc++] == OpcodeConstantType.FunctionalExpression)
+                            if ((OpcodeConstantType) headCode[headPc++] == OpcodeConstantType.FunctionalExpression)
                             {
                                 // skip to the end of the expression
-                                while ((FOpcode) head[headPc++] != FOpcode.Return)
+                                while ((FOpcode) headCode[headPc++] != FOpcode.Return)
                                 {
                                 }
                             }
@@ -354,43 +656,43 @@ namespace BotL
                         case (int) Opcode.HeadVoid + (int) Opcode.GoalVarFirst:
                             // First reference to goal variable is a void variable, so we just initialize
                             // the goal variable to be unbound.
-                            Unbind(EnvironmentStack[goalFrame].Base + goal[goalPc++]);
+                            Unbind(EnvironmentStack[goalFrame].Base + goalCode[goalPc++]);
                             break;
 
                         case (int) Opcode.HeadVarFirst + (int) Opcode.GoalVoid:
                             // First reference to head variable is a void variable, so we just initialize
                             // the head variable to be unbound.
-                            Unbind(dTop + head[headPc++]);
+                            Unbind(dTop + headCode[headPc++]);
                             break;
 
                         //
                         // Var/Const matching
                         //
                         case (int) Opcode.HeadConst + (int) Opcode.GoalVarFirst:
-                            headPc = SetVarToConstant(EnvironmentStack[goalFrame].Base + goal[goalPc++],
-                                headPredicate, head, headPc,
+                            headPc = SetVarToConstant(EnvironmentStack[goalFrame].Base + goalCode[goalPc++],
+                                headPredicate, headCode, headPc,
                                 dTop,
                                 dTop);
                             break;
 
                         case (int) Opcode.HeadVarFirst + (int) Opcode.GoalConst:
-                            goalPc = SetVarToConstant(dTop + head[headPc++],
-                                goalPredicate, goal, goalPc,
+                            goalPc = SetVarToConstant(dTop + headCode[headPc++],
+                                goalPredicate, goalCode, goalPc,
                                 EnvironmentStack[goalFrame].Base,
                                 dTop);
                             break;
 
                         case (int) Opcode.HeadConst + (int) Opcode.GoalVarMatch:
-                            if (!MatchVarConstant(EnvironmentStack[goalFrame].Base + goal[goalPc++],
-                                headPredicate, head, ref headPc,
+                            if (!MatchVarConstant(EnvironmentStack[goalFrame].Base + goalCode[goalPc++],
+                                headPredicate, headCode, ref headPc,
                                 dTop,
                                 dTop))
                                 goto fail;
                             break;
 
                         case (int) Opcode.HeadVarMatch + (int) Opcode.GoalConst:
-                            if (!MatchVarConstant(dTop + head[headPc++],
-                                goalPredicate, goal, ref goalPc,
+                            if (!MatchVarConstant(dTop + headCode[headPc++],
+                                goalPredicate, goalCode, ref goalPc,
                                 EnvironmentStack[goalFrame].Base,
                                 dTop))
                                 goto fail;
@@ -401,16 +703,16 @@ namespace BotL
                         //
                         case (int) Opcode.HeadVarFirst + (int) Opcode.GoalVarFirst:
                         {
-                            var goalVarAddress = EnvironmentStack[goalFrame].Base + goal[goalPc++];
+                            var goalVarAddress = EnvironmentStack[goalFrame].Base + goalCode[goalPc++];
                             Unbind(goalVarAddress);
-                            DataStack[dTop + head[headPc++]].AliasTo(goalVarAddress);
+                            DataStack[dTop + headCode[headPc++]].AliasTo(goalVarAddress);
                         }
                             break;
 
                         case (int) Opcode.HeadVarFirst + (int) Opcode.GoalVarMatch:
                         {
-                            var headAddress = (ushort) (dTop + head[headPc++]);
-                            var goalAddress = Deref(EnvironmentStack[goalFrame].Base + goal[goalPc++]);
+                            var headAddress = (ushort) (dTop + headCode[headPc++]);
+                            var goalAddress = Deref(EnvironmentStack[goalFrame].Base + goalCode[goalPc++]);
                             Debug.Assert(headAddress != goalAddress, "Aliasing variable to itself");
                             DataStack[headAddress].AliasTo(goalAddress);
                         }
@@ -418,17 +720,17 @@ namespace BotL
 
                         case (int) Opcode.HeadVarMatch + (int) Opcode.GoalVarFirst:
                         {
-                            var goalVarAddress = (ushort) (EnvironmentStack[goalFrame].Base + goal[goalPc++]);
+                            var goalVarAddress = (ushort) (EnvironmentStack[goalFrame].Base + goalCode[goalPc++]);
                             Unbind(goalVarAddress);
-                            var headVarAddress = dTop + head[headPc++];
+                            var headVarAddress = dTop + headCode[headPc++];
                             UnifyDereferenced(goalVarAddress, Deref(headVarAddress));
                         }
                             break;
 
                         case (int) Opcode.HeadVarMatch + (int) Opcode.GoalVarMatch:
                         {
-                            var goalVarAddress = (ushort) (EnvironmentStack[goalFrame].Base + goal[goalPc++]);
-                            var headVarAddress = dTop + head[headPc++];
+                            var goalVarAddress = (ushort) (EnvironmentStack[goalFrame].Base + goalCode[goalPc++]);
+                            var headVarAddress = dTop + headCode[headPc++];
                             if (!UnifyDereferenced(Deref(goalVarAddress), Deref(headVarAddress)))
                                 goto fail;
                         }
@@ -448,9 +750,14 @@ namespace BotL
                             goalPc--;
                             break;
 
-                        case (int) Opcode.CFail + (int) Opcode.CLastCall:
-                        case (int) Opcode.CFail + (int) Opcode.CCall:
-                            goto fail;
+                        case (int) Opcode.CBuiltin + (int) Opcode.CLastCall:
+                        case (int) Opcode.CBuiltin + (int) Opcode.CCall:
+                        {
+                            var headBase = headPredicate.IsNestedPredicate ? EnvironmentStack[goalFrame].Base : dTop;
+                            if (!DoBuiltin(headPredicate, headCode, ref headPc, headBase)) goto fail;
+                            goalPc--;
+                        }
+                            break;
 
                         // Tail call a special predicate
                         case (int) Opcode.CSpecial + (int) Opcode.CLastCall:
@@ -465,12 +772,12 @@ namespace BotL
                                 if (canContinue)
                                 {
                                     ChoicePointStack[cTop++] = new ChoicePoint(goalFrame, startOfCall, headPredicate,
-                                        nextRow, dTopSave, trailSave, uTop, eTop);
+                                        nextRow, dTopSave, trailSave, UTop, eTop);
                                 }
                             }
                             else
                             {
-                                var savedUTop = uTop;
+                                var savedUTop = UTop;
                                 switch (headPredicate.PrimopImplementation(dTop, restartedClauseNumber))
                                 {
                                     case CallStatus.Fail:
@@ -495,14 +802,14 @@ namespace BotL
                                         throw new InvalidOperationException("Tail call to primop that returned callindirect.");
                                 }
                             }
-                            goto lastCallFact;
+                            goto goalPredicateSucceeded;
 
                         // Tail calling a fact
                         case (int) Opcode.CNoGoal + (int) Opcode.CLastCall:
-                            lastCallFact:
+                            goalPredicateSucceeded:
                             if (goalPredicate.IsTraced)
                             {
-                                TraceSucceed(dTop, headPredicate, head);
+                                TraceSucceed(dTop, headPredicate, headCode);
                             }
                             // Succeed
                             // Walk up stack until we find something that's incomplete
@@ -515,21 +822,23 @@ namespace BotL
                                 goalFrame = EnvironmentStack[goalFrame].ContinuationFrame;
                                 goalPredicate = EnvironmentStack[goalFrame].Predicate;
                                 //goal = EnvironmentStack[goalFrame].Clause;
-                                goal = EnvironmentStack[goalFrame].CompiledClause.Code;
-                                if (goalPredicate.IsTraced && goalPc == goal.Length)
+                                goalCode = EnvironmentStack[goalFrame].CompiledClause.Code;
+                                if (goalPredicate.IsTraced && goalPc == goalCode.Length)
                                 {
-                                    TraceSucceed(EnvironmentStack[goalFrame].Base, goalPredicate, goal);
+                                    TraceSucceed(EnvironmentStack[goalFrame].Base, goalPredicate, goalCode);
                                 }
-                            } while (goalPc == goal.Length);
+                            } while (goalPc == goalCode.Length);
 
                             continuationLoop:
-                            switch ((Opcode) goal[goalPc++])
+                            switch ((Opcode) goalCode[goalPc++])
                             {
                                 case Opcode.CGoal:
                                     break;
 
-                                case Opcode.CFail:
-                                    goto fail;
+                                case Opcode.CBuiltin:
+                                    if (!DoBuiltin(goalPredicate, goalCode, ref goalPc, EnvironmentStack[goalFrame].Base))
+                                        goto fail;
+                                    goto continuationLoop;
 
                                 case Opcode.CCut:
                                     cTop = EnvironmentStack[goalFrame].CallerCTop;
@@ -540,8 +849,8 @@ namespace BotL
                                     break;
                             }
 
-                            Debug.Assert(goal[goalPc - 1] == (byte) Opcode.CGoal);
-                            headPredicate = goalPredicate.GetObjectConstant<Predicate>(goal[goalPc++]);
+                            Debug.Assert(goalCode[goalPc - 1] == (byte) Opcode.CGoal);
+                            headPredicate = goalPredicate.GetObjectConstant<Predicate>(goalCode[goalPc++]);
                           beginCall:
                             headPc = 0;
                             startOfCall = goalPc;
@@ -555,14 +864,14 @@ namespace BotL
                                 throw new Exception("Undefined predicate: " + headPredicate);
                             }
                             headRule = headPredicate.FirstClause;
-                            head = headRule.Code;
+                            headCode = headRule.Code;
                             callerCp = cTop;
 
                             // Allocate new choice frame, if necessary
                             if (headPredicate.ExtraClauses != null)
                                 ChoicePointStack[cTop++] = new ChoicePoint(goalFrame, startOfCall,
                                     headPredicate, 0,
-                                    dTopSave, trailSave, uTop, eTop);
+                                    dTopSave, trailSave, UTop, eTop);
                             break;
 
                         // (Non-tail) calling a special predicate
@@ -578,11 +887,11 @@ namespace BotL
                                 if (canContinue)
                                     ChoicePointStack[cTop++] = new ChoicePoint(goalFrame, startOfCall,
                                         headPredicate, nextRow,
-                                        dTopSave, trailSave, uTop, eTop);
+                                        dTopSave, trailSave, UTop, eTop);
                             }
                             else
                             {
-                                var savedUTop = uTop;
+                                var savedUTop = UTop;
                                 switch (headPredicate.PrimopImplementation(dTop, restartedClauseNumber))
                                 {
                                     case CallStatus.Fail:
@@ -606,25 +915,25 @@ namespace BotL
                                 if (restartedClauseNumber == 0)
                                     dTop += headPredicate.Tempvars;
                             }
-                            goto continueCaller;
+                            goto continueGoalPredicate;
 
                         // (Non-tail) calling a fact
                         case (int) Opcode.CNoGoal + (int) Opcode.CCall:
                             // We're done; move on to the next call in goal
                             if (headPredicate.IsTraced)
                             {
-                                TraceSucceed(dTop, headPredicate, head);
+                                TraceSucceed(dTop, headPredicate, headCode);
                             }
 
-                            continueCaller:
-                            switch ((Opcode) goal[goalPc++])
+                            continueGoalPredicate:
+                            switch ((Opcode) goalCode[goalPc++])
                             {
                                 case Opcode.CGoal:
                                     headPc = 0;
                                     // ReSharper disable once PossibleNullReferenceException
-                                    headPredicate = goalPredicate.GetObjectConstant<Predicate>(goal[goalPc++]);
+                                    headPredicate = goalPredicate.GetObjectConstant<Predicate>(goalCode[goalPc++]);
                                     startOfCall = goalPc;
-                                    Debug.Assert(goal[startOfCall - 2] == (byte) Opcode.CGoal, "Invalid startOfCall");
+                                    Debug.Assert(goalCode[startOfCall - 2] == (byte) Opcode.CGoal, "Invalid startOfCall");
                                     trailSave = TrailTop;
                                     dTopSave = dTop;
                                     if (headPredicate.FirstClause == null)
@@ -634,24 +943,29 @@ namespace BotL
                                         throw new Exception("Undefined predicate: " + headPredicate);
                                     }
                                     headRule = headPredicate.FirstClause;
-                                    head = headRule.Code;
+                                    headCode = headRule.Code;
                                     callerCp = cTop;
                                     // Allocate new choice frame, if necessary
                                     if (headPredicate.ExtraClauses != null)
                                         ChoicePointStack[cTop++] = new ChoicePoint(goalFrame, startOfCall,
                                             headPredicate, 0,
-                                            dTopSave, trailSave, uTop, eTop);
+                                            dTopSave, trailSave, UTop, eTop);
                                     break;
 
                                 case Opcode.CCut:
                                     cTop = EnvironmentStack[goalFrame].CallerCTop;
-                                    if (goalPc == goal.Length)
+                                    if (goalPc == goalCode.Length)
                                         // At end of goalPredicate, so return from it.
-                                        goto lastCallFact;
-                                    goto continueCaller;
+                                        goto goalPredicateSucceeded;
+                                    goto continueGoalPredicate;
 
-                                case Opcode.CFail:
-                                    goto fail;
+                                case Opcode.CBuiltin:
+                                    if (!DoBuiltin(goalPredicate, goalCode, ref goalPc, EnvironmentStack[goalFrame].Base))
+                                        goto fail;
+                                    goto continueGoalPredicate;
+
+                                case Opcode.CNoGoal:
+                                    goto goalPredicateSucceeded;
 
                                 default:
                                     Debug.Assert(false, "CCall should be followed by CGoal");
@@ -667,7 +981,7 @@ namespace BotL
                                 goto nonTailGoalCall;
                             EnvironmentStack[goalFrame].Predicate = goalPredicate = headPredicate;
                             EnvironmentStack[goalFrame].CompiledClause = headRule;
-                            goal = head;
+                            goalCode = headCode;
                             EnvironmentStack[goalFrame].CallerCTop = callerCp;
 
                             if (!goalPredicate.IsNestedPredicate)
@@ -678,9 +992,9 @@ namespace BotL
                             } // else base for nested predicate is just the base for the caller.
 
                             goalPc = headPc;
-                            headPredicate = goalPredicate.GetObjectConstant<Predicate>(goal[goalPc++]);
+                            headPredicate = goalPredicate.GetObjectConstant<Predicate>(goalCode[goalPc++]);
                             startOfCall = goalPc;
-                            Debug.Assert(goal[startOfCall - 2] == (byte) Opcode.CGoal, "Invalid startOfCall");
+                            Debug.Assert(goalCode[startOfCall - 2] == (byte) Opcode.CGoal, "Invalid startOfCall");
                             trailSave = TrailTop;
                             dTopSave = dTop;
 
@@ -691,14 +1005,14 @@ namespace BotL
                                 throw new Exception("Undefined predicate: " + headPredicate);
                             }
                             headRule = headPredicate.FirstClause;
-                            head = headRule.Code;
+                            headCode = headRule.Code;
                             callerCp = cTop;
 
                             // Allocate new choice frame, if necessary
                             if (headPredicate.ExtraClauses != null)
                                 ChoicePointStack[cTop++] = new ChoicePoint(goalFrame, startOfCall,
                                     headPredicate, 0,
-                                    dTopSave, trailSave, uTop, eTop);
+                                    dTopSave, trailSave, UTop, eTop);
 
                             headPc = 0;
                             break;
@@ -728,14 +1042,14 @@ namespace BotL
 
                             // Jump into clause
                             goalPredicate = headPredicate;
-                            goal = head;
+                            goalCode = headCode;
                             goalFrame = newFrame;
                             goalPc = headPc;
 
                             // We know we just fetched a CGoal, so get the predicate being called
-                            headPredicate = goalPredicate.GetObjectConstant<Predicate>(goal[goalPc++]);
+                            headPredicate = goalPredicate.GetObjectConstant<Predicate>(goalCode[goalPc++]);
                             startOfCall = goalPc;
-                            Debug.Assert(goal[startOfCall - 2] == (byte) Opcode.CGoal, "Invalid startOfCall");
+                            Debug.Assert(goalCode[startOfCall - 2] == (byte) Opcode.CGoal, "Invalid startOfCall");
                             trailSave = TrailTop;
                             dTopSave = dTop;
                             // Fail if it has no rules
@@ -743,15 +1057,15 @@ namespace BotL
                                 goto fail;
                             // Otherwise start matching the head
                             headRule = headPredicate.FirstClause;
-                            head = headRule.Code;
+                            headCode = headRule.Code;
                             headPc = 0;
                             callerCp = cTop;
 
                             // Allocate new choice frame, if necessary
-                            if (headPredicate.ExtraClauses != null && head == headPredicate.FirstClause.Code)
+                            if (headPredicate.ExtraClauses != null && headCode == headPredicate.FirstClause.Code)
                                 ChoicePointStack[cTop++] = new ChoicePoint(goalFrame, startOfCall,
                                     headPredicate, 0, dTopSave,
-                                    trailSave, uTop, eTop);
+                                    trailSave, UTop, eTop);
                             break;
 
                             #endregion
@@ -785,7 +1099,7 @@ namespace BotL
                             UndoTo(cp.TrailTop, cp.UndoStackTop);
                             trailSave = cp.TrailTop;
                             goalPredicate = EnvironmentStack[goalFrame].Predicate;
-                            goal = EnvironmentStack[goalFrame].CompiledClause.Code;
+                            goalCode = EnvironmentStack[goalFrame].CompiledClause.Code;
                             startOfCall = goalPc = cp.CallingPC;
                             //Debug.Assert(goalFrame == 0 || goal[startOfCall - 2] == (byte) Opcode.CGoal,
                             //    "Invalid startOfCall");
@@ -813,7 +1127,7 @@ namespace BotL
                                     ChoicePointStack[cTop++].NextClause += 1;
                                 }
                             }
-                            head = headRule.Code;
+                            headCode = headRule.Code;
                             callerCp = cTop;
 
                             DebugConsoleRestartMessage(goalPredicate, headPredicate, cp);
@@ -829,17 +1143,23 @@ namespace BotL
             catch
             {
                 if (StandardError != null)
-                    DumpStackWithHead(goalFrame, eTop, cTop, dTop, headPredicate, head, headPc);
+                    DumpStackWithHead(goalFrame, eTop, cTop, dTop, headPredicate, headCode, headPc);
                 throw;
             }
         }
 
+        /// <summary>
+        /// Generate a trace report for a predicate that succeeds.
+        /// </summary>
         private static void TraceSucceed(ushort dTopSave, Predicate goalPredicate, byte[] goal)
         {
             StandardError.Write("Succeed: ");
             DumpHead(dTopSave, goalPredicate, goal, 9999);
         }
 
+        /// <summary>
+        /// Generate a trace report for a call to a predicate
+        /// </summary>
         private static void TraceCall(Predicate headPredicate, ushort dTop, byte[] head, ushort headPc, CompiledClause headRule)
         {
             StandardError.Write("Enter: ");
@@ -879,23 +1199,38 @@ namespace BotL
                     "Saved dTop for choicepoint points to unallocated space.");
             }
         }
+        #endregion
 
-        #region Trailing and Undo Satck
+        #region Trailing and Undo Stack
+        /// <summary>
+        /// Add variable to trail.  Called when a variable is bound to a value so the system knows
+        /// to unbind it upon backtracking.
+        /// </summary>
+        /// <param name="address">Address of the variable in the DataStack</param>
         internal static void SaveVariable(ushort address)
         {
             Trail[TrailTop++] = address;
         }
         
+        /// <summary>
+        /// Undo variable bindings and run pending undo operations.
+        /// </summary>
+        /// <param name="cpTrailTop">Trail position to undo back to</param>
+        /// <param name="uStackTop">Undo stack position to undo back to.</param>
         private static void UndoTo(ushort cpTrailTop, ushort uStackTop)
         {
             ushort t;
             UndoTo(cpTrailTop);
-            t = uTop;
+            t = UTop;
             while (t>uStackTop)
                 UndoStack[--t].Invoke();
-            uTop = t;
+            UTop = t;
         }
 
+        /// <summary>
+        /// Undo variable bindings but don't run undo stack operations.
+        /// </summary>
+        /// <param name="cpTrailTop">Trail position to reset to.</param>
         public static void UndoTo(ushort cpTrailTop)
         {
             var t = TrailTop;
@@ -903,7 +1238,6 @@ namespace BotL
                 DataStack[Trail[--t]].Type = TaggedValueType.Unbound;
             TrailTop = cpTrailTop;
         }
-
         #endregion
 
         #region Unification

@@ -52,6 +52,7 @@ namespace BotL.Parser
             DefinePrefixOperator("signature", 25);
             DefinePrefixOperator("trace", 25);
             DefinePrefixOperator("notrace", 25);
+            DefinePrefixOperator("externally_called", 25);
 
             DefineBinaryOperator("=", 30);
             DefineBinaryOperator("+=", 30);
@@ -179,6 +180,7 @@ namespace BotL.Parser
             return ReadDelimitedExpression(CloseParen);
         }
 
+        // ReSharper disable once UnusedParameter.Local
         private object ReadDelimitedExpression(Symbol delimiter)
         {
             var value = Read();
@@ -369,6 +371,14 @@ namespace BotL.Parser
                     WriteExpressionToString(e, 0, b);
                 }
                 b.Append(")");
+                return;
+            }
+            if (expression is float || expression is double)
+            {
+                var str = expression.ToString();
+                b.Append(str);
+                if (str.IndexOf('.') < 0)
+                    b.Append(".0");
                 return;
             }
             var c = expression as Call;

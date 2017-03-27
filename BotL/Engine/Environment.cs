@@ -22,9 +22,11 @@
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
 #endregion
-
 namespace BotL
 {
+    /// <summary>
+    /// An activation frame for a call to a specific clause of a predicate
+    /// </summary>
     internal struct Environment
     {
         /// <summary>

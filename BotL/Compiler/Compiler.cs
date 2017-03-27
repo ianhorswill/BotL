@@ -61,7 +61,7 @@ namespace BotL.Compiler
             }
         }
 
-        static HashSet<string> LoadedSourceFiles = new HashSet<string>();
+        static readonly HashSet<string> LoadedSourceFiles = new HashSet<string>();
         static string CanonicalizeSourceName(object name)
         {
             var path = name as string;
@@ -178,6 +178,15 @@ namespace BotL.Compiler
                 }
                     break;
 
+                case "externally_called":
+                    {
+                        var spec = arg as Call;
+                        if (spec == null || !spec.IsFunctor(Symbol.Slash, 2))
+                            throw new ArgumentException("Invalid predicate specified in externally_called declaration");
+                        KB.Predicate((Symbol)spec.Arguments[0], (int)spec.Arguments[1]).IsExternallyCalled = true;
+                    }
+                    break;
+
                 default:
                     return false;
             }
@@ -203,20 +212,35 @@ namespace BotL.Compiler
             if (forceVoidVariables)
                 e.IncrementVoidVariableReferences();
             AllocateVariables(assertion, e);
+
+            CompiledClause clause;
             if (Call.IsFunctor(assertion, Symbol.Implication, 2))
             {
                 var implication = assertion as Call;
                 // ReSharper disable once PossibleNullReferenceException
                 var head = implication.Arguments[0];
                 var body = implication.Arguments[1];
-                Predicate.AddClause(new PredicateIndicator(head), CompileRule(assertion, head, body, e));
+                clause = CompileRule(assertion, head, body, e);
+                Predicate.AddClause(new PredicateIndicator(head), clause);
             }
             else
             {
-                Predicate.AddClause(new PredicateIndicator(assertion), CompileFact(assertion, e));
+                clause = CompileFact(assertion, e);
+                Predicate.AddClause(new PredicateIndicator(assertion), clause);
             }
+            GenerateSingletonWarnings(clause, e);
             return e;
         }
+
+        private static void GenerateSingletonWarnings(CompiledClause clause, BindingEnvironment e)
+        {
+            foreach (var v in e.Variables)
+            {
+                if (v.IsSingleton && !v.Variable.IsGenerated && !v.Variable.Name.Name.StartsWith("_"))
+                    clause.AddWarning("Singleton variable {0} - might be a typo", v.Variable.Name);
+            }
+        }
+
         #endregion
 
         #region Compiling facts (rules with no body)
@@ -386,8 +410,10 @@ namespace BotL.Compiler
                 CompileMetaCall(c, b, e, lastCall);
             } else if (goal == Symbol.Fail || goal.Equals(false))
             {
-                b.Emit(Opcode.CFail);
+                b.EmitBuiltin(Builtin.Fail);
             }
+            else if (c != null && BuiltinTable.BuiltinOpcode(c).HasValue)
+                CompileBuiltin(c, b, e, lastCall);
             else
             {
                 b.EmitGoal(KB.Predicate(new PredicateIndicator(goal)));
@@ -395,6 +421,126 @@ namespace BotL.Compiler
                 // Else c is a symbol, so there's nothing to compile.
                 b.Emit(lastCall ? Opcode.CLastCall : Opcode.CCall);
             }
+        }
+
+        private static void CompileBuiltin(Call c, CodeBuilder b, BindingEnvironment e, bool lastCall)
+        {
+            // ReSharper disable once PossibleInvalidOperationException
+            var builtin = BuiltinTable.BuiltinOpcode(c).Value;
+            switch (builtin)
+            {
+                case Builtin.Var:
+                case Builtin.NonVar:
+                {
+                    if (c.Arguments[0] is Variable v)
+                    {
+                        if (e[v].FirstReferenceCompiled)
+                        {
+                            b.EmitBuiltin(builtin);
+                            b.Emit((byte) e[v].EnvironmentIndex);
+                        }
+                        // This is the first use of the variable; it can't be instantiated.
+                        else if (builtin == Builtin.NonVar)
+                                b.EmitBuiltin(Builtin.Fail);
+                        }
+                    // Else it's a compile-time constant, so never var
+                    else if (builtin == Builtin.Var)
+                            // Always fail
+                            b.EmitBuiltin(Builtin.Fail);
+                    // Always true, so no-op
+                }
+                    break;
+
+                case Builtin.UnsafeSet:
+                    {
+                    if (!(c.Arguments[0] is Variable lhs) || !(c.Arguments[1] is Variable rhs))
+                        throw new InvalidOperationException("Arguments to unsafe_set must be variables.");
+                    var lhsi = e[lhs];
+                    var rhsi = e[rhs];
+                    if (!rhsi.FirstReferenceCompiled || !lhsi.FirstReferenceCompiled)
+                        throw new InvalidOperationException("Argument to unsafe_set is uninstantiated variable");
+                    b.EmitBuiltin(builtin);
+                    b.Emit((byte) lhsi.EnvironmentIndex);
+                    b.Emit((byte) rhsi.EnvironmentIndex);
+                }
+                    break;
+
+                case Builtin.UnsafeInitialize:
+                case Builtin.UnsafeInitializeZero:
+                {
+                    if (!(c.Arguments[0] is Variable v))
+                        throw new InvalidOperationException("Argument to unsafe_initialize is not a variable");
+                    var vi = e[v];
+                    if (!vi.FirstReferenceCompiled)
+                    {
+                        b.EmitBuiltin(builtin);
+                        b.Emit((byte) vi.EnvironmentIndex);
+                        vi.FirstReferenceCompiled = true;
+                    }
+                    // Else nop
+                }
+                    break;
+
+                case Builtin.MaximizeUpdate:
+                case Builtin.MaximizeUpdateAndRepeat:
+                case Builtin.MinimizeUpdate:
+                case Builtin.MinimizeUpdateAndRepeat:
+                case Builtin.SumUpdateAndRepeat:
+                    {
+                    if (!(c.Arguments[0] is Variable lhs) || !(c.Arguments[1] is Variable rhs))
+                        throw new InvalidOperationException("Arguments to maximize/minimize/sum_update must be variables.");
+                    var lhsi = e[lhs];
+                    var rhsi = e[rhs];
+                    if (!rhsi.FirstReferenceCompiled || !lhsi.FirstReferenceCompiled)
+                        throw new InvalidOperationException("Argument to maximize/minimize/sum_update is uninstantiated variable");
+                    b.EmitBuiltin(builtin);
+                    b.Emit((byte) lhsi.EnvironmentIndex);
+                    b.Emit((byte) rhsi.EnvironmentIndex);
+                    break;
+                }
+
+                case Builtin.LessThan:
+                case Builtin.GreaterThan:
+                case Builtin.LessEq:
+                case Builtin.GreaterEq:
+                    {
+                    b.EmitBuiltin(builtin);
+                    CompileFunctionalExpression(c.Arguments[0], b, e);
+                    b.Emit(FOpcode.Return);
+                    CompileFunctionalExpression(c.Arguments[1], b, e);
+                    b.Emit(FOpcode.Return);
+                    break;
+                }
+
+                case Builtin.IntegerTest:
+                case Builtin.FloatTest:
+                case Builtin.NumberTest:
+                case Builtin.StringTest:
+                case Builtin.SymbolTest:
+                case Builtin.MissingTest:
+                case Builtin.TestNotFalse:
+                    {
+                        var arg = c.Arguments[0];
+                        if (!(arg is Variable v) || e[v].FirstReferenceCompiled)
+                        {
+                            b.EmitBuiltin(builtin);
+                            CompileFunctionalExpression(arg, b, e, false);
+                            b.Emit(FOpcode.Return);
+                        }
+                        else
+                        {
+                            // argument is a variable known at compile-time to be uninstantiated.
+                            b.EmitBuiltin(Builtin.Fail);
+                        }
+                        break;
+                    }
+
+                default:
+                    throw new InvalidOperationException("Attempt to compile unknown builtin "+ builtin);
+            }
+
+            if (lastCall)
+                b.Emit(Opcode.CNoGoal);
         }
 
         private static void CompileMetaCall(Call call, CodeBuilder b, BindingEnvironment e, bool lastCall)
@@ -446,7 +592,7 @@ namespace BotL.Compiler
         /// <summary>
         /// Emits code for functional expression EXP.  Does not emit the preamble or return instruction.
         /// </summary>
-        private static void CompileFunctionalExpression(object exp, CodeBuilder b, BindingEnvironment e)
+        private static void CompileFunctionalExpression(object exp, CodeBuilder b, BindingEnvironment e, bool checkInstantiation=true)
         {
             var v = exp as Variable;
             var c = exp as Call;
@@ -459,7 +605,7 @@ namespace BotL.Compiler
             else if (v != null)
             {
                 // It's a variable reference
-                b.Emit(FOpcode.Load);
+                b.Emit(checkInstantiation?FOpcode.Load:FOpcode.LoadUnchecked);
                 var variableInfo = e[v];
                 if (variableInfo.Type == VariableType.Void || !variableInfo.FirstReferenceCompiled)
                 {

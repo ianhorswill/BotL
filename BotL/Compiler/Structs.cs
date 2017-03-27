@@ -28,6 +28,9 @@ using System.Linq;
 
 namespace BotL.Compiler
 {
+    /// <summary>
+    /// Table of declared struct types
+    /// </summary>
     public static class Structs
     {
         public static readonly object PaddingValue = System.Reflection.Missing.Value;

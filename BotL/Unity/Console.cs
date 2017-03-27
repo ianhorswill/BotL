@@ -22,7 +22,6 @@
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
 #endregion
-
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
@@ -38,6 +37,7 @@ namespace Northwestern.UnityUtils
 {
     public class Console : MonoBehaviour
     {
+        public int MaxTextLength = 2048;
         public Rect WindowRect = new Rect(0, 0, 640, 480); //Defines console size and dimensions
         // ReSharper disable once MemberCanBeProtected.Global
         public string WindowTitle = "Console";
@@ -93,7 +93,7 @@ namespace Northwestern.UnityUtils
         {
             Initialize();
             In = string.Empty;
-            Out = new ConsoleWriter();
+            Out = new ConsoleWriter(MaxTextLength);
             consoleBuffer = Header;
             if (consoleBuffer != "")
                 Out.WriteLine(consoleBuffer);
@@ -200,13 +200,15 @@ namespace Northwestern.UnityUtils
         protected class ConsoleWriter : TextWriter
         {
             private bool bufferUpdated;
+            private int maxTextLength;
 
             //tracks when changes are made to StringBuilder to prevent generating new strings every click
 
             private readonly StringBuilder oBuffer;
 
-            public ConsoleWriter()
+            public ConsoleWriter(int maxTextLength)
             {
+                this.maxTextLength = maxTextLength;
                 oBuffer = new StringBuilder();
             }
 
@@ -232,6 +234,9 @@ namespace Northwestern.UnityUtils
             public string GetTextUpdate()
             {
                 bufferUpdated = false;
+                var len = oBuffer.Length;
+                if (len > maxTextLength)
+                    oBuffer.Remove(0, len - maxTextLength);
                 return oBuffer.ToString();
             }
 

@@ -48,7 +48,12 @@ namespace BotL.Compiler
             if (c == null)
                 return assertion;
             if (!c.IsFunctor(Symbol.Implication, 2))
-                return TransformFact(assertion);
+            {
+                assertion = TransformFact(assertion);
+                if (Call.IsFunctor(assertion, Symbol.Implication, 2))
+                    return TransformTopLevel(assertion);
+                return assertion;
+            }
             // It's a rule.
             var args = c.Arguments;
             var head = args[0];
@@ -161,7 +166,7 @@ namespace BotL.Compiler
                 {
                     if (fullyHoist && !(hoisted is Variable))
                     {
-                        var t = Variable.MakeGenerated("*T*");
+                        var t = Variable.MakeGenerated("*Hoisted*");
                         residue = new Call(Symbol.Comma, residue, new Call(Symbol.Equal, t, hoisted));
                         hoisted = t;
                     }
@@ -262,12 +267,12 @@ namespace BotL.Compiler
                     return Call.AddArgument(c.Arguments[1], c.Arguments[0]);
             } else if (c.IsFunctor(Symbol.Dot, 2))
             {
-                if (c.Arguments[1] is Symbol)
-                {
-                    // It's a field reference
-                    return new Call("is_true", literal);
-                }
-                return new Call("is_true", new Call("non_false", literal));
+                //if (c.Arguments[1] is Symbol)
+                //{
+                //    // It's a field reference
+                //    return new Call("%is_true", literal);
+                //}
+                return new Call("%not_false", literal);
             }
             return literal;
         }

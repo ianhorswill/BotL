@@ -24,10 +24,22 @@
 #endregion
 namespace BotL.Compiler
 {
+    /// <summary>
+    /// The compiler's classification of a variable.
+    /// </summary>
     enum VariableType
     {
-        Void,   // Singleton; don't allocate space for it
-        Head,   // Appears in head; allocate space in args
-        Body    // Appears multiple times, but only in body
+        /// <summary>
+        /// Singleton; don't allocate space for it.
+        /// </summary>
+        Void,
+        /// <summary>
+        /// Appears in head; allocate space in args
+        /// </summary>
+        Head,
+        /// <summary>
+        /// Appears multiple times, but only in body
+        /// </summary>
+        Body
     }
 }

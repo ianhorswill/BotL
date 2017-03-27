@@ -24,8 +24,12 @@
 #endregion
 namespace BotL.Compiler
 {
+    /// <summary>
+    /// Represents compiler-internal information about a variable.
+    /// </summary>
     class VariableInfo
     {
+        public Variable Variable;
         /// <summary>
         /// How many times this variable appears in the head
         /// </summary>
@@ -42,7 +46,12 @@ namespace BotL.Compiler
         /// Position within the run-time environment for the call
         /// </summary>
         public int EnvironmentIndex = -1;
-        
+
+        public VariableInfo(Variable variable)
+        {
+            Variable = variable;
+        }
+
         /// <summary>
         /// How many times this variable appears in the rule or fact.
         /// </summary>

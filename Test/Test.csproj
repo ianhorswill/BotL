@@ -53,6 +53,7 @@
   </Choose>
   <ItemGroup>
     <Compile Include="BotLTestClass.cs" />
+    <Compile Include="BuiltinTests.cs" />
     <Compile Include="CompilerTests.cs" />
     <Compile Include="GrammarTests.cs" />
     <Compile Include="ELTests.cs" />

@@ -23,13 +23,33 @@
 // --------------------------------------------------------------------------------------------------------------------
 #endregion
 
+using System.Collections.Generic;
+
 namespace BotL
 {
+    /// <summary>
+    /// The compiled form of a rule.
+    /// Contains a bytecode vector as well as environment size and debug info.
+    /// </summary>
     sealed class CompiledClause
     {
+        /// <summary>
+        /// Source code for the rule.
+        /// </summary>
         public readonly object Source;
+        /// <summary>
+        /// Compiled bytecode for the rule.
+        /// </summary>
         public readonly byte[] Code;
+        /// <summary>
+        /// Number of entries in this rule's stack frame.
+        /// </summary>
         public readonly ushort EnvironmentSize;
+        /// <summary>
+        /// Describes the mapping from head arguments to stack positions
+        /// HeadModel[i] = constant, if that arg was a constant in the head
+        /// HeadModel[i] = StackReference object if it was a variable.
+        /// </summary>
         public readonly object[] HeadModel;
 
         public CompiledClause(object source, byte[] code, ushort environmentSize, object[] headModel)
@@ -44,5 +64,26 @@ namespace BotL
         {
             return $"CompiledClause<{Source}>";
         }
+
+        #region Warning handling
+        private readonly Dictionary<CompiledClause, List<string>> WarningTable = new Dictionary<CompiledClause, List<string>>();
+        internal void AddWarning(string format, params object[] args)
+        {
+            var warning = string.Format(format, args);
+            if (WarningTable.TryGetValue(this, out List<string> warningList))
+                warningList.Add(warning);
+            else
+                WarningTable[this] = new List<string> {warning};
+        }
+
+        internal IEnumerable<string> Warnings
+        {
+            get
+            {
+                if (WarningTable.TryGetValue(this, out List<string> warnings))
+                    foreach (var w in warnings) yield return w;
+            }
+        }
+        #endregion
     }
 }

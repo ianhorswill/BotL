@@ -28,8 +28,14 @@ using System.Linq;
 
 namespace BotL.Compiler
 {
+    /// <summary>
+    /// Support for macroexpansion.
+    /// </summary>
     static class Macros
     {
+        /// <summary>
+        /// Declare the standard built-in macros.
+        /// </summary>
         public static void DeclareMacros()
         {
             Table.DefineTableMacros();
@@ -43,45 +49,64 @@ namespace BotL.Compiler
             DeclareMacro("ignore", 1, exp => Or(And(exp, Symbol.Cut), Symbol.TruePredicate));
             DeclareMacro("forall", 2, (cond, action) => Not(And(cond, Not(action))));
             DeclareMacro("minimum", 3,
-                (score, generator, result) => And(new Call("initialize_variable", result),
+                (score, generator, result) => And(new Call("%init", result),
                                                   Or(And(generator,
-                                                         new Call("aggregate_min", score, result),
-                                                         Symbol.Fail),
+                                                         new Call("%minimize_update_and_repeat", result, score)),
                                                      new Call("nonvar", result))));
             DeclareMacro("maximum", 3,
-                (score, generator, result) => And(new Call("initialize_variable", result),
+                (score, generator, result) => And(new Call("%init", result),
                                                   Or(And(generator,
-                                                         new Call("aggregate_max", score, result),
-                                                         Symbol.Fail),
+                                                         new Call("%maximize_update_and_repeat", result, score)),
                                                      new Call("nonvar", result))));
+            DeclareMacro("arg_min", 3,
+                (arg, scoreExpression, result) => {
+                    var score = Variable.MakeGenerated("*score*");
+                    return new Call("arg_min", arg, score, new Call(Symbol.Equal, score, scoreExpression), result);
+                });
+            Functions.DeclareFunction("arg_min", 2);
+            DeclareMacro("arg_max", 3,
+                (arg, scoreExpression, result) => {
+                    var score = Variable.MakeGenerated("*score*");
+                    return new Call("arg_max", arg, score, new Call(Symbol.Equal, score, scoreExpression), result);
+                });
+            Functions.DeclareFunction("arg_max", 2);
             DeclareMacro("arg_min", 4,
                 (arg, score, generator, result) => {
-                    var temp = Variable.MakeGenerated("*temp*");
-                    return Or(And(new Call("initialize_variable", result),
-                                  new Call("initialize_variable", temp),
-                                  new Call("initialize_variable", score),
+                    var temp = Variable.MakeGenerated("*MinScore*");
+                    return Or(And(GenerateArgmaxInit(result),
+                                  new Call("%init", temp),
+                                  new Call("%init", score),
                                   generator,
-                                  new Call("aggregate_argmin", score, temp, arg, result),
+                                  new Call("%minimize_update", temp, score),
+                                  GenerateArgmaxUpdate(result, arg),
                                   Symbol.Fail),
                               new Call("nonvar", result));
                 });
+            Functions.DeclareFunction("arg_min", 3);
             DeclareMacro("arg_max", 4,
-                 (arg, score, generator, result) => {
-                     var temp = Variable.MakeGenerated("*temp*");
-                     return Or(And(new Call("initialize_variable", result),
-                                   new Call("initialize_variable", temp),
-                                   new Call("initialize_variable", score),
-                                   generator,
-                                   new Call("aggregate_argmax", score, temp, arg, result),
-                                   Symbol.Fail),
-                               new Call("nonvar", result));
+                (arg, score, generator, result) => {
+                    var temp = Variable.MakeGenerated("*MaxScore*");
+                    return Or(And(GenerateArgmaxInit(result),
+                                  new Call("%init", temp),
+                                  new Call("%init", score),
+                                  generator,
+                                  new Call("%maximize_update", temp, score),
+                                  GenerateArgmaxUpdate(result, arg),
+                                  Symbol.Fail),
+                              new Call("nonvar", temp));
                 });
+            Functions.DeclareFunction("arg_max", 3);
             DeclareMacro("sum", 3,
-                            (score, generator, result) => And(new Call("initialize_accumulator", result),
-                                                              Or(And(generator,
-                                                                     new Call("aggregate_sum", score, result),
-                                                                     Symbol.Fail),
-                                                                 Symbol.TruePredicate)));
+                            (score, generator, result) =>
+                            {
+                                var rtemp = Variable.MakeGenerated("*Sum*");
+                                return And(new Call("%init_zero", rtemp),
+                                    Or(And(generator,
+                                            new Call("%sum_update_and_repeat", rtemp, score)),
+                                        And(new Call("nonvar", rtemp),
+                                            new Call(Symbol.Equal, rtemp, result))));
+                            });
+            Functions.DeclareFunction("sum", 2);
 
             DeclareMacro("set", 1, arg =>
             {
@@ -99,7 +124,7 @@ namespace BotL.Compiler
             {
                 var c = input as Call;
                 if (c == null || !c.IsFunctor(Symbol.Colon, 2))
-                    throw new ArgumentException("Argument to setof must be of the form Var:Generator.");
+                    throw new SyntaxError("Argument to setof must be of the form Var:Generator.", input);
                 var v = c.Arguments[0];
                 var generator = c.Arguments[1];
                 return And(new Call(Symbol.Equal, output, new Call(Symbol.Hashset)),
@@ -113,7 +138,7 @@ namespace BotL.Compiler
             {
                 var c = input as Call;
                 if (c == null || !c.IsFunctor(Symbol.Colon, 2))
-                    throw new ArgumentException("Argument to setof must be of the form Var:Generator.");
+                    throw new SyntaxError("Argument to setof must be of the form Var:Generator.", input);
                 var v = c.Arguments[0];
                 var generator = c.Arguments[1];
                 return And(new Call(Symbol.Equal, output, new Call(Symbol.ArrayList)),
@@ -132,6 +157,30 @@ namespace BotL.Compiler
             });
         }
 
+        private static object GenerateArgmaxInit(object result)
+        {
+            if (result is Call c && c.IsFunctor(Symbol.Comma, 2))
+            {
+                return And(GenerateArgmaxInit(c.Arguments[0]), 
+                            GenerateArgmaxInit(c.Arguments[1]));
+            }
+            return new Call("%init", result);
+        }
+
+        private static object GenerateArgmaxUpdate(object result, object arg)
+        {
+            if (result is Call c && c.IsFunctor(Symbol.Comma, 2))
+            {
+                if (!(arg is Call ca && ca.IsFunctor(Symbol.Comma, 2)))
+                    throw new SyntaxError("arg and result for arg_min/max have different lengths", new Call(Symbol.Colon, arg, result));
+                return And(GenerateArgmaxUpdate(c.Arguments[0], ca.Arguments[0]),
+                            GenerateArgmaxUpdate(c.Arguments[1], ca.Arguments[1]));
+            }
+            if (Call.IsFunctor(arg, Symbol.Comma, 2))
+                throw new SyntaxError("arg and result for arg_min/max have different lengths", new Call(Symbol.Colon, arg, result));
+            return new Call("%unsafe_set", result, arg);
+        }
+        
         #region Macro declation
         public static void DeclareMacro(string name, int arity, Func<object, object> expander)
         {
@@ -238,7 +287,7 @@ namespace BotL.Compiler
         {
             var c = functionArg as Call;
             if (c == null)
-                throw new ArgumentException("Invalid left hand side of set expression.");
+                throw new SyntaxError("Invalid left hand side of set expression.", functionArg);
             if (c.IsFunctor(Symbol.DollarSign, 1))
             {
                 // It's an update to a global variable

@@ -27,6 +27,9 @@ using System.Collections.Generic;
 
 namespace BotL.Compiler
 {
+    /// <summary>
+    /// Used to create a bytecode vector for a compiled rule.
+    /// </summary>
     class CodeBuilder
     {
         public CodeBuilder(Predicate p)
@@ -93,6 +96,12 @@ namespace BotL.Compiler
                 Emit((byte)OpcodeConstantType.Object);
                 Emit(Predicate.GetObjectConstantIndex(o));
             }
+        }
+
+        public void EmitBuiltin(Builtin builtinOpcode)
+        {
+            Emit(Opcode.CBuiltin);
+            Emit((byte)builtinOpcode);
         }
     }
 }

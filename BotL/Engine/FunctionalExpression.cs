@@ -31,6 +31,11 @@ using static BotL.Engine;
 
 namespace BotL
 {
+    /// <summary>
+    /// Evaluator for compiled functional expressions.
+    /// Functional expressions have their own byte codes (FOpcode), but these are embedded
+    /// in the normal byte code.
+    /// </summary>
     internal static class FunctionalExpression
     {
         public const ushort EvalStackOffset = 256;
@@ -53,7 +58,8 @@ namespace BotL
 
             while (true)
             {
-                switch ((FOpcode) clause[pc++])
+                var fOpcode = (FOpcode) clause[pc++];
+                switch (fOpcode)
                 {
                     case FOpcode.Return:
                         return pc;
@@ -79,8 +85,9 @@ namespace BotL
                         break;
 
                     case FOpcode.Load:
+                    case FOpcode.LoadUnchecked:
                         var address = Deref(frameBase + clause[pc++]);
-                        if (DataStack[address].Type == TaggedValueType.Unbound)
+                        if (DataStack[address].Type == TaggedValueType.Unbound && fOpcode == FOpcode.Load)
                             throw new InstantiationException("Uninstantiated variable in functional expression");
                         DataStack[stack++] = DataStack[address];
                         break;
@@ -361,7 +368,16 @@ namespace BotL
                         }
                         break;
 
-                    
+                    case FOpcode.Distance:
+                        var distance = UnityUtilities.Distance(DataStack[--stack].Value, DataStack[--stack].Value);
+                        DataStack[stack++].Set(distance);
+                        break;
+
+                    case FOpcode.DistanceSq:
+                        var distanceSq = UnityUtilities.DistanceSq(DataStack[--stack].Value, DataStack[--stack].Value);
+                        DataStack[stack++].Set(distanceSq);
+                        break;
+
                     default:
                         throw new InvalidOperationException("Bad opcode in compiled functional expression");
                 }

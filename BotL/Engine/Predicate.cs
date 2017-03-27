@@ -23,11 +23,16 @@
 // --------------------------------------------------------------------------------------------------------------------
 #endregion
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 
 namespace BotL
 {
+    /// <summary>
+    /// A predicate in the KB.
+    /// Contains all CompiledClauses for the predicate, along with ancillary information.
+    /// </summary>
     [DebuggerDisplay("{Name}/{Arity}")]
     public sealed class Predicate
     {
@@ -41,17 +46,60 @@ namespace BotL
             Tempvars = tempvars;
         }
 
+        /// <summary>
+        /// Name of the predicate
+        /// </summary>
         public readonly Symbol Name;
+        /// <summary>
+        /// Number of arguments to the predicate
+        /// </summary>
         public readonly int Arity;
+        /// <summary>
+        /// First clause of the predicate
+        /// </summary>
         internal CompiledClause FirstClause;
+        /// <summary>
+        /// Additional clauses, if any
+        /// </summary>
         internal List<CompiledClause> ExtraClauses;
+        /// <summary>
+        /// Constant table.  This stores constant values used in the clauses of the predicate.
+        /// The compiled code then just stores an offset in this table when it wants to reference a constant.
+        /// Ints and floats are stored in separate tables to avoid boxing.
+        /// </summary>
         private List<object> objectConstants;
+        /// <summary>
+        /// Integer constant table.  This stores all the integer constants used by the clauses of the 
+        /// predicate.  The compiled code just stores an offset in this table when it wants to reference 
+        /// a constant.  Note that short integers (sbytes) are stored inline in the byte code rather than
+        /// stored here.
+        /// </summary>
         private List<int> intConstants;
+        /// <summary>
+        /// Floating point constant table.  This stores all the integer constants used by the clauses of the 
+        /// predicate.  The compiled code just stores an offset in this table when it wants to reference 
+        /// a constant.
+        /// </summary>
         private List<float> floatConstants;
+        /// <summary>
+        /// If true, throw an exception if user tries to add a new rule to this predicate.
+        /// </summary>
         public bool IsLocked;
+        /// <summary>
+        /// True if this is a compiler-generated pseudo-predicate that implements a disjunction.
+        /// </summary>
         public bool IsNestedPredicate;
+        /// <summary>
+        /// Number of temporary variables to be reserved in this predicate's stack frame, if this is a primop.
+        /// </summary>
         public readonly byte Tempvars;
+        /// <summary>
+        /// Argument types, if declared.
+        /// </summary>
         public Symbol[] Signature { get; internal set; }
+        /// <summary>
+        /// True if we should print traces of calls to this predicate
+        /// </summary>
         public bool IsTraced;
 
         #region Special predicates
@@ -59,6 +107,57 @@ namespace BotL
         internal readonly Table Table;
 
         public bool IsSpecial => (PrimopImplementation != null || Table != null);
+        public bool IsRulePredicate => !IsSpecial;
+        public bool IsDefined => IsLocked || FirstClause != null;
+
+        internal IEnumerable<CompiledClause> Clauses
+        {
+            get
+            {
+                if (FirstClause != null)
+                    yield return FirstClause;
+
+                if (ExtraClauses != null)
+                {
+                    foreach (var c in ExtraClauses)
+                        yield return c;
+                }
+            }
+        }
+
+        internal IEnumerable<Predicate> ReferencedPredicates
+        {
+            get
+            {
+                if (objectConstants == null)
+                    yield break;
+
+                foreach (var c in objectConstants)
+                {
+                    var p = c as Predicate;
+                    if (p != null) yield return p;
+                }
+            }
+        }
+
+        internal IEnumerable<Predicate> ReferencedUserPredicates
+        {
+            get
+            {
+                if (objectConstants == null)
+                    yield break;
+
+                foreach (var c in objectConstants)
+                {
+                    var p = c as Predicate;
+                    if (p != null && p.IsUserDefined) yield return p;
+                }
+            }
+        }
+
+        public bool IsUserDefined => (IsRulePredicate && !IsLocked) || IsTable;
+        public bool IsTable => Table != null;
+        public bool IsExternallyCalled;
 
         #endregion
 

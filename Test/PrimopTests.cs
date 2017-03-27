@@ -37,16 +37,6 @@ namespace Test
     public class PrimopTests : BotLTestClass
     {
         [TestMethod]
-        public void OrdinalTests()
-        {
-            TestTrue("1 < 2");
-            TestFalse("1 < 1");
-            TestTrue("1 < 2, true");
-            TestFalse("1 < 1, true");
-            TestFalse("1 < 2, fail");
-        }
-
-        [TestMethod]
         public void InArrayTest()
         {
             TestTrue("1 in array(1, 2, 3)");
@@ -95,79 +85,12 @@ namespace Test
         }
 
         [TestMethod]
-        public void MinMaxTest()
-        {
-            Compiler.Compile(@"dumbset(1)
-dumbset(2)
-dumbset(3)");
-            TestTrue("minimum(X,dumbset(X), M), M=1.0");
-            TestTrue("maximum(X,dumbset(X), M), M=3.0");
-        }
-
-        [TestMethod]
-        public void ArgMinMaxTest()
-        {
-            Compiler.Compile(@"dumbmap(a,1)
-dumbmap(b,2)
-dumbmap(c,3)");
-            TestTrue("arg_min(X,S, dumbmap(X, S), M), M=a");
-            TestTrue("arg_max(X, S, dumbmap(X, S), M), M=c");
-        }
-
-        [TestMethod]
-        public void SumTest()
-        {
-            TestTrue("sum(X, X in array(1,2,3), S), S=6.0");
-        }
-
-        [TestMethod]
         public void ItemTests()
         {
             TestTrue("X=array(1,2,3), X[1]=2");
             TestTrue("X=array(1,2,3), X[1]=Y, Y=2");
         }
-
-        [TestMethod]
-        public void InstantiationTestTests()
-        {
-            TestTrue("var(X)");
-            TestFalse("X=Y, Y=a, var(X)");
-            TestFalse("var(1)");
-
-            TestFalse("nonvar(X)");
-            TestTrue("X=Y, Y=a, nonvar(X)");
-            TestTrue("nonvar(1)");
-        }
-
-        [TestMethod]
-        public void TypeTestTests()
-        {
-            TestTrue("float(1.0)");
-            TestFalse("float(1)");
-            TestFalse("float(X)");
-            TestTrue("X=Y, Y=1.0, float(X)");
-
-            TestTrue("integer(1)");
-            TestFalse("integer(1.5)");
-            TestFalse("integer(X)");
-            TestTrue("X=Y, Y=1, integer(X)");
-
-            TestTrue("number(1.0)");
-            TestTrue("number(1)");
-            TestFalse("number(X)");
-            TestTrue("X=Y, Y=1.0, number(X)");
-
-            TestTrue("string(\"a\")");
-            TestFalse("string(1)");
-            TestFalse("string(X)");
-            TestTrue("X=Y, Y=\"a\", string(X)");
-
-            TestTrue("symbol(a)");
-            TestFalse("symbol(1)");
-            TestFalse("symbol(X)");
-            TestTrue("X=Y, Y=a, symbol(X)");
-        }
-
+        
         [TestMethod, ExpectedException(typeof(ArgumentException))]
         public void TestLoad()
         {
@@ -191,7 +114,7 @@ dumbmap(c,3)");
 
             writer = new StringWriter();
             Repl.StandardOutput = writer;
-            TestTrue("writenl(1)");
+            TestTrue("write_line(1)");
             writer.Flush();
             Assert.AreEqual("1\r\n", writer.ToString());
         }

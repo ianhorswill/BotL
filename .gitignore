@@ -77,3 +77,4 @@ TAGS
 *.exe
 *.config
 *.manifest
+*.csproj

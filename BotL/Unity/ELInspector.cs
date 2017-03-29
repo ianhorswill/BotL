@@ -23,6 +23,7 @@
 // --------------------------------------------------------------------------------------------------------------------
 #endregion
 using System;
+using System.CodeDom;
 using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
@@ -49,7 +50,15 @@ namespace BotL.Unity
         /// <summary>
         /// Nodes to display the children of
         /// </summary>
-        private readonly HashSet<ELNode> displayChildren = new HashSet<ELNode>(); 
+        private readonly Dictionary<ELNode, bool> displayChildren = new Dictionary<ELNode, bool>();
+
+        bool DisplayChildren(ELNode node)
+        {
+            if (displayChildren.TryGetValue(node, out bool result))
+                return result;
+            return true;
+        }
+
         // ReSharper disable once InconsistentNaming
         private int ID;
         private Vector2 scrollPosition;
@@ -67,7 +76,6 @@ namespace BotL.Unity
         {
             ID = IDCount++;
             viewHeight = WindowRect.height;
-            displayChildren.Add(ELNode.Root);
         }
 
         private bool mouseClicked;
@@ -126,9 +134,7 @@ namespace BotL.Unity
                     var go = node.Key.reference as GameObject;
                     stringBuilder.Append(go != null ?
                         ('$' + go.name)
-                        : (node.Key.reference == null ?
-                            "null"
-                            : node.Key.reference.ToString()));
+                        : RenderReferenceValue(node.Key.reference));
 
                     break;
 
@@ -149,7 +155,7 @@ namespace BotL.Unity
             }
 
             stringBuilder.Append(node.IsExclusive?":":"/");
-            var suppressChildren = node.FirstChild != null && !displayChildren.Contains(node);
+            var suppressChildren = node.FirstChild != null && !DisplayChildren(node);
             if (suppressChildren)
                 stringBuilder.Append(" ...");
             var key = new GUIContent(stringBuilder.ToString());
@@ -168,14 +174,23 @@ namespace BotL.Unity
             return y;
         }
 
+        private static string RenderReferenceValue(object value)
+        {
+            if (value == null)
+                return "null";
+            if (value is string s)
+                return '"' + s + '"';
+            if (value is System.Reflection.Missing)
+                return "<missing>";
+            return value.ToString();
+        }
+
         private void ToggleNode(ELNode node)
         {
-            if (displayChildren.Contains(node))
-                displayChildren.Remove(node);
+            if (displayChildren.TryGetValue(node, out bool current))
+                displayChildren[node] = !current;
             else
-            {
-                displayChildren.Add(node);
-            }
+                displayChildren[node] = false;
         }
     }
 }

@@ -1,9 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
+﻿using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
 
 namespace BotL.Compiler
 {
@@ -11,6 +7,7 @@ namespace BotL.Compiler
     {
         public static void Check(TextWriter output)
         {
+            KB.Predicate(Symbol.Intern("top_level_goal"), 0).IsExternallyCalled = true;
             var refs = AllRulePredicateReferences();
             WarnUndefined(output, refs);
             WarnUnreferenced(output, refs);
@@ -29,7 +26,7 @@ namespace BotL.Compiler
         private static void WarnUnreferenced(TextWriter output, Dictionary<Predicate, List<Predicate>> refs)
         {
             foreach (var p in KB.AllRulePredicates)
-                if (p.IsUserDefined && !refs.ContainsKey(p) && !p.IsExternallyCalled)
+                if (p.IsUserDefined && !refs.ContainsKey(p) && !p.IsExternallyCalled && !p.IsLocked && p.FirstClause != null)
                     Warn(output, "unused predicate {0}", p);
         }
 

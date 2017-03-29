@@ -85,6 +85,12 @@ namespace Test
         }
 
         [TestMethod]
+        public void InHashtableTest()
+        {
+            TestTrue("H=new Hashtable(), H.Add(a,b), H.Add(b,c), H.Add(c, d), N=1, sum(N, (X in H), S), S=3.0");
+        }
+        
+        [TestMethod]
         public void ItemTests()
         {
             TestTrue("X=array(1,2,3), X[1]=2");

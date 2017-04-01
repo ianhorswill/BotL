@@ -225,6 +225,10 @@ namespace BotL
         /// </summary>
         DistanceSq,
         /// <summary>
+        /// Does run-time name resolution of named entities ($ is compile-time).
+        /// </summary>
+        ResolveName,
+        /// <summary>
         /// Marks the end of a functional expression
         /// </summary>
         Return = 255
@@ -285,6 +289,7 @@ namespace BotL
 
             OpcodeTable[new PredicateIndicator("distance", 2)] = FOpcode.Distance;
             OpcodeTable[new PredicateIndicator("distance_squared", 2)] = FOpcode.DistanceSq;
+            OpcodeTable[new PredicateIndicator("#", 1)] = FOpcode.ResolveName;
         }
     }
 }

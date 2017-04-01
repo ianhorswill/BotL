@@ -77,6 +77,7 @@ namespace BotL.Parser
             DefineBinaryOperator(">>", 120);
             DefineBinaryOperator(".", 200);
             DefinePrefixOperator("$", 300);
+            DefinePrefixOperator("#", 300);
             DefineBinaryOperator("::", 300);
         }
 

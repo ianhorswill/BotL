@@ -93,7 +93,7 @@ namespace BotL
                         break;
 
                     case FOpcode.LoadGlobal:
-                        var globalVariable = (GlobalVariable)p.GetObjectConstant<object>(clause[pc++]);
+                        var globalVariable = (GlobalVariable) p.GetObjectConstant<object>(clause[pc++]);
                         DataStack[stack++] = globalVariable.Value;
                         break;
 
@@ -103,10 +103,10 @@ namespace BotL
                         var op1Addr = --stack;
                         if (BothInts(op1Addr, op2Addr))
                             DataStack[stack++].Set(DataStack[op1Addr].integer +
-                                                          DataStack[op2Addr].integer);
+                                                   DataStack[op2Addr].integer);
                         else
                             DataStack[stack++].Set(DataStack[op1Addr].AsFloat +
-                                                          DataStack[op2Addr].AsFloat);
+                                                   DataStack[op2Addr].AsFloat);
                     }
                         break;
 
@@ -116,21 +116,21 @@ namespace BotL
                         var op1Addr = --stack;
                         if (BothInts(op1Addr, op2Addr))
                             DataStack[stack++].Set(DataStack[op1Addr].integer -
-                                                          DataStack[op2Addr].integer);
+                                                   DataStack[op2Addr].integer);
                         else
                             DataStack[stack++].Set(DataStack[op1Addr].AsFloat -
-                                                          DataStack[op2Addr].AsFloat);
+                                                   DataStack[op2Addr].AsFloat);
                     }
                         break;
 
                     case FOpcode.Negate:
-                        {
-                            var op1Addr = --stack;
-                            if (DataStack[op1Addr].Type == TaggedValueType.Integer)
-                                DataStack[stack++].Set(-DataStack[op1Addr].integer);
-                            else
-                                DataStack[stack++].Set(DataStack[op1Addr].floatingPoint);
-                        }
+                    {
+                        var op1Addr = --stack;
+                        if (DataStack[op1Addr].Type == TaggedValueType.Integer)
+                            DataStack[stack++].Set(-DataStack[op1Addr].integer);
+                        else
+                            DataStack[stack++].Set(DataStack[op1Addr].floatingPoint);
+                    }
                         break;
 
                     case FOpcode.Multiply:
@@ -139,10 +139,10 @@ namespace BotL
                         var op1Addr = --stack;
                         if (BothInts(op1Addr, op2Addr))
                             DataStack[stack++].Set(DataStack[op1Addr].integer *
-                                                          DataStack[op2Addr].integer);
+                                                   DataStack[op2Addr].integer);
                         else
                             DataStack[stack++].Set(DataStack[op1Addr].AsFloat *
-                                                          DataStack[op2Addr].AsFloat);
+                                                   DataStack[op2Addr].AsFloat);
                     }
                         break;
 
@@ -151,7 +151,7 @@ namespace BotL
                         var op2Addr = --stack;
                         var op1Addr = --stack;
                         DataStack[stack++].Set(DataStack[op1Addr].AsFloat /
-                                                      DataStack[op2Addr].AsFloat);
+                                               DataStack[op2Addr].AsFloat);
                     }
                         break;
 
@@ -167,7 +167,7 @@ namespace BotL
                     case FOpcode.MethodCall:
                     {
                         object[] args = new object[clause[pc++]];
-                        for (var i = args.Length-1; i >= 0; i--)
+                        for (var i = args.Length - 1; i >= 0; i--)
                             args[i] = DataStack[--stack].Value;
                         var methodName = (string) DataStack[--stack].reference;
                         var target = DataStack[--stack].Value;
@@ -177,14 +177,14 @@ namespace BotL
                         break;
 
                     case FOpcode.Constructor:
-                        {
-                            object[] args = new object[clause[pc++]];
-                            for (var i = args.Length - 1; i >= 0; i--)
-                                args[i] = DataStack[--stack].Value;
-                            var type = (Type)DataStack[--stack].reference;
-                            var result = type.CreateInstance(args);
-                            DataStack[stack++].SetGeneral(result);
-                        }
+                    {
+                        object[] args = new object[clause[pc++]];
+                        for (var i = args.Length - 1; i >= 0; i--)
+                            args[i] = DataStack[--stack].Value;
+                        var type = (Type) DataStack[--stack].reference;
+                        var result = type.CreateInstance(args);
+                        DataStack[stack++].SetGeneral(result);
+                    }
                         break;
 
                     case FOpcode.ComponentLookup:
@@ -214,23 +214,23 @@ namespace BotL
                         break;
 
                     case FOpcode.ArrayList:
-                        {
-                            var capacity = clause[pc++];
-                            var result = new ArrayList(capacity);
-                            for (int i = 0; i < capacity; i++)
-                                result.Add(DataStack[--stack].Value);
-                            DataStack[stack++].SetReference(result);
-                        }
+                    {
+                        var capacity = clause[pc++];
+                        var result = new ArrayList(capacity);
+                        for (int i = 0; i < capacity; i++)
+                            result.Add(DataStack[--stack].Value);
+                        DataStack[stack++].SetReference(result);
+                    }
                         break;
 
                     case FOpcode.Queue:
-                        {
-                            var capacity = clause[pc++];
-                            var result = new Queue();
-                            for (int i = 0; i < capacity; i++)
-                                result.Enqueue(DataStack[--stack].Value);
-                            DataStack[stack++].SetReference(result);
-                        }
+                    {
+                        var capacity = clause[pc++];
+                        var result = new Queue();
+                        for (int i = 0; i < capacity; i++)
+                            result.Enqueue(DataStack[--stack].Value);
+                        DataStack[stack++].SetReference(result);
+                    }
                         break;
 
                     case FOpcode.Hashset:
@@ -246,59 +246,59 @@ namespace BotL
                     case FOpcode.NonFalse:
                         // Push true on the stack if TOS is anything but the boolean False.
                     {
-                        var tos = stack-1;
+                        var tos = stack - 1;
                         DataStack[tos].Set(DataStack[tos].Type != TaggedValueType.Boolean || DataStack[tos].boolean);
                     }
                         break;
 
                     case FOpcode.Min:
-                        {
-                            var op2Addr = --stack;
-                            var op1Addr = --stack;
-                            if (BothInts(op1Addr, op2Addr))
-                                DataStack[stack++].Set(Math.Min(DataStack[op1Addr].integer,
-                                                                DataStack[op2Addr].integer));
-                            else
-                                DataStack[stack++].Set(Mathf.Min(DataStack[op1Addr].AsFloat,
-                                                                 DataStack[op2Addr].AsFloat));
-                        }
+                    {
+                        var op2Addr = --stack;
+                        var op1Addr = --stack;
+                        if (BothInts(op1Addr, op2Addr))
+                            DataStack[stack++].Set(Math.Min(DataStack[op1Addr].integer,
+                                DataStack[op2Addr].integer));
+                        else
+                            DataStack[stack++].Set(Mathf.Min(DataStack[op1Addr].AsFloat,
+                                DataStack[op2Addr].AsFloat));
+                    }
                         break;
 
                     case FOpcode.Max:
-                        {
-                            var op2Addr = --stack;
-                            var op1Addr = --stack;
-                            if (BothInts(op1Addr, op2Addr))
-                                DataStack[stack++].Set(Math.Max(DataStack[op1Addr].integer,
-                                                                DataStack[op2Addr].integer));
-                            else
-                                DataStack[stack++].Set(Mathf.Max(DataStack[op1Addr].AsFloat,
-                                                                 DataStack[op2Addr].AsFloat));
-                        }
+                    {
+                        var op2Addr = --stack;
+                        var op1Addr = --stack;
+                        if (BothInts(op1Addr, op2Addr))
+                            DataStack[stack++].Set(Math.Max(DataStack[op1Addr].integer,
+                                DataStack[op2Addr].integer));
+                        else
+                            DataStack[stack++].Set(Mathf.Max(DataStack[op1Addr].AsFloat,
+                                DataStack[op2Addr].AsFloat));
+                    }
                         break;
 
                     case FOpcode.Abs:
-                        {
-                            var op1Addr = --stack;
-                            if (DataStack[op1Addr].Type == TaggedValueType.Integer)
-                                DataStack[stack++].Set(Math.Abs(DataStack[op1Addr].integer));
-                            else
-                                DataStack[stack++].Set(Mathf.Abs(DataStack[op1Addr].floatingPoint));
-                        }
+                    {
+                        var op1Addr = --stack;
+                        if (DataStack[op1Addr].Type == TaggedValueType.Integer)
+                            DataStack[stack++].Set(Math.Abs(DataStack[op1Addr].integer));
+                        else
+                            DataStack[stack++].Set(Mathf.Abs(DataStack[op1Addr].floatingPoint));
+                    }
                         break;
 
                     case FOpcode.Ceiling:
-                        {
-                            var addr = stack - 1;
-                            DataStack[addr].Set(Mathf.Ceil(DataStack[addr].AsFloat));
-                        }
+                    {
+                        var addr = stack - 1;
+                        DataStack[addr].Set(Mathf.Ceil(DataStack[addr].AsFloat));
+                    }
                         break;
 
                     case FOpcode.Floor:
-                        {
-                            var addr = stack - 1;
-                            DataStack[addr].Set(Mathf.Floor(DataStack[addr].AsFloat));
-                        }
+                    {
+                        var addr = stack - 1;
+                        DataStack[addr].Set(Mathf.Floor(DataStack[addr].AsFloat));
+                    }
                         break;
 
                     case FOpcode.Sqrt:
@@ -309,63 +309,63 @@ namespace BotL
                         break;
 
                     case FOpcode.Log:
-                        {
-                            var addr = stack - 1;
-                            DataStack[addr].Set(Mathf.Log(DataStack[addr].AsFloat));
-                        }
+                    {
+                        var addr = stack - 1;
+                        DataStack[addr].Set(Mathf.Log(DataStack[addr].AsFloat));
+                    }
                         break;
 
                     case FOpcode.Exp:
-                        {
-                            var addr = stack - 1;
-                            DataStack[addr].Set(Mathf.Exp(DataStack[addr].AsFloat));
-                        }
+                    {
+                        var addr = stack - 1;
+                        DataStack[addr].Set(Mathf.Exp(DataStack[addr].AsFloat));
+                    }
                         break;
 
                     case FOpcode.Sin:
-                        {
-                            var addr = stack - 1;
-                            DataStack[addr].Set(Mathf.Sin(DataStack[addr].AsFloat));
-                        }
+                    {
+                        var addr = stack - 1;
+                        DataStack[addr].Set(Mathf.Sin(DataStack[addr].AsFloat));
+                    }
                         break;
 
                     case FOpcode.Cos:
-                        {
-                            var addr = stack - 1;
-                            DataStack[addr].Set(Mathf.Cos(DataStack[addr].AsFloat));
-                        }
+                    {
+                        var addr = stack - 1;
+                        DataStack[addr].Set(Mathf.Cos(DataStack[addr].AsFloat));
+                    }
                         break;
 
                     case FOpcode.Tan:
-                        {
-                            var addr = stack - 1;
-                            DataStack[addr].Set(Mathf.Tan(DataStack[addr].AsFloat));
-                        }
+                    {
+                        var addr = stack - 1;
+                        DataStack[addr].Set(Mathf.Tan(DataStack[addr].AsFloat));
+                    }
                         break;
 
                     case FOpcode.Atan:
-                        {
-                            var addr = stack - 1;
-                            DataStack[addr].Set(Mathf.Atan(DataStack[addr].AsFloat));
-                        }
+                    {
+                        var addr = stack - 1;
+                        DataStack[addr].Set(Mathf.Atan(DataStack[addr].AsFloat));
+                    }
                         break;
 
                     case FOpcode.Atan2:
-                        {
-                            var op2Addr = --stack;
-                            var op1Addr = --stack;
-                            DataStack[stack++].Set(Mathf.Atan2(DataStack[op1Addr].AsFloat,
-                                                                DataStack[op2Addr].AsFloat));
-                        }
+                    {
+                        var op2Addr = --stack;
+                        var op1Addr = --stack;
+                        DataStack[stack++].Set(Mathf.Atan2(DataStack[op1Addr].AsFloat,
+                            DataStack[op2Addr].AsFloat));
+                    }
                         break;
 
                     case FOpcode.Pow:
-                        {
-                            var op2Addr = --stack;
-                            var op1Addr = --stack;
-                            DataStack[stack++].Set(Mathf.Pow(DataStack[op1Addr].AsFloat,
-                                                                DataStack[op2Addr].AsFloat));
-                        }
+                    {
+                        var op2Addr = --stack;
+                        var op1Addr = --stack;
+                        DataStack[stack++].Set(Mathf.Pow(DataStack[op1Addr].AsFloat,
+                            DataStack[op2Addr].AsFloat));
+                    }
                         break;
 
                     case FOpcode.Distance:
@@ -378,7 +378,14 @@ namespace BotL
                         DataStack[stack++].Set(distanceSq);
                         break;
 
-                    default:
+                    case FOpcode.ResolveName:
+                    {
+                        var result = NamedEntities.Resolve(DataStack[--stack].Value);
+                        DataStack[stack++].SetGeneral(result);
+                        break;
+                    }
+
+                default:
                         throw new InvalidOperationException("Bad opcode in compiled functional expression");
                 }
             }

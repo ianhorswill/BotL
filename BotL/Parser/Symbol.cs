@@ -60,6 +60,7 @@ namespace BotL
         public static readonly  Symbol GrammarRule = Intern("-->");
         public static readonly Symbol CurlyBraces = Intern("{}");
         public static readonly Symbol Semicolon = Intern(";");
+        public static readonly Symbol Hash = Intern("#");
 
         Symbol(string n)
         {

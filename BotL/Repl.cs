@@ -118,7 +118,8 @@ namespace BotL
                     else if (command.StartsWith("table ") || command.StartsWith("function ")
                              || command.StartsWith("trace ") || command.StartsWith("notrace ") 
                              || command.StartsWith("global ") || command.StartsWith("require ")
-                             || command.StartsWith("externally_called "))
+                             || command.StartsWith("externally_called ")
+                             || command.StartsWith("struct ") || command.StartsWith("signature "))
                     {
                         // Process a declaration
                         try

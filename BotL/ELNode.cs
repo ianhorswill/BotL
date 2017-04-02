@@ -56,6 +56,9 @@ namespace BotL
             if (NodePool.Count == 0)
                 return new ELNode(ref key, nextSibling, parent);
             var node = NodePool.Pop();
+#if DEBUG
+            Debug.Assert(!node.inUse, "Allocating ELNode that's already in use");
+#endif
             node.Key = key;
             node.keyHash = key.Hash();
             node.FirstChild = null;
@@ -63,6 +66,9 @@ namespace BotL
             node.NextSibling = nextSibling;
             node.parent = parent;
             node.IsExclusive = false;
+#if DEBUG
+            node.inUse = true;
+#endif
             return node;
         }
 
@@ -74,12 +80,18 @@ namespace BotL
         /// </summary>
         private void Deallocate()
         {
+#if DEBUG
+            Debug.Assert(inUse, "Freeing free ELNode");
+#endif
             var c = FirstChild;
             while (c != null)
             {
                 c.Deallocate();
                 c = c.NextSibling;
             }
+#if DEBUG
+            inUse = false;
+#endif
             NodePool.Push(this);
         }
 
@@ -98,6 +110,9 @@ namespace BotL
         #endregion
 
         #region Instance fields
+#if DEBUG
+        private bool inUse = true;  // Sanity checking for allocation/deallocation problems.
+#endif
         internal bool IsExclusive;
         private ELNode parent;
         // ReSharper disable once MemberCanBePrivate.Global
@@ -241,12 +256,13 @@ namespace BotL
         // ReSharper disable once InconsistentNaming
         private static CallStatus ReadEL(ushort argBase, ushort restartCount, bool isExclusive)
         {
-            var node = DecodeNodeArg(argBase);
-            if (node.IsExclusive != isExclusive)
+            Debug.Assert(!isExclusive || restartCount == 0);
+            var parentNode = DecodeNodeArg(argBase);
+            if (parentNode.IsExclusive != isExclusive)
             {
                 if (isExclusive)
-                    throw new ArgumentException("Exclusive read of non-exclusive EL node "+node);
-                throw new ArgumentException("Non-exclusive read of exclusive EL node " + node);
+                    throw new ArgumentException("Exclusive read of non-exclusive EL node "+parentNode);
+                throw new ArgumentException("Non-exclusive read of exclusive EL node " + parentNode);
             }
             var keyAddr = Deref(argBase + 1);
             var resultAddr = Deref(argBase + 2);
@@ -257,28 +273,37 @@ namespace BotL
                 if (restartCount == 0)
                 {
                     // First time through
-                    child = node.FirstChild;
+                    child = parentNode.FirstChild;
+
                     if (child == null)
                         return CallStatus.Fail;
                 }
                 else
                 {
-                    // We know DataStack[resultAddr] previously had the previous sibling.
-                    // When it was unbound, the Type was reset, but the pointer is still
-                    // sitting in the reference field.
-                    child = ((ELNode) DataStack[resultAddr].reference).NextSibling;
+                    // We know DataStack[resultAddr].reference still has the previous result.
+                    var previousResult = ((ELNode)DataStack[resultAddr].reference);
+                    Debug.Assert(previousResult != null, "Previous result is null");
+                    child = previousResult.NextSibling;
+                    Debug.Assert(child != null);
+                    //Trace.WriteLine($"Parent={parentNode}, previous={previousResult}, child={child}");
                 }
+                
+                Debug.Assert(!parentNode.IsExclusive || child.NextSibling == null, "Exclusive node has multiple children");
                 DataStack[keyAddr] = child.Key;
                 DataStack[resultAddr].SetReference(child);
                 SaveVariable(keyAddr);
                 SaveVariable(resultAddr);
-                return child.NextSibling == null
-                    ? CallStatus.DeterministicSuccess
-                    : CallStatus.NonDeterministicSuccess;
+                if (child.NextSibling == null)
+                    return CallStatus.DeterministicSuccess;
+                else
+                {
+                    Debug.Assert(!isExclusive);
+                    return CallStatus.NonDeterministicSuccess;
+                }
             }
 
             // Second arg is bound, so we're matching to it
-            var match = node.FindChild(ref DataStack[keyAddr]);
+            var match = parentNode.FindChild(ref DataStack[keyAddr]);
             if (match == null)
                 return CallStatus.Fail;
             DataStack[resultAddr].SetReference(match);
@@ -531,6 +556,8 @@ namespace BotL
 
         void BuildName(StringBuilder b)
         {
+            if (parent != null)
+                b.Append('/');
             if (parent?.parent != null)
             {
                 parent.BuildName(b);

@@ -45,6 +45,25 @@ namespace Test
         }
 
         [TestMethod]
+        public void ReadMixedModeTest()
+        {
+            TestTrue("assert(/rmm/a:1)");
+            TestTrue("assert(/rmm/b:2)");
+            TestTrue("assert(/rmm/c:3)");
+            TestTrue("/rmm/A:N, A=c");
+        }
+
+        [TestMethod]
+        public void ForallELTest()
+        {
+            TestTrue("assert(/foo)");
+            TestTrue("assert(/fael/a:1)");
+            TestTrue("assert(/fael/b:2)");
+            TestTrue("assert(/fael/c:3)");
+            TestTrue("forall(/rmm/A:N, true)");
+        }
+
+        [TestMethod]
         public void ReadExclusiveTest()
         {
             ELNode.Store(ELNode.Root / Symbol.Intern("ret") % Symbol.Intern("a"));

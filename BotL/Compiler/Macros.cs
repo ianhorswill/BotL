@@ -155,6 +155,9 @@ namespace BotL.Compiler
                     AppendArgs(head, qv),
                     ExpandGrammarRuleBody(body, qv));
             });
+
+            DeclareMacro("@", 2, (nodeExpr, nodeVar) => new Call(">>", nodeExpr, nodeVar));
+            Functions.DeclareFunction("@", 1);
         }
 
         private static object GenerateArgmaxInit(object result)

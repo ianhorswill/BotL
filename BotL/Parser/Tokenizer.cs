@@ -42,7 +42,7 @@ namespace BotL.Parser
         readonly StringBuilder token = new StringBuilder();
         private object ungotToken;
 
-        private const string SingleCharTokens = "{}()[]|,;.!$#";
+        private const string SingleCharTokens = "{}()[]|,;.!$#@";
 
         // ReSharper disable once InconsistentNaming
         private const char EOFChar = (char)0xffff;

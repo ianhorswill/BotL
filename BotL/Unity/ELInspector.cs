@@ -181,7 +181,7 @@ namespace BotL.Unity
             if (value is string s)
                 return '"' + s + '"';
             if (value is System.Reflection.Missing)
-                return "<missing>";
+                return "<>";
             return value.ToString();
         }
 

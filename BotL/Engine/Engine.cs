@@ -784,9 +784,6 @@ namespace BotL
                                         goto fail;
 
                                     case CallStatus.DeterministicSuccess:
-                                        // Reserve space for temp vars
-                                        if (restartedClauseNumber == 0)
-                                            dTop += headPredicate.Tempvars;
                                         break;
 
                                     case CallStatus.NonDeterministicSuccess:
@@ -801,6 +798,7 @@ namespace BotL
                                     case CallStatus.CallIndirect:
                                         throw new InvalidOperationException("Tail call to primop that returned callindirect.");
                                 }
+                                restartedClauseNumber = 0;
                             }
                             goto goalPredicateSucceeded;
 
@@ -901,6 +899,9 @@ namespace BotL
                                         break;
 
                                     case CallStatus.NonDeterministicSuccess:
+                                        // Reserve space for temp vars
+                                        if (restartedClauseNumber == 0)
+                                            dTop += headPredicate.Tempvars;
                                         ChoicePointStack[cTop++] = new ChoicePoint(goalFrame, startOfCall,
                                             headPredicate, (byte) (restartedClauseNumber + 1),
                                             dTopSave, trailSave, savedUTop, eTop);
@@ -911,9 +912,7 @@ namespace BotL
                                         // Goal code falls through to argument instructions w/o an intervening CGoal instruction.
                                         goto beginCall;
                                 }
-                                // Reserve space for temp vars
-                                if (restartedClauseNumber == 0)
-                                    dTop += headPredicate.Tempvars;
+                                restartedClauseNumber = 0;
                             }
                             goto continueGoalPredicate;
 
@@ -1110,6 +1109,8 @@ namespace BotL
 #endif
 
                             headPredicate = cp.Callee;
+                            //Trace.WriteLine($"Restarting {headPredicate}");
+
                             if (headPredicate.IsSpecial)
                             {
                                 // Restarting a table lookup

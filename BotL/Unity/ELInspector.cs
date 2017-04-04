@@ -185,6 +185,16 @@ namespace BotL.Unity
             return value.ToString();
         }
 
+        /// <summary>
+        /// Allows clients to explicitly control the display of subtrees.
+        /// </summary>
+        /// <param name="n">Node to control expansion of </param>
+        /// <param name="vis">True if children should be displayed.</param>
+        public void SetNodeVisibility(ELNode n, bool vis)
+        {
+            displayChildren[n] = vis;
+        }
+
         private void ToggleNode(ELNode node)
         {
             if (displayChildren.TryGetValue(node, out bool current))

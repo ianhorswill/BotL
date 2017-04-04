@@ -77,9 +77,9 @@ namespace BotL.Parser
             DefineBinaryOperator(":", 120);
             DefineBinaryOperator(">>", 120);
             DefineBinaryOperator(".", 200);
+            DefineBinaryOperator("::", 250);
             DefinePrefixOperator("$", 300);
             DefinePrefixOperator("#", 300);
-            DefineBinaryOperator("::", 300);
         }
 
         private readonly Tokenizer tok;

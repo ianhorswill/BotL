@@ -24,6 +24,7 @@
 #endregion
 using System;
 using System.Collections.Generic;
+using BotL.Parser;
 using BotL.Unity;
 
 namespace BotL
@@ -37,7 +38,7 @@ namespace BotL
             {
                 var s = name as Symbol;
                 if (s == null)
-                    throw new ArgumentException(nameof(name));
+                    throw new ArgumentException("Invalid expression for named entity: "+ExpressionParser.WriteExpressionToString(name));
                 n = s.Name;
             }
             var v = GlobalVariable.Find(Symbol.Intern(n));

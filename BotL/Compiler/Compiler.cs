@@ -88,10 +88,10 @@ namespace BotL.Compiler
                     CompileStream(new ExpressionParser(reader));
                     LoadedSourceFiles.Add(canonical);
                 }
-                catch (Exception)
+                catch (Exception e)
                 {
                     if (Repl.StandardError != null)
-                        Repl.StandardError.Write($"{path}:{reader.Line}: ");
+                        Repl.StandardError.WriteLine($"{path}:{reader.Line}: {e.Message}");
                     throw;
                 }
             }
@@ -724,7 +724,6 @@ namespace BotL.Compiler
             var typeName = type as Symbol;
             if (typeName != null)
             {
-                // It's a field reference
                 CompileFunctionalExpression(TypeUtils.FindType(typeName.Name), b, e); // Push on stack
                 b.Emit(FOpcode.ComponentLookup);
             }

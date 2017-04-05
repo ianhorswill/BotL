@@ -1141,10 +1141,13 @@ namespace BotL
                     }
                 }
             }
-            catch
+            catch (Exception e)
             {
                 if (StandardError != null)
+                {
+                    StandardError.WriteLine($"\n\n{e.GetType().Name}: {e.Message}");
                     DumpStackWithHead(goalFrame, eTop, cTop, dTop, headPredicate, headCode, headPc);
+                }
                 throw;
             }
         }

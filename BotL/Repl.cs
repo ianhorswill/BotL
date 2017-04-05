@@ -158,7 +158,7 @@ namespace BotL
                             }
                             catch (Exception e)
                             {
-                                StandardError.WriteLine($"{e.GetType().Name}: {e.Message}");
+                                //StandardError.WriteLine($"{e.GetType().Name}: {e.Message}");
                                 if (ShowCSharpStack)
                                     StandardError.WriteLine(e.StackTrace);
                             }

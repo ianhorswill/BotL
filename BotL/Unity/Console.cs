@@ -38,7 +38,7 @@ namespace Northwestern.UnityUtils
 {
     public class Console : MonoBehaviour
     {
-        public int MaxTextLength = 4096;
+        public int MaxTextLength = 10000;
         public Rect WindowRect = new Rect(0, 0, 640, 480); //Defines console size and dimensions
         // ReSharper disable once MemberCanBeProtected.Global
         public string WindowTitle = "Console";
@@ -221,14 +221,12 @@ namespace Northwestern.UnityUtils
             public override void Write(string value)
             {
                 oBuffer.Append(value);
-                oBuffer.Append(System.Environment.StackTrace);
                 bufferUpdated = true;
             }
 
             public override void WriteLine(string value)
             {
                 oBuffer.AppendLine(value);
-                oBuffer.Append(System.Environment.StackTrace);
                 bufferUpdated = true;
             }
 

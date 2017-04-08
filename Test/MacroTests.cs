@@ -32,55 +32,8 @@ namespace Test
     /// Summary description for MacroTests
     /// </summary>
     [TestClass]
-    public class MacroTests
+    public class MacroTests : BotLTestClass
     {
-        public MacroTests()
-        {
-            //
-            // TODO: Add constructor logic here
-            //
-        }
-
-        private TestContext testContextInstance;
-
-        /// <summary>
-        ///Gets or sets the test context which provides
-        ///information about and functionality for the current test run.
-        ///</summary>
-        public TestContext TestContext
-        {
-            get
-            {
-                return testContextInstance;
-            }
-            set
-            {
-                testContextInstance = value;
-            }
-        }
-
-        #region Additional test attributes
-        //
-        // You can use the following additional attributes as you write your tests:
-        //
-        // Use ClassInitialize to run code before running the first test in the class
-        // [ClassInitialize()]
-        // public static void MyClassInitialize(TestContext testContext) { }
-        //
-        // Use ClassCleanup to run code after all tests in a class have run
-        // [ClassCleanup()]
-        // public static void MyClassCleanup() { }
-        //
-        // Use TestInitialize to run code before running each test 
-        // [TestInitialize()]
-        // public void MyTestInitialize() { }
-        //
-        // Use TestCleanup to run code after each test has run
-        // [TestCleanup()]
-        // public void MyTestCleanup() { }
-        //
-        #endregion
-
         [TestMethod]
         public void NotTests()
         {
@@ -117,14 +70,16 @@ setoftest(2)");
             TestTrue("forall(false, false)");
         }
 
-        private void TestFalse(string code)
+        [TestMethod]
+        public void CheckSucceedTest()
         {
-            Assert.IsFalse(Engine.Run(code));
+            TestTrue("check(1=1)");
         }
 
-        private void TestTrue(string code)
+        [TestMethod, ExpectedException(typeof(CallFailedException))]
+        public void CheckFailTest()
         {
-            Assert.IsTrue(Engine.Run(code));
+            TestFalse("check(1=0)");
         }
     }
 }

@@ -42,6 +42,7 @@
     <Compile Include="Compiler\Builtin.cs" />
     <Compile Include="Compiler\Lint.cs" />
     <Compile Include="Engine\ArgumentTypeException.cs" />
+    <Compile Include="Engine\CallFailedException.cs" />
     <Compile Include="Parser\Call.cs" />
     <Compile Include="Engine\CallStatus.cs" />
     <Compile Include="Engine\ChoicePoint.cs" />

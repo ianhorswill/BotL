@@ -47,6 +47,15 @@ namespace BotL.Compiler
             // the parent clause.
             DeclareMacro("once", 1, exp => Or(Symbol.Fail, And(exp, Symbol.Cut)));
             DeclareMacro("ignore", 1, exp => Or(And(exp, Symbol.Cut), Symbol.TruePredicate));
+            DeclareMacro("check", 1, exp => {
+                var indicator = new PredicateIndicator(exp);
+                return Or(And(exp, Symbol.Cut),
+                          new Call("%call_failed",
+                                   new Call(Symbol.Slash,
+                                            indicator.Functor,
+                                            indicator.Arity)));
+            });
+            DeclareMacro("{}", 1, exp => MapConjunction(c => new Call("check", c), exp));
             DeclareMacro("forall", 2, (cond, action) => Not(And(cond, Not(action))));
             DeclareMacro("minimum", 3,
                 (score, generator, result) => And(new Call("%init", result),
@@ -251,6 +260,15 @@ namespace BotL.Compiler
             Array.Copy(c.Arguments, args, c.Arguments.Length);
             Array.Copy(additionalArgs, 0, args, c.Arguments.Length, additionalArgs.Length);
             return new Call(c.Functor, args);
+        }
+
+        public static object MapConjunction(Func<object, object> mapper, object exp)
+        {
+            if (exp is Call c && c.IsFunctor(Symbol.Comma, 2))
+                return new Call(Symbol.Comma,
+                                MapConjunction(mapper, c.Arguments[0]),
+                                MapConjunction(mapper, c.Arguments[1]));
+            return mapper(exp);
         }
         #endregion
 

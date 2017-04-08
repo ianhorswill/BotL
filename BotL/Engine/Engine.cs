@@ -420,6 +420,23 @@ namespace BotL
                                    || DataStack[addr].boolean;
                         }
 
+                    case Builtin.Throw:
+                    {
+                        pc = FunctionalExpression.Eval(predicate, code, pc, frameBase, dTop);
+                        var addr = dTop + FunctionalExpression.EvalStackOffset;
+                        // Accept anything but the constant false
+                        var arg = DataStack[addr].Value;
+                        if (DataStack[addr].Type == TaggedValueType.Reference && arg is Exception e)
+                            throw e;
+                        throw new ArgumentTypeException("throw", 0, "Argument should be an exception", arg);
+                    }
+
+                    case Builtin.CallFailed:
+                    {
+                        var p = predicate.GetObjectConstant<Predicate>(code[pc++]);
+                        throw new CallFailedException(p);
+                    }
+
                     default:
                         throw new InvalidOperationException("Unknown builtin opcode: "+goalCode[goalPc-1]);
                 }
@@ -828,6 +845,15 @@ namespace BotL
                             } while (goalPc == goalCode.Length);
 
                             continuationLoop:
+#if DEBUG
+                            if (goalPc == goalCode.Length)
+                            {
+                                StandardError.WriteLine("Invalid code segment in {0}", goalPredicate);
+                                foreach (var b in goalCode)
+                                    StandardError.Write("{0} ", b);
+                                StandardError.WriteLine();
+                            }
+#endif
                             switch ((Opcode) goalCode[goalPc++])
                             {
                                 case Opcode.CGoal:
@@ -842,9 +868,11 @@ namespace BotL
                                     cTop = EnvironmentStack[goalFrame].CallerCTop;
                                     goto continuationLoop;
 
+                                case Opcode.CNoGoal:
+                                    goto goalPredicateSucceeded;
+
                                 default:
-                                    Debug.Assert(false, "Next instruction after continuation should be CGoal");
-                                    break;
+                                    throw new InvalidOperationException($"Invalid opcode {goalCode[goalPc-1]}/{(Opcode)goalCode[goalPc - 1]}");
                             }
 
                             Debug.Assert(goalCode[goalPc - 1] == (byte) Opcode.CGoal);
@@ -1067,14 +1095,14 @@ namespace BotL
                                     trailSave, UTop, eTop);
                             break;
 
-                            #endregion
+#endregion
 
 
                         default:
                             Debug.Assert(false,
                                 $"Unknown opcode combination: head={headInstruction}, goal={goalInstruction}");
 
-                            #region Fail handling
+#region Fail handling
 
                             //
                             // FAIL
@@ -1135,7 +1163,7 @@ namespace BotL
 
                             headPc = 0;
 
-                            #endregion
+#endregion
 
                             break;
                     }
@@ -1203,9 +1231,9 @@ namespace BotL
                     "Saved dTop for choicepoint points to unallocated space.");
             }
         }
-        #endregion
+#endregion
 
-        #region Trailing and Undo Stack
+#region Trailing and Undo Stack
         /// <summary>
         /// Add variable to trail.  Called when a variable is bound to a value so the system knows
         /// to unbind it upon backtracking.
@@ -1242,9 +1270,9 @@ namespace BotL
                 DataStack[Trail[--t]].Type = TaggedValueType.Unbound;
             TrailTop = cpTrailTop;
         }
-        #endregion
+#endregion
 
-        #region Unification
+#region Unification
         private static bool UnifyDereferenced(ushort a1, ushort a2)
         {
             if (DataStack[a1].Type == TaggedValueType.Unbound)
@@ -1284,9 +1312,9 @@ namespace BotL
                     throw new InvalidOperationException("Invalid tagged value type "+DataStack[a1].Type);
             }
         }
-        #endregion
+#endregion
 
-        #region Variable manipulation
+#region Variable manipulation
         private static void SetVariableToDereferencedBoundVariableValue(ushort addressToSet, ushort addressToRead)
         {
             Debug.Assert(DataStack[addressToRead].Type != TaggedValueType.VariableForward, "Setting variable to underefed address");
@@ -1422,7 +1450,7 @@ namespace BotL
         {
             DataStack[address].Type = TaggedValueType.Unbound;
         }
-        #endregion
+#endregion
 
         private const int NumericCTypes = 1 << (int)OpcodeConstantType.SmallInteger
                                           | 1 << (int)OpcodeConstantType.Integer
@@ -1433,9 +1461,14 @@ namespace BotL
             return ((1 << (int)cType) & NumericCTypes) != 0;
         }
 
-        #region Debugging
+#region Debugging
         [Conditional("DEBUG")]
-        private static void DebugConsoleRestartMessage(Predicate goalPredicate, Predicate headPredicate, ChoicePoint cp)
+        // ReSharper disable once UnusedParameter.Local
+        private static void DebugConsoleRestartMessage(Predicate goalPredicate,
+            // ReSharper disable once UnusedParameter.Local
+            Predicate headPredicate,
+            // ReSharper disable once UnusedParameter.Local
+            ChoicePoint cp)
         {
 #if DEBUG
             if (SingleStep)
@@ -1448,7 +1481,15 @@ namespace BotL
         }
 
         [Conditional("DEBUG")]
-        private static void DebugConsoleFailMessage(Predicate headPredicate, ushort goalFrame, ushort eTop, ushort cTop)
+        // ReSharper disable once UnusedMember.Local
+        // ReSharper disable once UnusedParameter.Local
+        private static void DebugConsoleFailMessage(Predicate headPredicate, 
+            // ReSharper disable once UnusedParameter.Local
+            ushort goalFrame,
+            // ReSharper disable once UnusedParameter.Local
+            ushort eTop,
+            // ReSharper disable once UnusedParameter.Local
+            ushort cTop)
         {
 #if DEBUG
             if (SingleStep)
@@ -1490,7 +1531,7 @@ namespace BotL
 
         static void DumpStackWithHead(ushort goalFrame, ushort eTop, ushort cTop, ushort dTop, Predicate headPredicate, byte[] head, ushort headPc)
         {
-            StandardError.Write("Try match: ");
+            //StandardError.Write("Try match: ");
             DumpHead(dTop, headPredicate, head, headPc);
             DumpStack(goalFrame, eTop, cTop);
         }
@@ -1652,8 +1693,16 @@ namespace BotL
             }
             StandardError.WriteLine();
             if (frame.CompiledClause.Source != null)
-                StandardError.Write("     Rule: {0}", ExpressionParser.WriteExpressionToString(frame.CompiledClause.Source));
+                StandardError.Write("     Rule: {0}", Elipsize(ExpressionParser.WriteExpressionToString(frame.CompiledClause.Source)));
         }
-        #endregion
+
+        private static string Elipsize(string str, int maxLength = 80)
+        {
+            if (str.Length > maxLength)
+                return str.Substring(0, maxLength-3) + "...";
+            return str;
+        }
+
+#endregion
     }
 }

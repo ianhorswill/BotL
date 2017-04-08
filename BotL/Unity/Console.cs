@@ -230,6 +230,12 @@ namespace Northwestern.UnityUtils
                 bufferUpdated = true;
             }
 
+            public override void Write(char value)
+            {
+                oBuffer.Append(value);
+                bufferUpdated = true;
+            }
+
             public override void WriteLine()
             {
                 WriteLine("");

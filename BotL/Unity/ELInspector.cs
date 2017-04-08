@@ -101,6 +101,17 @@ namespace BotL.Unity
                     {
                         ShowInspector = !ShowInspector;
                     }
+                    else
+                        switch (Event.current.keyCode)
+                        {
+                            case KeyCode.PageDown:
+                                scrollPosition.y += WindowRect.height * 0.5f;
+                                break;
+
+                            case KeyCode.PageUp:
+                                scrollPosition.y -= Math.Max(0, WindowRect.height * 0.5f);
+                                break;
+                        }
                     break;
             }
         }

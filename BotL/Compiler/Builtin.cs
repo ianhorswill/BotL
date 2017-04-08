@@ -92,13 +92,16 @@ namespace BotL.Compiler
         GreaterEq,
 
         // Type tests
-
         IntegerTest,
         FloatTest,
         NumberTest,
         StringTest,
         SymbolTest,
-        MissingTest
+        MissingTest,
+
+        // Control flow
+        Throw,
+        CallFailed
     }
 
     internal static class BuiltinTable
@@ -126,6 +129,8 @@ namespace BotL.Compiler
             DefineBuiltin("symbol", 1, Builtin.SymbolTest);
             DefineBuiltin("missing", 1, Builtin.MissingTest);
             DefineBuiltin("%not_false", 1, Builtin.TestNotFalse);
+            DefineBuiltin("throw", 1, Builtin.Throw);
+            DefineBuiltin("%call_failed", 1, Builtin.CallFailed);
         }
 
         static readonly Dictionary<PredicateIndicator, Builtin> Table = new Dictionary<PredicateIndicator, Builtin>();

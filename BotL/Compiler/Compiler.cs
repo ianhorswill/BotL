@@ -129,7 +129,14 @@ namespace BotL.Compiler
                     break;
 
                 case "require":
-                    var canonical = CanonicalizeSourceName(arg);
+                    var canonical = arg as string;
+                    if (canonical == null)
+                    {
+                        if (arg is Symbol s)
+                            canonical = s.Name;
+                        else
+                            throw new ArgumentException($"Invalid file name in require command: {ExpressionParser.WriteExpressionToString(arg)}");
+                    }
                     if (!LoadedSourceFiles.Contains(canonical))
                         CompileFile(canonical);
                     break;
@@ -392,7 +399,11 @@ namespace BotL.Compiler
             if (goal is Variable)
                 throw new SyntaxError("Goal may not be a variable", goal);
             if (goal == Symbol.Cut)
+            {
                 b.Emit(Opcode.CCut);
+                if (lastCall)
+                    b.Emit(Opcode.CNoGoal);
+            }
             else if (c != null && c.IsFunctor(Symbol.Comma, 2))
             {
                 // ReSharper disable once PossibleNullReferenceException
@@ -519,6 +530,7 @@ namespace BotL.Compiler
                 case Builtin.SymbolTest:
                 case Builtin.MissingTest:
                 case Builtin.TestNotFalse:
+                case Builtin.Throw:
                     {
                         var arg = c.Arguments[0];
                         if (!(arg is Variable v) || e[v].FirstReferenceCompiled)
@@ -534,6 +546,19 @@ namespace BotL.Compiler
                         }
                         break;
                     }
+
+                case Builtin.CallFailed:
+                {
+                    var arg = c.Arguments[0] as Call;
+                    if (arg == null || !arg.IsFunctor(Symbol.Slash, 2))
+                    {
+                        throw new Exception("Argument to %call_failed must be a predicate selector: "+c.Arguments[0]);
+                    }
+                    var failedPredicate = KB.Predicate((Symbol) arg.Arguments[0], (int) arg.Arguments[1]);
+                    b.EmitBuiltin(Builtin.CallFailed);
+                    b.Emit(b.Predicate.GetObjectConstantIndex(failedPredicate));
+                    break;
+                }
 
                 default:
                     throw new InvalidOperationException("Attempt to compile unknown builtin "+ builtin);

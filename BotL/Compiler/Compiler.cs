@@ -142,11 +142,23 @@ namespace BotL.Compiler
                     break;
 
                 case "global":
+                {
                     var g = arg as Call;
                     if (g == null || !g.IsFunctor(Symbol.Equal, 2) || !(g.Arguments[0] is Symbol))
                         throw new SyntaxError("Invalid global declaration", g);
-                    GlobalVariable.DefineGlobal(((Symbol)g.Arguments[0]).Name, g.Arguments[1]);
+                    GlobalVariable.DefineGlobal(((Symbol) g.Arguments[0]).Name, g.Arguments[1]);
                     break;
+                }
+
+                case "report":
+                {
+                    var s = arg as Symbol;
+                    if (s == null)
+                        throw new SyntaxError("Argument to report should be the name of a global variable", arg);
+                    var g = GlobalVariable.Find(s);
+                    g.ReportInStackDumps = true;
+                    break;
+                }
 
                 case "struct":
                     Structs.DeclareStruct(arg);

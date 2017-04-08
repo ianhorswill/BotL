@@ -44,6 +44,7 @@ namespace BotL.Parser
             DefineBinaryOperator("->", 22);
 
             DefinePrefixOperator("set", 25);
+            DefinePrefixOperator("report", 25);
             DefinePrefixOperator("function", 25);
             DefinePrefixOperator("table", 25);
             DefinePrefixOperator("require", 25);

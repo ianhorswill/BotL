@@ -1534,6 +1534,7 @@ namespace BotL
             //StandardError.Write("Try match: ");
             DumpHead(dTop, headPredicate, head, headPc);
             DumpStack(goalFrame, eTop, cTop);
+            GlobalVariable.DumpReportedGlobalValues(StandardError);
         }
 
         private static void DumpStack(ushort goalFrame, ushort eTop, ushort cTop)

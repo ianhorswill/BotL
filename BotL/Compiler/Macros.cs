@@ -57,6 +57,10 @@ namespace BotL.Compiler
             });
             DeclareMacro("{}", 1, exp => MapConjunction(c => new Call("check", c), exp));
             DeclareMacro("forall", 2, (cond, action) => Not(And(cond, Not(action))));
+            DeclareMacro("doall", 2, (generator, action) => Or(And(generator,
+                                                                   new Call("check", action),
+                                                                   Symbol.Fail),
+                                                               Symbol.TruePredicate));
             DeclareMacro("minimum", 3,
                 (score, generator, result) => And(new Call("%init", result),
                                                   Or(And(generator,

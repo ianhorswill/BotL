@@ -193,6 +193,7 @@ namespace BotL.Unity
                 return '"' + s + '"';
             if (value is System.Reflection.Missing)
                 return "<>";
+
             return value.ToString();
         }
 

@@ -22,6 +22,8 @@
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
 #endregion
+
+using System;
 using System.Collections.Generic;
 using BotL.Unity;
 
@@ -209,7 +211,10 @@ namespace BotL
         /// </summary>
         private static void DefineTable(Symbol name, int arity)
         {
-            PredicateTable[new PredicateIndicator(name, arity)] = Compiler.Compiler.MakeTable(name, arity);
+            var p = new PredicateIndicator(name, arity);
+            if (PredicateTable.ContainsKey(p))
+                throw new InvalidOperationException($"Predicate {p} is already defined");
+            PredicateTable[p] = Compiler.Compiler.MakeTable(name, arity);
         }
 
         /// <summary>
@@ -217,6 +222,8 @@ namespace BotL
         /// </summary>
         internal static void DefineTable(PredicateIndicator p)
         {
+            if (PredicateTable.ContainsKey(p))
+                throw new InvalidOperationException($"Predicate {p} is already defined");
             PredicateTable[p] = Compiler.Compiler.MakeTable(p.Functor, p.Arity);
         }
 

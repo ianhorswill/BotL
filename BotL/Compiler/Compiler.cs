@@ -85,8 +85,8 @@ namespace BotL.Compiler
                 var reader = new PositionTrackingTextReader(f, path);
                 try
                 {
-                    CompileStream(new ExpressionParser(reader));
                     LoadedSourceFiles.Add(canonical);
+                    CompileStream(new ExpressionParser(reader));
                 }
                 catch (Exception e)
                 {
@@ -129,16 +129,18 @@ namespace BotL.Compiler
                     break;
 
                 case "require":
-                    var canonical = arg as string;
-                    if (canonical == null)
+                    var module = arg as string;
+                    if (module == null)
                     {
                         if (arg is Symbol s)
-                            canonical = s.Name;
+                            module = s.Name;
                         else
                             throw new ArgumentException($"Invalid file name in require command: {ExpressionParser.WriteExpressionToString(arg)}");
                     }
-                    if (!LoadedSourceFiles.Contains(canonical))
-                        CompileFile(canonical);
+                    if (!LoadedSourceFiles.Contains(CanonicalizeSourceName(module)))
+                    {
+                        CompileFile(module);
+                    }
                     break;
 
                 case "global":
@@ -206,10 +208,48 @@ namespace BotL.Compiler
                     }
                     break;
 
+                case "listing":
+                    {
+                        var spec = arg as Call;
+                        if (spec == null || !spec.IsFunctor(Symbol.Slash, 2))
+                            throw new ArgumentException("Invalid predicate specified in externally_called declaration");
+                        Listing(Repl.StandardOutput, KB.Predicate((Symbol)spec.Arguments[0], (int)spec.Arguments[1]));
+                        break;
+                    }
+
                 default:
                     return false;
             }
             return true;
+        }
+
+        private static void Listing(TextWriter stream, Predicate p)
+        {
+            if (p.IsSpecial)
+            {
+                if (p.IsTable)
+                    p.Table.Listing(stream);
+                else
+                    stream.WriteLine($"{p} is a primop");
+            }
+            else
+                ListRulePredicate(stream, p);
+        }
+
+        private static void ListRulePredicate(TextWriter stream, Predicate p)
+        {
+            if (p.FirstClause != null)
+            {
+                ListClause(stream, p.FirstClause);
+                foreach (var c in p.ExtraClauses)
+                    ListClause(stream, c);
+            } else
+                stream.WriteLine($"{p} is rule predicate with no rules.");
+        }
+
+        private static void ListClause(TextWriter stream, CompiledClause clause)
+        {
+            stream.WriteLine(ExpressionParser.WriteExpressionToString(clause.Source));
         }
 
         private static PredicateIndicator DecodePredicateIndicatorExpression(object exp)

@@ -125,7 +125,8 @@ namespace BotL
                              || command.StartsWith("trace ") || command.StartsWith("notrace ") 
                              || command.StartsWith("global ") || command.StartsWith("require ")
                              || command.StartsWith("externally_called ")
-                             || command.StartsWith("struct ") || command.StartsWith("signature "))
+                             || command.StartsWith("struct ") || command.StartsWith("signature ")
+                             || command.StartsWith("report ") || command.StartsWith("listing "))
                     {
                         // Process a declaration
                         try

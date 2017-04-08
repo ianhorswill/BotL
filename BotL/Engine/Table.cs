@@ -24,7 +24,9 @@
 #endregion
 using System;
 using System.Collections.Generic;
+using System.IO;
 using BotL.Compiler;
+using BotL.Parser;
 using static BotL.Engine;
 
 namespace BotL
@@ -312,6 +314,22 @@ namespace BotL
         public override string ToString()
         {
             return $"Table<{Name}/{Arity}>";
+        }
+
+        public void Listing(TextWriter stream)
+        {
+            if (rows.Count == 0)
+                stream.WriteLine("{0} is an empty table");
+            else
+                foreach (var row in rows)
+                {
+                    foreach (var item in row)
+                    {
+                        stream.Write(ExpressionParser.WriteExpressionToString(item));
+                        stream.Write(" ");
+                    }
+                    stream.WriteLine();
+                }
         }
     }
 }

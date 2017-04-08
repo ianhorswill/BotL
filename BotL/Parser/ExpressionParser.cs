@@ -45,6 +45,7 @@ namespace BotL.Parser
 
             DefinePrefixOperator("set", 25);
             DefinePrefixOperator("report", 25);
+            DefinePrefixOperator("listing", 25);
             DefinePrefixOperator("function", 25);
             DefinePrefixOperator("table", 25);
             DefinePrefixOperator("require", 25);

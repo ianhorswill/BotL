@@ -300,7 +300,8 @@ namespace BotL
         private static object Expand(Symbol functor, object arg)
         {
             var c = (Call)arg;
-            if (c.Functor == Symbol.Slash || c.Functor == Symbol.Colon || c.Functor.Name == ">>")
+            if (c.Functor == Symbol.Slash || c.Functor == Symbol.Colon
+                || c.Functor.Name == ">>" || c.Functor == ELNode.WriteToEnd)
                 return ELNode.ExpandUpdate(functor, arg);
             if (c.IsFunctor(Symbol.Implication, 2))
                 throw new ArgumentException("Assert/2 is used only for updating tables, not for adding rules to rule predicates.");

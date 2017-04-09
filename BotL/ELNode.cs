@@ -228,6 +228,7 @@ namespace BotL
             KB.DefinePrimop("read_nonexclusive", 3, (argBase, restartCount) => ReadEL(argBase, restartCount, false));
             KB.DefinePrimop("read_exclusive", 3, (argBase, restartCount) => ReadEL(argBase, restartCount, true));
             KB.DefinePrimop("write_nonexclusive", 3, (argBase, restartCount) => WriteEL(argBase, false));
+            KB.DefinePrimop("write_nonexclusive_to_end", 3, (argBase, restartCount) => WriteEL(argBase, false, true));
             KB.DefinePrimop("write_exclusive", 3, (argBase, restartCount) => WriteEL(argBase, true));
             KB.DefinePrimop("delete_el_node", 1, (argBase, ignore) =>
             {
@@ -311,7 +312,7 @@ namespace BotL
             return CallStatus.DeterministicSuccess;
         }
 
-        private static CallStatus WriteEL(ushort argBase, bool isExclusive)
+        private static CallStatus WriteEL(ushort argBase, bool isExclusive, bool atEnd=false)
         {
             var node = DecodeNodeArg(argBase);
             var keyAddr = Deref(argBase + 1);
@@ -353,9 +354,23 @@ namespace BotL
                 else
                 {
                     // Add a new node.
-                    result = node.FirstChild = Allocate(ref DataStack[keyAddr], node.FirstChild, node);
-                    if (result.NextSibling != null)
-                        result.NextSibling.previousSibling = result;
+                    if (atEnd)
+                    {
+                        if (node.FirstChild == null)
+                            result = node.FirstChild = Allocate(ref DataStack[keyAddr], node.FirstChild, node);
+                        else
+                        {
+                            var last = node.FirstChild;
+                            while (last.NextSibling != null) last = last.NextSibling;
+                            result = last.NextSibling = Allocate(ref DataStack[keyAddr], null, node);
+                        }
+                    }
+                    else
+                    {
+                        result = node.FirstChild = Allocate(ref DataStack[keyAddr], node.FirstChild, node);
+                        if (result.NextSibling != null)
+                            result.NextSibling.previousSibling = result;
+                    }
                 }
             }
             DataStack[resultAddr].SetReference(result);
@@ -424,6 +439,7 @@ namespace BotL
             throw new InvalidOperationException($"Cannot perform {updateOperation} on EL database");
         }
 
+        internal static readonly Symbol WriteToEnd = Symbol.Intern("/>");
         private static object ExpandWrite(object exp, object resultVar)
         {
             var c = exp as Call;
@@ -440,6 +456,14 @@ namespace BotL
                 var temp = Variable.MakeGenerated("*Node*");
                 var parentCode = ExpandWrite(c.Arguments[0], temp);
                 return Macros.And(parentCode, new Call("write_nonexclusive", temp, c.Arguments[1], resultVar));
+            }
+            if (c.IsFunctor(WriteToEnd, 2))
+            {
+                if (c.Arguments[0] is Symbol)
+                    return new Call("write_nonexclusive_to_end", c.Arguments[0], c.Arguments[1], resultVar);
+                var temp = Variable.MakeGenerated("*Node*");
+                var parentCode = ExpandWrite(c.Arguments[0], temp);
+                return Macros.And(parentCode, new Call("write_nonexclusive_to_end", temp, c.Arguments[1], resultVar));
             }
             if (c.IsFunctor(Symbol.Colon, 2))
             {

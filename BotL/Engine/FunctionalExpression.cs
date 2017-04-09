@@ -39,6 +39,7 @@ namespace BotL
     internal static class FunctionalExpression
     {
         public const ushort EvalStackOffset = 256;
+        private static readonly System.Random Random = new System.Random();
 
         /// <summary>
         /// Execute the compiled functional express starting at pc inside of clause.
@@ -385,7 +386,41 @@ namespace BotL
                         break;
                     }
 
-                default:
+                    case FOpcode.RandomInt:
+                    {
+                        if (DataStack[--stack].Type != TaggedValueType.Integer)
+                            throw new ArgumentTypeException("random_integer", 2, "Should be an integer",
+                                DataStack[stack].Value);
+                        var upperBound = DataStack[stack].integer;
+                        if (DataStack[--stack].Type != TaggedValueType.Integer)
+                            throw new ArgumentTypeException("random_integer", 1, "Should be an integer",
+                                DataStack[stack].Value);
+                        var lowerBound = DataStack[stack].integer;
+                        DataStack[stack++].Set(Random.Next(lowerBound, upperBound));
+                        break;
+                    }
+
+                    case FOpcode.RandomFloat:
+                    {
+                        --stack;
+                        if (DataStack[stack].Type != TaggedValueType.Integer &&
+                            DataStack[stack].Type != TaggedValueType.Float)
+                            throw new ArgumentTypeException("random_float", 2, "Should be a number",
+                                DataStack[stack].Value);
+                        var upperBound = DataStack[stack].AsFloat;
+
+                        --stack;
+                        if (DataStack[stack].Type != TaggedValueType.Integer &&
+                            DataStack[stack].Type != TaggedValueType.Float)
+                            throw new ArgumentTypeException("random_float", 1, "Should be a number",
+                                DataStack[stack].Value);
+                        var lowerBound = DataStack[stack].AsFloat;
+
+                        DataStack[stack++].Set(lowerBound + (upperBound-lowerBound)*(float)Random.NextDouble());
+                        break;
+                    }
+
+                    default:
                         throw new InvalidOperationException("Bad opcode in compiled functional expression");
                 }
             }

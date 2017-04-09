@@ -22,7 +22,6 @@
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
 #endregion
-
 using System;
 using System.Collections.Generic;
 using BotL.Unity;

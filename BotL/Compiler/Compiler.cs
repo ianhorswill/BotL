@@ -59,13 +59,12 @@ namespace BotL.Compiler
             CompileStream(new ExpressionParser(s));
         }
 
-        private static void CompileStream(ExpressionParser expressionParser)
+        private static void CompileStream(ExpressionParser expressionParser, bool requireDelimiters= false)
         {
-            expressionParser.SwallowStatementDeliminters();
             while (!expressionParser.EOF)
             {
                 CompileInternal(expressionParser.Read());
-                expressionParser.SwallowStatementDeliminters();
+                expressionParser.SwallowStatementDeliminters(requireDelimiters);
             }
         }
 
@@ -94,7 +93,7 @@ namespace BotL.Compiler
                 try
                 {
                     LoadedSourceFiles.Add(canonical);
-                    CompileStream(new ExpressionParser(reader));
+                    CompileStream(new ExpressionParser(reader), true);
                 }
                 catch (Exception e)
                 {

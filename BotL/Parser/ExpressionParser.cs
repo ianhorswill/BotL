@@ -104,10 +104,13 @@ namespace BotL.Parser
             return ReadExpression(ReadPrimary(), 0, isArgument);
         }
 
-        public void SwallowStatementDeliminters()
+        public void SwallowStatementDeliminters(bool requireDelimiters)
         {
-            while (IsStatementDelimiter(tok.PeekToken()))
+            object token;
+            if (IsStatementDelimiter(token = tok.PeekToken()))
                 tok.GetToken();
+            else if (requireDelimiters)
+                    throw new SyntaxError($"Expected ; at end of statement, got {token}", token);
         }
 
         private bool IsStatementDelimiter(object token)

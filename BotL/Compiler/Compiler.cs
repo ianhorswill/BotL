@@ -28,11 +28,19 @@ using System.IO;
 using System.Linq;
 using BotL.Parser;
 using BotL.Unity;
+using UnityEngine;
 
 namespace BotL.Compiler
 {
     public static class Compiler
     {
+        /// <summary>
+        ///  The goal currently being compiled
+        /// </summary>
+        public static object CurrentGoal { get; set; }
+        public static object CurrentTopLevelExpression { get; private set; }
+
+
         public const int MaxSpecialPredicateArity=10;
         static Compiler()
         {
@@ -262,9 +270,12 @@ namespace BotL.Compiler
 
         internal static BindingEnvironment CompileInternal(object assertion, bool forceVoidVariables = false)
         {
+            CurrentTopLevelExpression = assertion;
+            CurrentGoal = null;
             if (ProcessDeclaration(assertion))
                 return null;
             assertion = Transform.TransformTopLevel(assertion);
+            CurrentGoal = null;
             BindingEnvironment e = new BindingEnvironment();
             assertion = Transform.Variablize(assertion, e);
             AnalyzeVariables(assertion, e);
@@ -307,6 +318,7 @@ namespace BotL.Compiler
 
         private static CompiledClause CompileFact(object head, BindingEnvironment e)
         {
+            CurrentGoal = head;
             var spec = new PredicateIndicator(head);
             if (spec.Arity == 0)
                 return new CompiledClause(head, TrivialFactCode, 0, null);
@@ -354,6 +366,7 @@ namespace BotL.Compiler
 
         private static void CompileHead(object head, CodeBuilder b, BindingEnvironment e)
         {
+            CurrentGoal = head;
             CompileArglist(head, b, e, true);
             // Else c is a symbol, so there's nothing to compile.
         }
@@ -446,6 +459,7 @@ namespace BotL.Compiler
         
         private static void CompileGoal(object goal, CodeBuilder b, BindingEnvironment e, bool lastCall)
         {
+            CurrentGoal = goal;
             Call c = goal as Call;
 
             if (goal is Variable)

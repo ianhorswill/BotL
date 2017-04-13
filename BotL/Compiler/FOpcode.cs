@@ -266,7 +266,7 @@ namespace BotL
                 return FOpcode.Queue;
             if (c.Functor == Symbol.Hashset)
                 return FOpcode.Hashset;
-            throw new Exception("Unknown functional expression operation in: "+c);
+            throw new Exception($"{c}, an unknown functional expression, appears as an argument in {Compiler.Compiler.CurrentGoal}.");
         }
 
         static FOpcodeTable()

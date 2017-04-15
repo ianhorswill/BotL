@@ -281,11 +281,18 @@ namespace BotL
                 }
                 else
                 {
+                    // TODO - FIX THIS!  We're doing a linear lookup because the output argument
+                    // isn't actually holding the previous solution.  I'm not going to worry about it
+                    // for now since (1) it's good enough for the class and (2) we need to implement
+                    // hash table lookup later anyhow.
+                    child = parentNode.FirstChild;
+                    for (int i = 0; i < restartCount; i++)
+                        child = child.NextSibling;
                     // We know DataStack[resultAddr].reference still has the previous result.
-                    var previousResult = ((ELNode)DataStack[resultAddr].reference);
-                    Debug.Assert(previousResult != null, "Previous result is null");
-                    child = previousResult.NextSibling;
-                    Debug.Assert(child != null);
+                    //var previousResult = ((ELNode)DataStack[resultAddr].reference);
+                    //Debug.Assert(previousResult != null, "Previous result is null");
+                    //child = previousResult.NextSibling;
+                    //Debug.Assert(child != null);
                     //Trace.WriteLine($"Parent={parentNode}, previous={previousResult}, child={child}");
                 }
                 

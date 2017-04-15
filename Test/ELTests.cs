@@ -24,6 +24,7 @@
 #endregion
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using BotL;
+using BotL.Compiler;
 
 namespace Test
 {
@@ -157,6 +158,26 @@ namespace Test
         {
             ELNode.Store(ELNode.Root / "ChildBoolValue" % true);
             Assert.IsTrue((ELNode.Root / "ChildBoolValue").ChildBoolValue);
+        }
+
+        [TestMethod]
+        public void ELBurnIn()
+        {
+            Compiler.Compile(@"
+clear_el <-- 
+   ignore(retract(/sklerb)),
+   ignore(retract(/burnin));
+write_el <--
+   forall(enumerate_for_el(X,Y),
+          assert(/burnin/X:Y)),
+   !,
+   forall(/burnin/X:Y,
+          assert(/sklerb/X:Y));");
+            for (int i = 0; i < 100; i++)
+            {
+                Compiler.Compile($"enumerate_for_el({i}, {i});");
+                TestTrue("clear_el, write_el");
+            }
         }
     }
 }

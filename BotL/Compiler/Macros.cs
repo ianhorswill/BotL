@@ -43,6 +43,7 @@ namespace BotL.Compiler
 
             DeclareMacro("not", 1, p => Or(And(p, Symbol.Cut, Symbol.Fail), Symbol.TruePredicate));
             DeclareMacro("->", 2, (test, consequent) => And(test, Symbol.Cut, consequent));
+            DeclareMacro("forall", 2, (cond, action) => Not(And(cond, Not(action))));
             // The or fail here is to place the cut in its own context to prevent it from cutting
             // the parent clause.
             DeclareMacro("once", 1, exp => Or(Symbol.Fail, And(exp, Symbol.Cut)));
@@ -56,7 +57,10 @@ namespace BotL.Compiler
                                             indicator.Arity)));
             });
             DeclareMacro("{}", 1, exp => MapConjunction(c => new Call("check", c), exp));
-            DeclareMacro("forall", 2, (cond, action) => Not(And(cond, Not(action))));
+            DeclareMacro("when", 2, (condition, action) => Or(And(condition, Symbol.Cut, action),
+                                                              true));
+            DeclareMacro("unless", 2, (condition, action) => Or(And(condition, Symbol.Cut),
+                                                                action));
             DeclareMacro("doall", 2, (generator, action) => Or(And(generator,
                                                                    new Call("check", action),
                                                                    Symbol.Fail),

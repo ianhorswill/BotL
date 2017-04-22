@@ -50,7 +50,7 @@ namespace BotL
         public static readonly Symbol ArrayList = Intern("arraylist");
         public static readonly Symbol Hashset = Intern("hashset");
         public static readonly Symbol Colon = Intern(":");
-        public static readonly Symbol Adjoin = Intern("adjoin");
+        public static readonly Symbol Adjoin = Intern("adjoin!");
         public static readonly Symbol Item = Intern("item");
         public static readonly Symbol Call = Intern("call");
         public static readonly Symbol Underscore = Intern("_");

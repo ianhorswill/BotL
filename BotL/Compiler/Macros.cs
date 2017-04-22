@@ -51,17 +51,14 @@ namespace BotL.Compiler
             DeclareMacro("check", 1, exp => {
                 var indicator = new PredicateIndicator(exp);
                 return Or(And(exp, Symbol.Cut),
-                          new Call("%call_failed",
-                                   new Call(Symbol.Slash,
-                                            indicator.Functor,
-                                            indicator.Arity)));
+                          new Call("%call_failed", indicator.Functor));
             });
             DeclareMacro("{}", 1, exp => MapConjunction(c => new Call("check", c), exp));
             DeclareMacro("when", 2, (condition, action) => Or(And(condition, Symbol.Cut, action),
                                                               true));
             DeclareMacro("unless", 2, (condition, action) => Or(And(condition, Symbol.Cut),
                                                                 action));
-            DeclareMacro("doall", 2, (generator, action) => Or(And(generator,
+            DeclareMacro("doall!", 2, (generator, action) => Or(And(generator,
                                                                    new Call("check", action),
                                                                    Symbol.Fail),
                                                                Symbol.TruePredicate));
@@ -125,15 +122,15 @@ namespace BotL.Compiler
                             });
             Functions.DeclareFunction("sum", 2);
 
-            DeclareMacro("set", 1, arg =>
+            DeclareMacro("set!", 1, arg =>
             {
                 var ac = arg as Call;
                 if (ac == null)
                     throw new SyntaxError("Invalid set command syntax", arg);
                 if (Call.IsFunctor(ac, Symbol.Equal, 2))
-                    return ExpandFunctionUpdate("update", ac.Arguments[0], ac.Arguments[1]);
+                    return ExpandFunctionUpdate("update!", ac.Arguments[0], ac.Arguments[1]);
                 if (Call.IsFunctor(ac, Symbol.PlusEqual, 2))
-                    return ExpandFunctionUpdate("increment", ac.Arguments[0], ac.Arguments[1]);
+                    return ExpandFunctionUpdate("increment!", ac.Arguments[0], ac.Arguments[1]);
                 throw new SyntaxError("Invalid set command syntax", arg);
             });
 
@@ -320,13 +317,13 @@ namespace BotL.Compiler
             if (c.IsFunctor(Symbol.DollarSign, 1))
             {
                 // It's an update to a global variable
-                return new Call(Symbol.Intern("set_global"), c.Arguments[0], newValueArg);
+                return new Call(Symbol.Intern("set_global!"), c.Arguments[0], newValueArg);
             }
 
             if (c.IsFunctor(Symbol.Dot, 2))
             {
                 // It's a property update expression
-                return new Call(Symbol.Intern("set_property"), c.Arguments[0], Stringify(c.Arguments[1]), newValueArg);
+                return new Call(Symbol.Intern("set_property!"), c.Arguments[0], Stringify(c.Arguments[1]), newValueArg);
             }
             if (!Functions.IsFunctionRelation(functionArg))
                 throw new InvalidOperationException("Unknown function in set expression: "+functionArg);

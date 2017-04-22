@@ -78,9 +78,9 @@ namespace Test
             KB.DefineTable("settest", 2);
             KB.AddTableRow("settest", 2, "a", 1);
             KB.AddTableRow("settest", 2, "b", 2);
-            TestTrue("assert(settest(\"c\", 3)), settest(\"c\", 3)");
-            TestTrue("set settest(\"a\")=4, settest(\"a\", 4)");
-            TestTrue("set settest(\"a\") += 4, settest(\"a\", 8.0)");
+            TestTrue("assert!(settest(\"c\", 3)), settest(\"c\", 3)");
+            TestTrue("set! settest(\"a\")=4, settest(\"a\", 4)");
+            TestTrue("set! settest(\"a\") += 4, settest(\"a\", 8.0)");
         }
 
         [TestMethod]
@@ -90,7 +90,7 @@ namespace Test
             KB.AddTableRow("asserttest", 2, "a", 1);
             KB.AddTableRow("asserttest", 2, "b", 2);
             TestFalse("asserttest(a, 2)");
-            TestTrue("assert(asserttest(a,2)), asserttest(a, 2)");
+            TestTrue("assert!(asserttest(a,2)), asserttest(a, 2)");
         }
 
         [TestMethod]
@@ -100,9 +100,9 @@ namespace Test
             KB.AddTableRow("retracttest", 2, "a", 1);
             KB.AddTableRow("retracttest", 2, "b", 2);
             TestTrue("retracttest(\"a\", 1)");
-            TestFalse("retract(retracttest(\"a\",1)), retracttest(\"a\", 1)");
+            TestFalse("retract!(retracttest(\"a\",1)), retracttest(\"a\", 1)");
             TestTrue("retracttest(\"b\", 2)");
-            TestFalse("retractall(retracttest(_,_)), retracttest(\"b\", 2)");
+            TestFalse("retractall!(retracttest(_,_)), retracttest(\"b\", 2)");
         }
 
         private void TestFalse(string code)

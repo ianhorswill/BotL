@@ -433,7 +433,7 @@ namespace BotL
 
                     case Builtin.CallFailed:
                     {
-                        var p = predicate.GetObjectConstant<Predicate>(code[pc++]);
+                        var p = predicate.GetObjectConstant<Symbol>(code[pc++]);
                         throw new CallFailedException(p);
                     }
 

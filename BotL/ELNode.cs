@@ -227,10 +227,10 @@ namespace BotL
         {
             KB.DefinePrimop("read_nonexclusive", 3, (argBase, restartCount) => ReadEL(argBase, restartCount, false));
             KB.DefinePrimop("read_exclusive", 3, (argBase, restartCount) => ReadEL(argBase, restartCount, true));
-            KB.DefinePrimop("write_nonexclusive", 3, (argBase, restartCount) => WriteEL(argBase, false));
-            KB.DefinePrimop("write_nonexclusive_to_end", 3, (argBase, restartCount) => WriteEL(argBase, false, true));
-            KB.DefinePrimop("write_exclusive", 3, (argBase, restartCount) => WriteEL(argBase, true));
-            KB.DefinePrimop("delete_el_node", 1, (argBase, ignore) =>
+            KB.DefinePrimop("write_nonexclusive!", 3, (argBase, restartCount) => WriteEL(argBase, false));
+            KB.DefinePrimop("write_nonexclusive_to_end!", 3, (argBase, restartCount) => WriteEL(argBase, false, true));
+            KB.DefinePrimop("write_exclusive!", 3, (argBase, restartCount) => WriteEL(argBase, true));
+            KB.DefinePrimop("delete_el_node!", 1, (argBase, ignore) =>
             {
                 ((ELNode)DataStack[Deref(argBase)].reference).Delete();
                 return CallStatus.DeterministicSuccess;
@@ -435,13 +435,13 @@ namespace BotL
 
         public static object ExpandUpdate(Symbol updateOperation, object elExpr)
         {
-            if (updateOperation.Name == "assert_internal")
+            if (updateOperation.Name == "assert_internal!")
                 return ExpandWrite(elExpr, Symbol.Underscore);
-            if (updateOperation.Name == "retract_internal")
+            if (updateOperation.Name == "retract_internal!")
             {
                 var node = Variable.MakeGenerated("*Node*");
                 var lookup = ExpandEL(elExpr, node);
-                return Macros.And(lookup, new Call("delete_el_node", node));
+                return Macros.And(lookup, new Call("delete_el_node!", node));
             }
             throw new InvalidOperationException($"Cannot perform {updateOperation} on EL database");
         }
@@ -454,31 +454,31 @@ namespace BotL
                 throw new SyntaxError("Invalid exclusion logic expression", exp);
             if (c.IsFunctor(Symbol.Slash, 1))
             {
-                return new Call("write_nonexclusive", null, c.Arguments[0], resultVar);
+                return new Call("write_nonexclusive!", null, c.Arguments[0], resultVar);
             }
             if (c.IsFunctor(Symbol.Slash, 2))
             {
                 if (c.Arguments[0] is Symbol)
-                    return new Call("write_nonexclusive", c.Arguments[0], c.Arguments[1], resultVar);
+                    return new Call("write_nonexclusive!", c.Arguments[0], c.Arguments[1], resultVar);
                 var temp = Variable.MakeGenerated("*Node*");
                 var parentCode = ExpandWrite(c.Arguments[0], temp);
-                return Macros.And(parentCode, new Call("write_nonexclusive", temp, c.Arguments[1], resultVar));
+                return Macros.And(parentCode, new Call("write_nonexclusive!", temp, c.Arguments[1], resultVar));
             }
             if (c.IsFunctor(WriteToEnd, 2))
             {
                 if (c.Arguments[0] is Symbol)
-                    return new Call("write_nonexclusive_to_end", c.Arguments[0], c.Arguments[1], resultVar);
+                    return new Call("write_nonexclusive_to_end!", c.Arguments[0], c.Arguments[1], resultVar);
                 var temp = Variable.MakeGenerated("*Node*");
                 var parentCode = ExpandWrite(c.Arguments[0], temp);
-                return Macros.And(parentCode, new Call("write_nonexclusive_to_end", temp, c.Arguments[1], resultVar));
+                return Macros.And(parentCode, new Call("write_nonexclusive_to_end!", temp, c.Arguments[1], resultVar));
             }
             if (c.IsFunctor(Symbol.Colon, 2))
             {
                 if (c.Arguments[0] is Symbol)
-                    return new Call("write_exclusive", c.Arguments[0], c.Arguments[1], resultVar);
+                    return new Call("write_exclusive!", c.Arguments[0], c.Arguments[1], resultVar);
                 var temp = Variable.MakeGenerated("*Node*");
                 var parentCode = ExpandWrite(c.Arguments[0], temp);
-                return Macros.And(parentCode, new Call("write_exclusive", temp, c.Arguments[1], resultVar));
+                return Macros.And(parentCode, new Call("write_exclusive!", temp, c.Arguments[1], resultVar));
             }
             if (c.IsFunctor(StoreNode, 2))
             {

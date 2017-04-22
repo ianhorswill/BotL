@@ -27,7 +27,7 @@ using System.IO;
 
 namespace BotL.Compiler
 {
-    internal static class Lint
+    public static class Lint
     {
         public static void Check(TextWriter output)
         {

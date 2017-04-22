@@ -128,7 +128,7 @@ namespace Test
         [TestMethod]
         public void SetProperty()
         {
-            TestTrue("set_property(xyzzy, \"Name\", \"foo\"), xyzzy.Name = \"foo\"");
+            TestTrue("set_property!(xyzzy, \"Name\", \"foo\"), xyzzy.Name = \"foo\"");
         }
     }
 }

@@ -144,7 +144,7 @@ namespace BotL
 
         public static void DefineTablePrimops()
         {
-            KB.DefineMetaPrimop("assert_internal", (argBase, ignore) =>
+            KB.DefineMetaPrimop("assert_internal!", (argBase, ignore) =>
             {
                 var predicate = (Predicate) DataStack[Deref(argBase)].reference;
                 if (!AllArgumentsInstantiated(argBase+1, predicate.Arity))
@@ -155,7 +155,7 @@ namespace BotL
                 return CallStatus.DeterministicSuccess;
             });
 
-            KB.DefineMetaPrimop("retract_internal", (argBase, ignore) =>
+            KB.DefineMetaPrimop("retract_internal!", (argBase, ignore) =>
             {
                 var predicate = (Predicate)DataStack[Deref(argBase)].reference;
                 if (!AllArgumentsInstantiated(argBase + 1, predicate.Arity))
@@ -170,7 +170,7 @@ namespace BotL
                 return CallStatus.DeterministicSuccess;
             });
 
-            KB.DefineMetaPrimop("update_internal", (argBase, ignore) =>
+            KB.DefineMetaPrimop("update_internal!", (argBase, ignore) =>
             {
                 var predicate = (Predicate)DataStack[Deref(argBase)].reference;
                 if (!AllArgumentsInstantiated(argBase + 1, predicate.Arity))
@@ -185,7 +185,7 @@ namespace BotL
                 return CallStatus.DeterministicSuccess;
             });
 
-            KB.DefineMetaPrimop("increment_internal", (argBase, ignore) =>
+            KB.DefineMetaPrimop("increment_internal!", (argBase, ignore) =>
             {
                 var predicate = (Predicate)DataStack[Deref(argBase)].reference;
                 if (!AllArgumentsInstantiated(argBase + 1, predicate.Arity))
@@ -201,7 +201,7 @@ namespace BotL
                 return CallStatus.DeterministicSuccess;
             });
 
-            KB.DefineMetaPrimop("retractall_internal", (argBase, ignore) =>
+            KB.DefineMetaPrimop("retractall_internal!", (argBase, ignore) =>
             {
                 var predicate = (Predicate)DataStack[Deref(argBase)].reference;
                 var table = predicate.Table;
@@ -290,11 +290,11 @@ namespace BotL
 
         public static void DefineTableMacros()
         {
-            Macros.DeclareMacro("assert", 1, arg => Expand(Symbol.Intern("assert_internal"), arg));
-            Macros.DeclareMacro("update", 1, arg => Expand(Symbol.Intern("update_internal"), arg));
-            Macros.DeclareMacro("increment", 1, arg => Expand(Symbol.Intern("increment_internal"), arg));
-            Macros.DeclareMacro("retract", 1, arg => Expand(Symbol.Intern("retract_internal"), arg));
-            Macros.DeclareMacro("retractall", 1, arg => Expand(Symbol.Intern("retractall_internal"), arg));
+            Macros.DeclareMacro("assert!", 1, arg => Expand(Symbol.Intern("assert_internal!"), arg));
+            Macros.DeclareMacro("update!", 1, arg => Expand(Symbol.Intern("update_internal!"), arg));
+            Macros.DeclareMacro("increment!", 1, arg => Expand(Symbol.Intern("increment_internal!"), arg));
+            Macros.DeclareMacro("retract!", 1, arg => Expand(Symbol.Intern("retract_internal!"), arg));
+            Macros.DeclareMacro("retractall!", 1, arg => Expand(Symbol.Intern("retractall_internal!"), arg));
         }
 
         private static object Expand(Symbol functor, object arg)
@@ -304,7 +304,7 @@ namespace BotL
                 || c.Functor.Name == ">>" || c.Functor == ELNode.WriteToEnd)
                 return ELNode.ExpandUpdate(functor, arg);
             if (c.IsFunctor(Symbol.Implication, 2))
-                throw new ArgumentException("Assert/2 is used only for updating tables, not for adding rules to rule predicates.");
+                throw new ArgumentException("Assert!/2 is used only for updating tables, not for adding rules to rule predicates.");
             var arglist = new object[c.Arguments.Length + 1];
             arglist[0] = KB.Predicate(new PredicateIndicator(c.Functor, c.Arity));
             for (var i = 0; i < c.Arguments.Length; i++)

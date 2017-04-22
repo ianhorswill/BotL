@@ -43,7 +43,7 @@ namespace BotL.Parser
 
             DefineBinaryOperator("->", 22);
 
-            DefinePrefixOperator("set", 25);
+            DefinePrefixOperator("set!", 25);
             DefinePrefixOperator("report", 25);
             DefinePrefixOperator("listing", 25);
             DefinePrefixOperator("function", 25);
@@ -60,6 +60,7 @@ namespace BotL.Parser
             DefineBinaryOperator("+=", 30);
 
             DefineBinaryOperator("\\=", 30);
+            DefineBinaryOperator("!=", 30);
             DefineBinaryOperator("<", 30);
             DefineBinaryOperator("=<", 30);
             DefineBinaryOperator(">", 30);

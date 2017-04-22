@@ -31,9 +31,9 @@ namespace BotL
 {
     public class CallFailedException : Exception
     {
-        public Predicate Target { get; private set; }
+        public Symbol Target { get; private set; }
 
-        public CallFailedException(Predicate target) : base($"Call to {target} failed, but was expected to succeed.")
+        public CallFailedException(Symbol target) : base($"Call to {target} failed, but was expected to succeed.")
         {
             Target = target;
         }

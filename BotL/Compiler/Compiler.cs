@@ -614,14 +614,13 @@ namespace BotL.Compiler
 
                 case Builtin.CallFailed:
                 {
-                    var arg = c.Arguments[0] as Call;
-                    if (arg == null || !arg.IsFunctor(Symbol.Slash, 2))
+                    var arg = c.Arguments[0] as Symbol;
+                    if (arg == null)
                     {
-                        throw new Exception("Argument to %call_failed must be a predicate selector: "+c.Arguments[0]);
+                        throw new Exception("Argument to %call_failed must be a symbol: "+c.Arguments[0]);
                     }
-                    var failedPredicate = KB.Predicate((Symbol) arg.Arguments[0], (int) arg.Arguments[1]);
                     b.EmitBuiltin(Builtin.CallFailed);
-                    b.Emit(b.Predicate.GetObjectConstantIndex(failedPredicate));
+                    b.Emit(b.Predicate.GetObjectConstantIndex(arg));
                     break;
                 }
 

@@ -40,17 +40,23 @@ namespace BotL
 
         public PredicateIndicator(object o)
         {
-            var c = o as Call;
-            if (c != null)
+            if (o is Call c)
             {
                 Functor = c.Functor;
                 Arity = c.Arity;
             }
-            else
+            else if (o is Symbol s)
             {
-                Functor = (Symbol) o;
+                Functor = s;
                 Arity = 0;
             }
+            else if (o is bool b)
+            {
+                Functor = b ? Symbol.TruePredicate : Symbol.Fail;
+                Arity = 0;
+            }
+            else
+                throw new ArgumentTypeException("PredicateIndicator", 0, "Expected a Symbol or Call", o);
         }
 
         public readonly Symbol Functor;

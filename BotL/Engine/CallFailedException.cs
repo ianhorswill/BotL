@@ -1,6 +1,6 @@
 ﻿#region Copyright
 // --------------------------------------------------------------------------------------------------------------------
-// <copyright file="BotLConsole.cs" company="Ian Horswill">
+// <copyright file="CallFailedException.cs" company="Ian Horswill">
 // Copyright (C) 2017 Ian Horswill
 //  
 // Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -22,34 +22,20 @@
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
 #endregion
-using Northwestern.UnityUtils;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 
-using UnityEngine;
-
-namespace BotL.Unity
+namespace BotL
 {
-    [AddComponentMenu("BotL/Console")]
-    // ReSharper disable once UnusedMember.Global
-    public class BotLConsole : Console
+    public class CallFailedException : Exception
     {
-        internal override void Start()
-        {
-            Header = $"\nBotL verison {System.Reflection.Assembly.GetCallingAssembly().GetName().Version}\n\n";
-            base.Start();
-            Repl.StandardOutput = Out;
-            Repl.StandardError = Out;
-            Repl.StandardInput = null;
-            WindowTitle = "BotL console: ";
-            PopupOnWrite = true;
-        }
+        public Symbol Target { get; private set; }
 
-        protected override void Run(string command)
+        public CallFailedException(Symbol target) : base($"Call to {target} failed, but was expected to succeed.")
         {
-            Out.Write("<b>");
-            if (command != ";")
-                Out.Write("> ");
-            Out.WriteLine(command + "</b>");
-            Repl.RunCommand(command);
+            Target = target;
         }
     }
 }

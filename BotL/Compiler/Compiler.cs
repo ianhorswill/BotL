@@ -28,11 +28,19 @@ using System.IO;
 using System.Linq;
 using BotL.Parser;
 using BotL.Unity;
+using UnityEngine;
 
 namespace BotL.Compiler
 {
     public static class Compiler
     {
+        /// <summary>
+        ///  The goal currently being compiled
+        /// </summary>
+        public static object CurrentGoal { get; set; }
+        public static object CurrentTopLevelExpression { get; private set; }
+
+
         public const int MaxSpecialPredicateArity=10;
         static Compiler()
         {
@@ -51,13 +59,12 @@ namespace BotL.Compiler
             CompileStream(new ExpressionParser(s));
         }
 
-        private static void CompileStream(ExpressionParser expressionParser)
+        private static void CompileStream(ExpressionParser expressionParser, bool requireDelimiters= false)
         {
-            expressionParser.SwallowStatementDeliminters();
             while (!expressionParser.EOF)
             {
                 CompileInternal(expressionParser.Read());
-                expressionParser.SwallowStatementDeliminters();
+                expressionParser.SwallowStatementDeliminters(requireDelimiters);
             }
         }
 
@@ -85,13 +92,13 @@ namespace BotL.Compiler
                 var reader = new PositionTrackingTextReader(f, path);
                 try
                 {
-                    CompileStream(new ExpressionParser(reader));
                     LoadedSourceFiles.Add(canonical);
+                    CompileStream(new ExpressionParser(reader), true);
                 }
-                catch (Exception)
+                catch (Exception e)
                 {
                     if (Repl.StandardError != null)
-                        Repl.StandardError.Write($"{path}:{reader.Line}: ");
+                        Repl.StandardError.WriteLine($"{path}:{reader.Line}: {e.Message}");
                     throw;
                 }
             }
@@ -129,17 +136,38 @@ namespace BotL.Compiler
                     break;
 
                 case "require":
-                    var canonical = CanonicalizeSourceName(arg);
-                    if (!LoadedSourceFiles.Contains(canonical))
-                        CompileFile(canonical);
+                    var module = arg as string;
+                    if (module == null)
+                    {
+                        if (arg is Symbol s)
+                            module = s.Name;
+                        else
+                            throw new ArgumentException($"Invalid file name in require command: {ExpressionParser.WriteExpressionToString(arg)}");
+                    }
+                    if (!LoadedSourceFiles.Contains(CanonicalizeSourceName(module)))
+                    {
+                        CompileFile(module);
+                    }
                     break;
 
                 case "global":
+                {
                     var g = arg as Call;
                     if (g == null || !g.IsFunctor(Symbol.Equal, 2) || !(g.Arguments[0] is Symbol))
                         throw new SyntaxError("Invalid global declaration", g);
-                    GlobalVariable.DefineGlobal(((Symbol)g.Arguments[0]).Name, g.Arguments[1]);
+                    GlobalVariable.DefineGlobal(((Symbol) g.Arguments[0]).Name, g.Arguments[1]);
                     break;
+                }
+
+                case "report":
+                {
+                    var s = arg as Symbol;
+                    if (s == null)
+                        throw new SyntaxError("Argument to report should be the name of a global variable", arg);
+                    var g = GlobalVariable.Find(s);
+                    g.ReportInStackDumps = true;
+                    break;
+                }
 
                 case "struct":
                     Structs.DeclareStruct(arg);
@@ -187,10 +215,48 @@ namespace BotL.Compiler
                     }
                     break;
 
+                case "listing":
+                    {
+                        var spec = arg as Call;
+                        if (spec == null || !spec.IsFunctor(Symbol.Slash, 2))
+                            throw new ArgumentException("Invalid predicate specified in externally_called declaration");
+                        Listing(Repl.StandardOutput, KB.Predicate((Symbol)spec.Arguments[0], (int)spec.Arguments[1]));
+                        break;
+                    }
+
                 default:
                     return false;
             }
             return true;
+        }
+
+        private static void Listing(TextWriter stream, Predicate p)
+        {
+            if (p.IsSpecial)
+            {
+                if (p.IsTable)
+                    p.Table.Listing(stream);
+                else
+                    stream.WriteLine($"{p} is a primop");
+            }
+            else
+                ListRulePredicate(stream, p);
+        }
+
+        private static void ListRulePredicate(TextWriter stream, Predicate p)
+        {
+            if (p.FirstClause != null)
+            {
+                ListClause(stream, p.FirstClause);
+                foreach (var c in p.ExtraClauses)
+                    ListClause(stream, c);
+            } else
+                stream.WriteLine($"{p} is rule predicate with no rules.");
+        }
+
+        private static void ListClause(TextWriter stream, CompiledClause clause)
+        {
+            stream.WriteLine(ExpressionParser.WriteExpressionToString(clause.Source));
         }
 
         private static PredicateIndicator DecodePredicateIndicatorExpression(object exp)
@@ -203,9 +269,12 @@ namespace BotL.Compiler
 
         internal static BindingEnvironment CompileInternal(object assertion, bool forceVoidVariables = false)
         {
+            CurrentTopLevelExpression = assertion;
+            CurrentGoal = null;
             if (ProcessDeclaration(assertion))
                 return null;
             assertion = Transform.TransformTopLevel(assertion);
+            CurrentGoal = null;
             BindingEnvironment e = new BindingEnvironment();
             assertion = Transform.Variablize(assertion, e);
             AnalyzeVariables(assertion, e);
@@ -248,6 +317,7 @@ namespace BotL.Compiler
 
         private static CompiledClause CompileFact(object head, BindingEnvironment e)
         {
+            CurrentGoal = head;
             var spec = new PredicateIndicator(head);
             if (spec.Arity == 0)
                 return new CompiledClause(head, TrivialFactCode, 0, null);
@@ -295,6 +365,7 @@ namespace BotL.Compiler
 
         private static void CompileHead(object head, CodeBuilder b, BindingEnvironment e)
         {
+            CurrentGoal = head;
             CompileArglist(head, b, e, true);
             // Else c is a symbol, so there's nothing to compile.
         }
@@ -387,12 +458,17 @@ namespace BotL.Compiler
         
         private static void CompileGoal(object goal, CodeBuilder b, BindingEnvironment e, bool lastCall)
         {
+            CurrentGoal = goal;
             Call c = goal as Call;
 
             if (goal is Variable)
                 throw new SyntaxError("Goal may not be a variable", goal);
             if (goal == Symbol.Cut)
+            {
                 b.Emit(Opcode.CCut);
+                if (lastCall)
+                    b.Emit(Opcode.CNoGoal);
+            }
             else if (c != null && c.IsFunctor(Symbol.Comma, 2))
             {
                 // ReSharper disable once PossibleNullReferenceException
@@ -519,6 +595,7 @@ namespace BotL.Compiler
                 case Builtin.SymbolTest:
                 case Builtin.MissingTest:
                 case Builtin.TestNotFalse:
+                case Builtin.Throw:
                     {
                         var arg = c.Arguments[0];
                         if (!(arg is Variable v) || e[v].FirstReferenceCompiled)
@@ -534,6 +611,18 @@ namespace BotL.Compiler
                         }
                         break;
                     }
+
+                case Builtin.CallFailed:
+                {
+                    var arg = c.Arguments[0] as Symbol;
+                    if (arg == null)
+                    {
+                        throw new Exception("Argument to %call_failed must be a symbol: "+c.Arguments[0]);
+                    }
+                    b.EmitBuiltin(Builtin.CallFailed);
+                    b.Emit(b.Predicate.GetObjectConstantIndex(arg));
+                    break;
+                }
 
                 default:
                     throw new InvalidOperationException("Attempt to compile unknown builtin "+ builtin);
@@ -724,7 +813,6 @@ namespace BotL.Compiler
             var typeName = type as Symbol;
             if (typeName != null)
             {
-                // It's a field reference
                 CompileFunctionalExpression(TypeUtils.FindType(typeName.Name), b, e); // Push on stack
                 b.Emit(FOpcode.ComponentLookup);
             }

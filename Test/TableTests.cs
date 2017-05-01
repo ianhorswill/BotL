@@ -34,7 +34,7 @@ namespace Test
     [TestClass]
     public class TableTests
     {
-        public TableTests()
+        static TableTests()
         {
             KB.DefineTable("tab", 2);
             KB.AddTableRow("tab", 2, Symbol.Intern("a"), 1);
@@ -42,47 +42,7 @@ namespace Test
             KB.AddTableRow("tab", 2, Symbol.Intern("c"), 3);
             KB.AddTableRow("tab", 2, Symbol.Intern("d"), 4);
         }
-
-        private TestContext testContextInstance;
-
-        /// <summary>
-        ///Gets or sets the test context which provides
-        ///information about and functionality for the current test run.
-        ///</summary>
-        public TestContext TestContext
-        {
-            get
-            {
-                return testContextInstance;
-            }
-            set
-            {
-                testContextInstance = value;
-            }
-        }
-
-        #region Additional test attributes
-        //
-        // You can use the following additional attributes as you write your tests:
-        //
-        // Use ClassInitialize to run code before running the first test in the class
-        // [ClassInitialize()]
-        // public static void MyClassInitialize(TestContext testContext) { }
-        //
-        // Use ClassCleanup to run code after all tests in a class have run
-        // [ClassCleanup()]
-        // public static void MyClassCleanup() { }
-        //
-        // Use TestInitialize to run code before running each test 
-        // [TestInitialize()]
-        // public void MyTestInitialize() { }
-        //
-        // Use TestCleanup to run code after each test has run
-        // [TestCleanup()]
-        // public void MyTestCleanup() { }
-        //
-        #endregion
-
+        
         [TestMethod]
         public void TableOutputTest()
         {
@@ -118,9 +78,9 @@ namespace Test
             KB.DefineTable("settest", 2);
             KB.AddTableRow("settest", 2, "a", 1);
             KB.AddTableRow("settest", 2, "b", 2);
-            TestTrue("assert(settest(\"c\", 3)), settest(\"c\", 3)");
-            TestTrue("set settest(\"a\")=4, settest(\"a\", 4)");
-            TestTrue("set settest(\"a\") += 4, settest(\"a\", 8.0)");
+            TestTrue("assert!(settest(\"c\", 3)), settest(\"c\", 3)");
+            TestTrue("set! settest(\"a\")=4, settest(\"a\", 4)");
+            TestTrue("set! settest(\"a\") += 4, settest(\"a\", 8.0)");
         }
 
         [TestMethod]
@@ -130,7 +90,7 @@ namespace Test
             KB.AddTableRow("asserttest", 2, "a", 1);
             KB.AddTableRow("asserttest", 2, "b", 2);
             TestFalse("asserttest(a, 2)");
-            TestTrue("assert(asserttest(a,2)), asserttest(a, 2)");
+            TestTrue("assert!(asserttest(a,2)), asserttest(a, 2)");
         }
 
         [TestMethod]
@@ -140,9 +100,9 @@ namespace Test
             KB.AddTableRow("retracttest", 2, "a", 1);
             KB.AddTableRow("retracttest", 2, "b", 2);
             TestTrue("retracttest(\"a\", 1)");
-            TestFalse("retract(retracttest(\"a\",1)), retracttest(\"a\", 1)");
+            TestFalse("retract!(retracttest(\"a\",1)), retracttest(\"a\", 1)");
             TestTrue("retracttest(\"b\", 2)");
-            TestFalse("retractall(retracttest(_,_)), retracttest(\"b\", 2)");
+            TestFalse("retractall!(retracttest(_,_)), retracttest(\"b\", 2)");
         }
 
         private void TestFalse(string code)

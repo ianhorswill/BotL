@@ -42,7 +42,7 @@ namespace BotL.Parser
         readonly StringBuilder token = new StringBuilder();
         private object ungotToken;
 
-        private const string SingleCharTokens = "{}()[]|,;.!$";
+        private const string SingleCharTokens = "{}()[]|,;.$#@";
 
         // ReSharper disable once InconsistentNaming
         private const char EOFChar = (char)0xffff;
@@ -131,7 +131,7 @@ namespace BotL.Parser
         private object ReadSymbol()
         {
             char c;
-            for (c = Get(); (char.IsLetterOrDigit(c) || c == '_');)
+            for (c = Get(); (char.IsLetterOrDigit(c) || c == '_' || c == '!');)
             {
                 token.Append(c);
                 c = Get();
@@ -172,7 +172,7 @@ namespace BotL.Parser
             return Symbol.Intern(token.ToString());
         }
 
-        private const string OperatorChars = "@#$%^&*:<>?/+-=|~\\";
+        private const string OperatorChars = "@#$%^&*:<>?/!+-=|~\\";
         private bool IsOperatorChar(char c)
         {
             return OperatorChars.Contains(c);

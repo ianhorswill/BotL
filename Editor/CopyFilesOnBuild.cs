@@ -20,11 +20,13 @@ public class CopyResourcesPostprocessor
                 break;
 
             case BuildTarget.StandaloneOSXIntel:
+            case BuildTarget.StandaloneOSXUniversal:
+            case BuildTarget.StandaloneOSXIntel64:
                 targetDirectory = pathToBuiltProject + "/Contents";
                 break;
 
             default:
-                throw new Exception("Don't know how to build Prolog code for target: "+target);
+                throw new Exception("Don't know how to build BotL code for target: "+target);
         }
         var copyResourcesPostprocessor = new CopyResourcesPostprocessor(sourceDirectory, targetDirectory);
         copyResourcesPostprocessor.CopyDirectory(sourceDirectory);

@@ -43,7 +43,9 @@ namespace BotL.Parser
 
             DefineBinaryOperator("->", 22);
 
-            DefinePrefixOperator("set", 25);
+            DefinePrefixOperator("set!", 25);
+            DefinePrefixOperator("report", 25);
+            DefinePrefixOperator("listing", 25);
             DefinePrefixOperator("function", 25);
             DefinePrefixOperator("table", 25);
             DefinePrefixOperator("require", 25);
@@ -58,6 +60,7 @@ namespace BotL.Parser
             DefineBinaryOperator("+=", 30);
 
             DefineBinaryOperator("\\=", 30);
+            DefineBinaryOperator("!=", 30);
             DefineBinaryOperator("<", 30);
             DefineBinaryOperator("=<", 30);
             DefineBinaryOperator(">", 30);
@@ -70,14 +73,17 @@ namespace BotL.Parser
             DefineBinaryOperator("+", 110);
             DefineBinaryOperator("-", 110, 110);
 
+            DefinePrefixOperator("@", 100);
             DefineBinaryOperator("*", 120);
             DefineBinaryOperator("/", 120, 130);
+            DefineBinaryOperator("/>", 120);
             DefineBinaryOperator("%", 120);
             DefineBinaryOperator(":", 120);
             DefineBinaryOperator(">>", 120);
             DefineBinaryOperator(".", 200);
+            DefineBinaryOperator("::", 250);
             DefinePrefixOperator("$", 300);
-            DefineBinaryOperator("::", 300);
+            DefinePrefixOperator("#", 300);
         }
 
         private readonly Tokenizer tok;
@@ -99,10 +105,13 @@ namespace BotL.Parser
             return ReadExpression(ReadPrimary(), 0, isArgument);
         }
 
-        public void SwallowStatementDeliminters()
+        public void SwallowStatementDeliminters(bool requireDelimiters)
         {
-            while (IsStatementDelimiter(tok.PeekToken()))
+            object token;
+            if (IsStatementDelimiter(token = tok.PeekToken()))
                 tok.GetToken();
+            else if (requireDelimiters)
+                    throw new SyntaxError($"Expected ; at end of statement, got {token}", token);
         }
 
         private bool IsStatementDelimiter(object token)

@@ -288,7 +288,7 @@ namespace BotL
                     return integer.GetHashCode();
 
                 case TaggedValueType.Reference:
-                    return reference.GetHashCode();
+                    return reference?.GetHashCode() ?? 0xdeadbe1;
 
                 default:
                     throw new InvalidOperationException("Attempt to hash non-constant TaggedValues");

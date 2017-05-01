@@ -48,7 +48,7 @@ namespace BotL.Unity
             --stack;
             if (DataStack[stack].Type != TaggedValueType.Reference
                 || !(DataStack[stack].reference is GameObject))
-                throw new ArgumentException("Argument to : is not a GameObject: " + DataStack[stack].Value);
+                throw new ArgumentException("Argument to :: is not a GameObject: " + DataStack[stack].Value);
             GameObject go = (GameObject)DataStack[stack].reference;
             DataStack[stack++].reference = go.GetComponent(t);
             return stack;

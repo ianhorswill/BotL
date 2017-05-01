@@ -25,6 +25,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using BotL;
 using UnityEngine;
 // ReSharper disable MemberCanBePrivate.Global
 
@@ -37,7 +38,7 @@ namespace Northwestern.UnityUtils
 {
     public class Console : MonoBehaviour
     {
-        public int MaxTextLength = 2048;
+        public int MaxTextLength = 10000;
         public Rect WindowRect = new Rect(0, 0, 640, 480); //Defines console size and dimensions
         // ReSharper disable once MemberCanBeProtected.Global
         public string WindowTitle = "Console";
@@ -45,6 +46,7 @@ namespace Northwestern.UnityUtils
 
         public KeyCode ActivationKey = KeyCode.F2;	//Key used to show/hide console
         public bool ShowConsole;				//Whether or not console is visible
+        public bool PopupOnWrite;
 
 
         //Public variables for writing to console stdout and stdin
@@ -94,9 +96,8 @@ namespace Northwestern.UnityUtils
             Initialize();
             In = string.Empty;
             Out = new ConsoleWriter(MaxTextLength);
-            consoleBuffer = Header;
-            if (consoleBuffer != "")
-                Out.WriteLine(consoleBuffer);
+            Out.WriteLine(Header);
+            consoleBuffer = Out.GetTextUpdate();
             scrollPosition = Vector2.zero;
             ID = IDCount++;
             consoleID = "window" + ID;
@@ -141,6 +142,9 @@ namespace Northwestern.UnityUtils
         // ReSharper disable once UnusedMember.Global
         internal void OnGUI()
         {
+            if (PopupOnWrite)
+                ShowConsole |= Out.IsUpdated();
+
             if (ShowConsole)
             {
                 WindowRect = GUI.Window(ID, WindowRect, DoConsoleWindow, WindowTitle);
@@ -223,6 +227,12 @@ namespace Northwestern.UnityUtils
             public override void WriteLine(string value)
             {
                 oBuffer.AppendLine(value);
+                bufferUpdated = true;
+            }
+
+            public override void Write(char value)
+            {
+                oBuffer.Append(value);
                 bufferUpdated = true;
             }
 

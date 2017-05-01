@@ -47,7 +47,7 @@ namespace BotL
 
             #region Equality testing
             // Nonunifiability test
-            DefinePrimop("\\=", 2, (argBase, ignore) =>
+            DefinePrimop("!=", 2, (argBase, ignore) =>
             {
                 var addr1 = Deref(argBase);
                 var addr2 = Deref(argBase + 1);
@@ -164,7 +164,7 @@ namespace BotL
 
             #region C# interop
 
-            DefinePrimop("set_property", 3, 0, (argBase, ignore) =>
+            DefinePrimop("set_property!", 3, 0, (argBase, ignore) =>
             {
                 var oAddr = Deref(argBase);
                 if (DataStack[oAddr].Type != TaggedValueType.Reference)
@@ -259,7 +259,7 @@ namespace BotL
                 }
             });
 
-            DefinePrimop("adjoin", 2, (argBase, ignore) =>
+            DefinePrimop("adjoin!", 2, (argBase, ignore) =>
             {
                 var addr = Deref(argBase);
                 if (DataStack[addr].Type == TaggedValueType.Unbound)
@@ -349,7 +349,7 @@ namespace BotL
             #endregion
 
             #region Global variables
-            DefinePrimop("set_global", 2, (argBase, ignore) =>
+            DefinePrimop("set_global!", 2, (argBase, ignore) =>
             {
                 var nameAddr = Deref(argBase);
                 var name = DataStack[nameAddr].reference as Symbol;
@@ -357,7 +357,7 @@ namespace BotL
                     throw new ArgumentException("Invalid global variable name: "+DataStack[nameAddr].Value);
                 var valueAddr = Deref(argBase + 1);
                 if (DataStack[valueAddr].Type == TaggedValueType.Unbound)
-                    throw new InstantiationException("Value argument to set_global is uninstantiated");
+                    throw new InstantiationException("Value argument to set_global! is uninstantiated");
                 var gv = GlobalVariable.Find(name);
                 if (gv == null)
                     throw new ArgumentException("Unknown global variable: "+name);
@@ -365,7 +365,8 @@ namespace BotL
                 return CallStatus.DeterministicSuccess;
             });
 
-            DefinePrimop("try_set_global", 2, (argBase, ignore) =>
+            // Like set_global!, but backtrackable
+            DefinePrimop("try_set_global!", 2, (argBase, ignore) =>
             {
                 var nameAddr = Deref(argBase);
                 var name = DataStack[nameAddr].reference as Symbol;
@@ -373,7 +374,7 @@ namespace BotL
                     throw new ArgumentException("Invalid global variable name: " + DataStack[nameAddr].Value);
                 var valueAddr = Deref(argBase + 1);
                 if (DataStack[valueAddr].Type == TaggedValueType.Unbound)
-                    throw new InstantiationException("Value argument to try_set_global is uninstantiated");
+                    throw new InstantiationException("Value argument to try_set_global! is uninstantiated");
                 var gv = GlobalVariable.Find(name);
                 if (gv == null)
                     throw new ArgumentException("Unknown global variable: " + name);

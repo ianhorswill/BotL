@@ -22,9 +22,7 @@
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
 #endregion
-using System;
-using System.Text;
-using System.Collections.Generic;
+
 using BotL;
 using BotL.Compiler;
 using Microsoft.VisualStudio.TestTools.UnitTesting;

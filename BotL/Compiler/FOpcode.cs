@@ -225,6 +225,20 @@ namespace BotL
         /// </summary>
         DistanceSq,
         /// <summary>
+        /// Does run-time name resolution of named entities ($ is compile-time).
+        /// </summary>
+        ResolveName,
+        /// <summary>
+        /// Format: RandomInt
+        /// Replaces the top two values on the stack with a random integer between the first and the second.
+        /// </summary>
+        RandomInt,
+        /// <summary>
+        /// Format: RandomFloat
+        /// Replaces the top two values on the stack with a random integer between the first and the second.
+        /// </summary>
+        RandomFloat,
+        /// <summary>
         /// Marks the end of a functional expression
         /// </summary>
         Return = 255
@@ -252,7 +266,7 @@ namespace BotL
                 return FOpcode.Queue;
             if (c.Functor == Symbol.Hashset)
                 return FOpcode.Hashset;
-            throw new Exception("Unknown functional expression operation in: "+c);
+            throw new Exception($"{c}, an unknown functional expression, appears as an argument in {Compiler.Compiler.CurrentGoal}.");
         }
 
         static FOpcodeTable()
@@ -285,6 +299,10 @@ namespace BotL
 
             OpcodeTable[new PredicateIndicator("distance", 2)] = FOpcode.Distance;
             OpcodeTable[new PredicateIndicator("distance_squared", 2)] = FOpcode.DistanceSq;
+            OpcodeTable[new PredicateIndicator("#", 1)] = FOpcode.ResolveName;
+
+            OpcodeTable[new PredicateIndicator("random_integer", 2)] = FOpcode.RandomInt;
+            OpcodeTable[new PredicateIndicator("random_float", 2)] = FOpcode.RandomFloat;
         }
     }
 }

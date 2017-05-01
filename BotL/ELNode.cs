@@ -56,6 +56,9 @@ namespace BotL
             if (NodePool.Count == 0)
                 return new ELNode(ref key, nextSibling, parent);
             var node = NodePool.Pop();
+#if DEBUG
+            Debug.Assert(!node.inUse, "Allocating ELNode that's already in use");
+#endif
             node.Key = key;
             node.keyHash = key.Hash();
             node.FirstChild = null;
@@ -63,6 +66,9 @@ namespace BotL
             node.NextSibling = nextSibling;
             node.parent = parent;
             node.IsExclusive = false;
+#if DEBUG
+            node.inUse = true;
+#endif
             return node;
         }
 
@@ -74,12 +80,18 @@ namespace BotL
         /// </summary>
         private void Deallocate()
         {
+#if DEBUG
+            Debug.Assert(inUse, "Freeing free ELNode");
+#endif
             var c = FirstChild;
             while (c != null)
             {
                 c.Deallocate();
                 c = c.NextSibling;
             }
+#if DEBUG
+            inUse = false;
+#endif
             NodePool.Push(this);
         }
 
@@ -98,6 +110,9 @@ namespace BotL
         #endregion
 
         #region Instance fields
+#if DEBUG
+        private bool inUse = true;  // Sanity checking for allocation/deallocation problems.
+#endif
         internal bool IsExclusive;
         private ELNode parent;
         // ReSharper disable once MemberCanBePrivate.Global
@@ -212,9 +227,10 @@ namespace BotL
         {
             KB.DefinePrimop("read_nonexclusive", 3, (argBase, restartCount) => ReadEL(argBase, restartCount, false));
             KB.DefinePrimop("read_exclusive", 3, (argBase, restartCount) => ReadEL(argBase, restartCount, true));
-            KB.DefinePrimop("write_nonexclusive", 3, (argBase, restartCount) => WriteEL(argBase, false));
-            KB.DefinePrimop("write_exclusive", 3, (argBase, restartCount) => WriteEL(argBase, true));
-            KB.DefinePrimop("delete_el_node", 1, (argBase, ignore) =>
+            KB.DefinePrimop("write_nonexclusive!", 3, (argBase, restartCount) => WriteEL(argBase, false));
+            KB.DefinePrimop("write_nonexclusive_to_end!", 3, (argBase, restartCount) => WriteEL(argBase, false, true));
+            KB.DefinePrimop("write_exclusive!", 3, (argBase, restartCount) => WriteEL(argBase, true));
+            KB.DefinePrimop("delete_el_node!", 1, (argBase, ignore) =>
             {
                 ((ELNode)DataStack[Deref(argBase)].reference).Delete();
                 return CallStatus.DeterministicSuccess;
@@ -241,12 +257,13 @@ namespace BotL
         // ReSharper disable once InconsistentNaming
         private static CallStatus ReadEL(ushort argBase, ushort restartCount, bool isExclusive)
         {
-            var node = DecodeNodeArg(argBase);
-            if (node.IsExclusive != isExclusive)
+            Debug.Assert(!isExclusive || restartCount == 0);
+            var parentNode = DecodeNodeArg(argBase);
+            if (parentNode.IsExclusive != isExclusive)
             {
                 if (isExclusive)
-                    throw new ArgumentException("Exclusive read of non-exclusive EL node "+node);
-                throw new ArgumentException("Non-exclusive read of exclusive EL node " + node);
+                    throw new ArgumentException("Exclusive read of non-exclusive EL node "+parentNode);
+                throw new ArgumentException("Non-exclusive read of exclusive EL node " + parentNode);
             }
             var keyAddr = Deref(argBase + 1);
             var resultAddr = Deref(argBase + 2);
@@ -257,28 +274,44 @@ namespace BotL
                 if (restartCount == 0)
                 {
                     // First time through
-                    child = node.FirstChild;
+                    child = parentNode.FirstChild;
+
                     if (child == null)
                         return CallStatus.Fail;
                 }
                 else
                 {
-                    // We know DataStack[resultAddr] previously had the previous sibling.
-                    // When it was unbound, the Type was reset, but the pointer is still
-                    // sitting in the reference field.
-                    child = ((ELNode) DataStack[resultAddr].reference).NextSibling;
+                    // TODO - FIX THIS!  We're doing a linear lookup because the output argument
+                    // isn't actually holding the previous solution.  I'm not going to worry about it
+                    // for now since (1) it's good enough for the class and (2) we need to implement
+                    // hash table lookup later anyhow.
+                    child = parentNode.FirstChild;
+                    for (int i = 0; i < restartCount; i++)
+                        child = child.NextSibling;
+                    // We know DataStack[resultAddr].reference still has the previous result.
+                    //var previousResult = ((ELNode)DataStack[resultAddr].reference);
+                    //Debug.Assert(previousResult != null, "Previous result is null");
+                    //child = previousResult.NextSibling;
+                    //Debug.Assert(child != null);
+                    //Trace.WriteLine($"Parent={parentNode}, previous={previousResult}, child={child}");
                 }
+                
+                Debug.Assert(!parentNode.IsExclusive || child.NextSibling == null, "Exclusive node has multiple children");
                 DataStack[keyAddr] = child.Key;
                 DataStack[resultAddr].SetReference(child);
                 SaveVariable(keyAddr);
                 SaveVariable(resultAddr);
-                return child.NextSibling == null
-                    ? CallStatus.DeterministicSuccess
-                    : CallStatus.NonDeterministicSuccess;
+                if (child.NextSibling == null)
+                    return CallStatus.DeterministicSuccess;
+                else
+                {
+                    Debug.Assert(!isExclusive);
+                    return CallStatus.NonDeterministicSuccess;
+                }
             }
 
             // Second arg is bound, so we're matching to it
-            var match = node.FindChild(ref DataStack[keyAddr]);
+            var match = parentNode.FindChild(ref DataStack[keyAddr]);
             if (match == null)
                 return CallStatus.Fail;
             DataStack[resultAddr].SetReference(match);
@@ -286,7 +319,7 @@ namespace BotL
             return CallStatus.DeterministicSuccess;
         }
 
-        private static CallStatus WriteEL(ushort argBase, bool isExclusive)
+        private static CallStatus WriteEL(ushort argBase, bool isExclusive, bool atEnd=false)
         {
             var node = DecodeNodeArg(argBase);
             var keyAddr = Deref(argBase + 1);
@@ -328,9 +361,23 @@ namespace BotL
                 else
                 {
                     // Add a new node.
-                    result = node.FirstChild = Allocate(ref DataStack[keyAddr], node.FirstChild, node);
-                    if (result.NextSibling != null)
-                        result.NextSibling.previousSibling = result;
+                    if (atEnd)
+                    {
+                        if (node.FirstChild == null)
+                            result = node.FirstChild = Allocate(ref DataStack[keyAddr], node.FirstChild, node);
+                        else
+                        {
+                            var last = node.FirstChild;
+                            while (last.NextSibling != null) last = last.NextSibling;
+                            result = last.NextSibling = Allocate(ref DataStack[keyAddr], null, node);
+                        }
+                    }
+                    else
+                    {
+                        result = node.FirstChild = Allocate(ref DataStack[keyAddr], node.FirstChild, node);
+                        if (result.NextSibling != null)
+                            result.NextSibling.previousSibling = result;
+                    }
                 }
             }
             DataStack[resultAddr].SetReference(result);
@@ -388,17 +435,18 @@ namespace BotL
 
         public static object ExpandUpdate(Symbol updateOperation, object elExpr)
         {
-            if (updateOperation.Name == "assert_internal")
+            if (updateOperation.Name == "assert_internal!")
                 return ExpandWrite(elExpr, Symbol.Underscore);
-            if (updateOperation.Name == "retract_internal")
+            if (updateOperation.Name == "retract_internal!")
             {
                 var node = Variable.MakeGenerated("*Node*");
                 var lookup = ExpandEL(elExpr, node);
-                return Macros.And(lookup, new Call("delete_el_node", node));
+                return Macros.And(lookup, new Call("delete_el_node!", node));
             }
             throw new InvalidOperationException($"Cannot perform {updateOperation} on EL database");
         }
 
+        internal static readonly Symbol WriteToEnd = Symbol.Intern("/>");
         private static object ExpandWrite(object exp, object resultVar)
         {
             var c = exp as Call;
@@ -406,23 +454,31 @@ namespace BotL
                 throw new SyntaxError("Invalid exclusion logic expression", exp);
             if (c.IsFunctor(Symbol.Slash, 1))
             {
-                return new Call("write_nonexclusive", null, c.Arguments[0], resultVar);
+                return new Call("write_nonexclusive!", null, c.Arguments[0], resultVar);
             }
             if (c.IsFunctor(Symbol.Slash, 2))
             {
                 if (c.Arguments[0] is Symbol)
-                    return new Call("write_nonexclusive", c.Arguments[0], c.Arguments[1], resultVar);
+                    return new Call("write_nonexclusive!", c.Arguments[0], c.Arguments[1], resultVar);
                 var temp = Variable.MakeGenerated("*Node*");
                 var parentCode = ExpandWrite(c.Arguments[0], temp);
-                return Macros.And(parentCode, new Call("write_nonexclusive", temp, c.Arguments[1], resultVar));
+                return Macros.And(parentCode, new Call("write_nonexclusive!", temp, c.Arguments[1], resultVar));
+            }
+            if (c.IsFunctor(WriteToEnd, 2))
+            {
+                if (c.Arguments[0] is Symbol)
+                    return new Call("write_nonexclusive_to_end!", c.Arguments[0], c.Arguments[1], resultVar);
+                var temp = Variable.MakeGenerated("*Node*");
+                var parentCode = ExpandWrite(c.Arguments[0], temp);
+                return Macros.And(parentCode, new Call("write_nonexclusive_to_end!", temp, c.Arguments[1], resultVar));
             }
             if (c.IsFunctor(Symbol.Colon, 2))
             {
                 if (c.Arguments[0] is Symbol)
-                    return new Call("write_exclusive", c.Arguments[0], c.Arguments[1], resultVar);
+                    return new Call("write_exclusive!", c.Arguments[0], c.Arguments[1], resultVar);
                 var temp = Variable.MakeGenerated("*Node*");
                 var parentCode = ExpandWrite(c.Arguments[0], temp);
-                return Macros.And(parentCode, new Call("write_exclusive", temp, c.Arguments[1], resultVar));
+                return Macros.And(parentCode, new Call("write_exclusive!", temp, c.Arguments[1], resultVar));
             }
             if (c.IsFunctor(StoreNode, 2))
             {
@@ -531,6 +587,8 @@ namespace BotL
 
         void BuildName(StringBuilder b)
         {
+            if (parent != null)
+                b.Append('/');
             if (parent?.parent != null)
             {
                 parent.BuildName(b);

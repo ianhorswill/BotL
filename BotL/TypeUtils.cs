@@ -46,7 +46,9 @@ namespace BotL
                                                            "UnityEngine.{0}, UnityEngine",
                                                            "UnityEngine.UI.{0}, UnityEngine.UI",
                                                            "System.{0}",
-                                                           "System.Collections.{0}"
+                                                           "System.Collections.{0}",
+                                                           "BotL.{0}, BotL",
+                                                           "BotL.Unity.{0}, BotL"
                                                        };
 
         /// <summary>

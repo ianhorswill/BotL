@@ -79,6 +79,7 @@ namespace BotL.Compiler
         /// </summary>
         private static object TransformFact(object head)
         {
+            Compiler.CurrentGoal = head;
             var expanded = TransformHead(head);
             var c = expanded as Call;
             if (c != null && c.IsFunctor(Symbol.Comma, 2))
@@ -91,6 +92,7 @@ namespace BotL.Compiler
 
         private static object TransformHead(object head)
         {
+            Compiler.CurrentGoal = head;
             var expanded = HoistArguments(Canonicalize(head), true);
             return expanded;
         }
@@ -100,6 +102,7 @@ namespace BotL.Compiler
         /// </summary>
         private static object TransformGoal(object goal)
         {
+            Compiler.CurrentGoal = goal;
             goal = Canonicalize(goal);
             var c = goal as Call;
             if (c == null)

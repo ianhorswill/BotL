@@ -79,5 +79,10 @@ namespace BotL
             }
             return false;
         }
+
+        public override string ToString()
+        {
+            return $"{Functor}/{Arity}";
+        }
     }
 }

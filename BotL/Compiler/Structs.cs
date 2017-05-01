@@ -77,6 +77,8 @@ namespace BotL.Compiler
                     else
                         throw new SyntaxError("Malformed struct expression", o);
                 }
+                else if (c != null && (c.IsFunctor(Symbol.DollarSign, 1) || c.IsFunctor(Symbol.Hash, 1)))
+                    destination.Add(c);
                 else
                     for (var pad = FlattenInto(o, size, destination); pad > 0; pad--)
                         destination.Add(PaddingValue);
@@ -103,7 +105,7 @@ namespace BotL.Compiler
             if (remainingSize<1)
                 throw new ArgumentException("Argument is too large for struct");
             var c = o as Call;
-            if (c == null)
+            if (c == null || c.IsFunctor(Symbol.DollarSign, 1) || c.IsFunctor(Symbol.Hash, 1))
             {
                 destination.Add(o);
                 return remainingSize - 1;

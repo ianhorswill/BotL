@@ -23,6 +23,8 @@
 // --------------------------------------------------------------------------------------------------------------------
 #endregion
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 
 namespace BotL
 {
@@ -93,6 +95,24 @@ namespace BotL
         /// The current value fo the global.
         /// </summary>
         public TaggedValue Value;
+
+        public bool ReportInStackDumps;
+
+        /// <summary>
+        /// Print the values of all the globals we've been asked to print
+        /// </summary>
+        /// <param name="stream">Stream to print to</param>
+        public static void DumpReportedGlobalValues(TextWriter stream)
+        {
+            if (GlobalVariables.Any(p => p.Value.ReportInStackDumps))
+            {
+                stream.WriteLine();
+                stream.WriteLine("Global variables: ");
+                foreach (var pair in GlobalVariables)
+                    if (pair.Value.ReportInStackDumps)
+                        stream.WriteLine("   ${0}={1}", pair.Key.Name, pair.Value.Value);
+            }
+        }
 
         public override string ToString()
         {

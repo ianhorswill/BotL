@@ -43,11 +43,25 @@ namespace BotL.Compiler
 
             DeclareMacro("not", 1, p => Or(And(p, Symbol.Cut, Symbol.Fail), Symbol.TruePredicate));
             DeclareMacro("->", 2, (test, consequent) => And(test, Symbol.Cut, consequent));
+            DeclareMacro("forall", 2, (cond, action) => Not(And(cond, Not(action))));
             // The or fail here is to place the cut in its own context to prevent it from cutting
             // the parent clause.
             DeclareMacro("once", 1, exp => Or(Symbol.Fail, And(exp, Symbol.Cut)));
             DeclareMacro("ignore", 1, exp => Or(And(exp, Symbol.Cut), Symbol.TruePredicate));
-            DeclareMacro("forall", 2, (cond, action) => Not(And(cond, Not(action))));
+            DeclareMacro("check", 1, exp => {
+                var indicator = new PredicateIndicator(exp);
+                return Or(And(exp, Symbol.Cut),
+                          new Call("%call_failed", indicator.Functor));
+            });
+            DeclareMacro("{}", 1, exp => MapConjunction(c => new Call("check", c), exp));
+            DeclareMacro("when", 2, (condition, action) => Or(And(condition, Symbol.Cut, action),
+                                                              true));
+            DeclareMacro("unless", 2, (condition, action) => Or(And(condition, Symbol.Cut),
+                                                                action));
+            DeclareMacro("doall!", 2, (generator, action) => Or(And(generator,
+                                                                   new Call("check", action),
+                                                                   Symbol.Fail),
+                                                               Symbol.TruePredicate));
             DeclareMacro("minimum", 3,
                 (score, generator, result) => And(new Call("%init", result),
                                                   Or(And(generator,
@@ -108,15 +122,15 @@ namespace BotL.Compiler
                             });
             Functions.DeclareFunction("sum", 2);
 
-            DeclareMacro("set", 1, arg =>
+            DeclareMacro("set!", 1, arg =>
             {
                 var ac = arg as Call;
                 if (ac == null)
                     throw new SyntaxError("Invalid set command syntax", arg);
                 if (Call.IsFunctor(ac, Symbol.Equal, 2))
-                    return ExpandFunctionUpdate("update", ac.Arguments[0], ac.Arguments[1]);
+                    return ExpandFunctionUpdate("update!", ac.Arguments[0], ac.Arguments[1]);
                 if (Call.IsFunctor(ac, Symbol.PlusEqual, 2))
-                    return ExpandFunctionUpdate("increment", ac.Arguments[0], ac.Arguments[1]);
+                    return ExpandFunctionUpdate("increment!", ac.Arguments[0], ac.Arguments[1]);
                 throw new SyntaxError("Invalid set command syntax", arg);
             });
 
@@ -155,6 +169,9 @@ namespace BotL.Compiler
                     AppendArgs(head, qv),
                     ExpandGrammarRuleBody(body, qv));
             });
+
+            DeclareMacro("@", 2, (nodeExpr, nodeVar) => new Call(">>", nodeExpr, nodeVar));
+            Functions.DeclareFunction("@", 1);
         }
 
         private static object GenerateArgmaxInit(object result)
@@ -249,6 +266,15 @@ namespace BotL.Compiler
             Array.Copy(additionalArgs, 0, args, c.Arguments.Length, additionalArgs.Length);
             return new Call(c.Functor, args);
         }
+
+        public static object MapConjunction(Func<object, object> mapper, object exp)
+        {
+            if (exp is Call c && c.IsFunctor(Symbol.Comma, 2))
+                return new Call(Symbol.Comma,
+                                MapConjunction(mapper, c.Arguments[0]),
+                                MapConjunction(mapper, c.Arguments[1]));
+            return mapper(exp);
+        }
         #endregion
 
         #region Grammar rule macros
@@ -291,13 +317,13 @@ namespace BotL.Compiler
             if (c.IsFunctor(Symbol.DollarSign, 1))
             {
                 // It's an update to a global variable
-                return new Call(Symbol.Intern("set_global"), c.Arguments[0], newValueArg);
+                return new Call(Symbol.Intern("set_global!"), c.Arguments[0], newValueArg);
             }
 
             if (c.IsFunctor(Symbol.Dot, 2))
             {
                 // It's a property update expression
-                return new Call(Symbol.Intern("set_property"), c.Arguments[0], Stringify(c.Arguments[1]), newValueArg);
+                return new Call(Symbol.Intern("set_property!"), c.Arguments[0], Stringify(c.Arguments[1]), newValueArg);
             }
             if (!Functions.IsFunctionRelation(functionArg))
                 throw new InvalidOperationException("Unknown function in set expression: "+functionArg);

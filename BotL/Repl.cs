@@ -36,6 +36,8 @@ namespace BotL
         public static TextWriter StandardError;
         public static TextReader StandardInput;
 
+        private static bool ShowCSharpStack;
+
         /// <summary>
         /// True if we're running outside of Unity.
         /// </summary>
@@ -65,6 +67,10 @@ namespace BotL
             switch (command)
             {
                 case "quit":
+                    return true;
+
+                case "show_csharp_stack":
+                    ShowCSharpStack = true;
                     return true;
 
 #if DEBUG
@@ -118,7 +124,9 @@ namespace BotL
                     else if (command.StartsWith("table ") || command.StartsWith("function ")
                              || command.StartsWith("trace ") || command.StartsWith("notrace ") 
                              || command.StartsWith("global ") || command.StartsWith("require ")
-                             || command.StartsWith("externally_called "))
+                             || command.StartsWith("externally_called ")
+                             || command.StartsWith("struct ") || command.StartsWith("signature ")
+                             || command.StartsWith("report ") || command.StartsWith("listing "))
                     {
                         // Process a declaration
                         try
@@ -151,10 +159,13 @@ namespace BotL
                             }
                             catch (Exception e)
                             {
-                                StandardError.WriteLine(e.Message);
+                                //StandardError.WriteLine($"{e.GetType().Name}: {e.Message}");
+                                if (ShowCSharpStack)
+                                    StandardError.WriteLine(e.StackTrace);
                             }
                         }
-                        StandardOutput.WriteLine(success);
+                        if (completed)
+                            StandardOutput.WriteLine(success);
                         if (completed && success)
                         {
                             foreach (var b in Engine.TopLevelResultBindings)

@@ -23,6 +23,8 @@
 // --------------------------------------------------------------------------------------------------------------------
 #endregion
 using System;
+using System.Collections.Generic;
+using BotL.Parser;
 using BotL.Unity;
 
 namespace BotL
@@ -36,7 +38,7 @@ namespace BotL
             {
                 var s = name as Symbol;
                 if (s == null)
-                    throw new ArgumentException(nameof(name));
+                    throw new ArgumentException("Invalid expression for named entity: "+ExpressionParser.WriteExpressionToString(name));
                 n = s.Name;
             }
             var v = GlobalVariable.Find(Symbol.Intern(n));
@@ -51,7 +53,30 @@ namespace BotL
             if (unityObject != null)
                 return unityObject;
 
+            foreach (var r in Resolvers)
+                if (r(n, out object result))
+                    return result;
+
             throw new ArgumentException("Unknown type or game object: "+n);
+        }
+
+        /// <summary>
+        ///  A user-defined method for resolving $ and # names to their referrents
+        /// </summary>
+        /// <param name="name">Name of object to look up</param>
+        /// <param name="value">Object found, if any.</param>
+        /// <returns>True if this resolver found an object with that name.</returns>
+        public delegate bool Resolver(object name, out object value);
+
+        private static readonly List<Resolver> Resolvers = new List<Resolver>();
+
+        /// <summary>
+        /// Add a user-defined name resolver for $ and # expressions
+        /// </summary>
+        /// <param name="resolver">Delegate that maps names to the things the refer to.</param>
+        public static void RegisterNameResolver(Resolver resolver)
+        {
+            Resolvers.Add(resolver);
         }
     }
 }

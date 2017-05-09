@@ -23,6 +23,7 @@
 // --------------------------------------------------------------------------------------------------------------------
 #endregion
 using System;
+using BotL.Compiler;
 using BotL.Parser;
 
 namespace BotL
@@ -35,7 +36,9 @@ namespace BotL
             Arguments = args;
         }
 
-        public Call(string s, params object[] args) : this(Symbol.Intern(s), args) { }
+        public Call(string s, params object[] args) : this(Symbol.Intern(s), args)
+        {
+        }
 
         public readonly Symbol Functor;
         public readonly object[] Arguments;
@@ -66,7 +69,7 @@ namespace BotL
             return c.AddArgument(arg);
         }
 
-        internal  Call AddArgument(object t)
+        internal Call AddArgument(object t)
         {
             var extendedArgs = new object[Arity + 1];
             Array.Copy(Arguments, extendedArgs, Arguments.Length);

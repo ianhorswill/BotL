@@ -745,7 +745,7 @@ namespace BotL.Compiler
                         }
                     b.Emit(fOpcode);
                     if (fOpcode == FOpcode.Array || fOpcode == FOpcode.ArrayList || fOpcode == FOpcode.Queue ||
-                        fOpcode == FOpcode.Hashset)
+                        fOpcode == FOpcode.Hashset  || fOpcode == FOpcode.Format)
                         b.Emit((byte) c.Arity);
                 }
             }

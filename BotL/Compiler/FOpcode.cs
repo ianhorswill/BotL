@@ -239,6 +239,10 @@ namespace BotL
         /// </summary>
         RandomFloat,
         /// <summary>
+        /// The CLR string.Format method.
+        /// </summary>
+        Format,
+        /// <summary>
         /// Marks the end of a functional expression
         /// </summary>
         Return = 255
@@ -266,6 +270,8 @@ namespace BotL
                 return FOpcode.Queue;
             if (c.Functor == Symbol.Hashset)
                 return FOpcode.Hashset;
+            if (c.Functor == Symbol.Format && c.Arity > 0)
+                return FOpcode.Format;;
             throw new Exception($"{c}, an unknown functional expression, appears as an argument in {Compiler.Compiler.CurrentGoal}.");
         }
 

@@ -80,6 +80,16 @@ namespace BotL
             return v;
         }
 
+        /// <summary>
+        /// Return the GlobalVariable object with the specified name.
+        /// </summary>
+        /// <param name="name">Name without $</param>
+        /// <returns>The GlobalVariable object representing it.</returns>
+        public static GlobalVariable Find(string name)
+        {
+            return Find(Symbol.Intern(name));
+        }
+
         private GlobalVariable(Symbol name, object value)
         {
             Name = name;

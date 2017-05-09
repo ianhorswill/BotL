@@ -61,6 +61,7 @@ namespace BotL
         public static readonly Symbol CurlyBraces = Intern("{}");
         public static readonly Symbol Semicolon = Intern(";");
         public static readonly Symbol Hash = Intern("#");
+        public static readonly Symbol Format = Intern("format");
 
         Symbol(string n)
         {

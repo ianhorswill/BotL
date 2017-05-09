@@ -23,6 +23,7 @@
 // --------------------------------------------------------------------------------------------------------------------
 #endregion
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
@@ -142,6 +143,7 @@ namespace BotL.Parser
                         case "float":
                         case "string":
                         case "symbol":
+                        case "list":
                             row.Add(cell);
                             break;
 
@@ -161,16 +163,35 @@ namespace BotL.Parser
             switch (Signature[column].Name)  // Columns are numbered from 1 :-(
             {
                 case "float":
+                    if (item == "")
+                        return 0;
                     return float.Parse(item);
 
                 case "integer":
+                    if (item == "")
+                        return 0;
                     return int.Parse(item);
 
                 case "symbol":
+                    if (item == "")
+                        throw new SyntaxError($"Blank cell in column {column}, which should contain valid symbols.", item);
                     return Symbol.Intern(item);
 
                 case "string":
                     return item;
+
+                case "list":
+                {
+                    var items = item.Trim(' ').Split(',');
+                    var result = new ArrayList();
+                    foreach (var i in items)
+                    {
+                        var trimmed = i.Trim(' ');
+                        if (trimmed != "")
+                            result.Add(Symbol.Intern(trimmed));
+                    }
+                    return result.ToArray();
+                }
 
                 default:
                     return new ExpressionParser(item).Read();
@@ -179,6 +200,7 @@ namespace BotL.Parser
 
         private void ReadRow(Action<string> itemHandler)
         {
+            bool gotOne = false;
             int peek = reader.Peek();
             while (peek >= 0)
             {
@@ -200,7 +222,25 @@ namespace BotL.Parser
                     // Skip over delimiter
                     reader.Read();
 
-                itemHandler(ReadItem(reader, delimiter, itemBuffer));
+                var item = ReadItem(reader, delimiter, itemBuffer);
+                if (!gotOne && item.StartsWith("//"))
+                {
+                    int c;
+                    // This is a comment line; skip it
+                    do
+                    {
+                        c = reader.Read();
+                    } while (c != '\r' && c != '\n');
+                    peek = reader.Peek();
+                    while (peek == '\r' || peek == '\n')
+                    {
+                        reader.Read();
+                        peek = reader.Peek();
+                    }
+                    continue;
+                }
+                gotOne = true;
+                itemHandler(item);
                 peek = reader.Peek();
             }
         }

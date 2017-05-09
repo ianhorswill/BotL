@@ -58,6 +58,15 @@ namespace BotL.Compiler
             var args = c.Arguments;
             var head = args[0];
             var body = args[1];
+            var cHead = head as Call;
+            if (cHead != null && cHead.IsFunctor(Symbol.Equal, 2) && cHead.Arguments[0] is Call)
+            {
+                // It's a function definition
+                var result = Variable.MakeGenerated("*Result*");
+                head = ((Call) cHead.Arguments[0]).AddArgument(result);
+                body = Macros.And(body, new Call(Symbol.Equal, result, cHead.Arguments[1]));
+                Functions.DeclareFunction(new PredicateIndicator(head));
+            }
             var tHead = TransformHead(head);
             var tBody = TransformGoal(body);
             var hc = tHead as Call;
@@ -80,6 +89,16 @@ namespace BotL.Compiler
         private static object TransformFact(object head)
         {
             Compiler.CurrentGoal = head;
+            var cHead = head as Call;
+            if (cHead != null && cHead.IsFunctor(Symbol.Equal, 2) && cHead.Arguments[0] is Call)
+            {
+                // It's a function definition
+                var result = Variable.MakeGenerated("*Result*");
+                head = ((Call)cHead.Arguments[0]).AddArgument(result);
+                var body = new Call(Symbol.Equal, result, cHead.Arguments[1]);
+                Functions.DeclareFunction(new PredicateIndicator(head));
+                return new Call(Symbol.Implication, head, body);
+            }
             var expanded = TransformHead(head);
             var c = expanded as Call;
             if (c != null && c.IsFunctor(Symbol.Comma, 2))

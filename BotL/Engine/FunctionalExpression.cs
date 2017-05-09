@@ -420,6 +420,16 @@ namespace BotL
                         break;
                     }
 
+                    case FOpcode.Format:
+                        {
+                            object[] args = new object[clause[pc++]-1];
+                            for (var i = args.Length - 1; i >= 0; i--)
+                                args[i] = DataStack[--stack].Value;
+                            var formatString = (string)DataStack[--stack].Value;
+                            DataStack[stack++].SetGeneral(string.Format(formatString, args));
+                            break;
+                        }
+
                     default:
                         throw new InvalidOperationException("Bad opcode in compiled functional expression");
                 }

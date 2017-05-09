@@ -111,9 +111,37 @@ namespace BotL.Parser
             char c;
             while ((c = Get()) != '"')
             {
-                if (c == EOFChar)
-                    throw new SyntaxError("End of input encountered inside of string literal.", token.ToString());
-                token.Append(c=='\\'?Get():c);
+                switch (c)
+                {
+                    case EOFChar:
+                        throw new SyntaxError("End of input encountered inside of string literal.", token.ToString());
+
+                    case '\\':
+                        c = Get();
+                        switch (c)
+                        {
+                            case 'n':
+                                token.Append('\n');
+                                break;
+
+                            case 'r':
+                                token.Append('\r');
+                                break;
+
+                            case 't':
+                                token.Append('\t');
+                                break;
+
+                            default:
+                                token.Append(c);
+                                break;
+                        }
+                        break;
+
+                    default:
+                        token.Append(c);
+                        break;
+                }
             }
             return token.ToString();
         }

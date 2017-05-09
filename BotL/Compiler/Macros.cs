@@ -121,6 +121,18 @@ namespace BotL.Compiler
                                             new Call(Symbol.Equal, rtemp, result))));
                             });
             Functions.DeclareFunction("sum", 2);
+            DeclareMacro("sum", 2,
+                            (generator, result) =>
+                            {
+                                var score = Variable.MakeGenerated("*Score*");
+                                var rtemp = Variable.MakeGenerated("*Sum*");
+                                return And(new Call("%init_zero", rtemp),
+                                    Or(And(Call.AddArgument(generator, score),
+                                            new Call("%sum_update_and_repeat", rtemp, score)),
+                                        And(new Call("nonvar", rtemp),
+                                            new Call(Symbol.Equal, rtemp, result))));
+                            });
+            Functions.DeclareFunction("sum", 1);
 
             DeclareMacro("set!", 1, arg =>
             {

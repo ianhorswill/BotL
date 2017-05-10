@@ -87,27 +87,31 @@ namespace BotL.Compiler
             DeclareMacro("arg_min", 4,
                 (arg, score, generator, result) => {
                     var temp = Variable.MakeGenerated("*MinScore*");
-                    return Or(And(GenerateArgmaxInit(result),
+                    var resultTemps = MakeArgmaxTemporaries(result);
+                    return Or(And(GenerateArgmaxInit(resultTemps),
                                   new Call("%init", temp),
                                   new Call("%init", score),
                                   generator,
                                   new Call("%minimize_update", temp, score),
-                                  GenerateArgmaxUpdate(result, arg),
+                                  GenerateArgmaxUpdate(resultTemps, arg),
                                   Symbol.Fail),
-                              new Call("nonvar", result));
+                              And(new Call("nonvar", temp),
+                                  CopyArgmaxResult(resultTemps, result)));
                 });
             Functions.DeclareFunction("arg_min", 3);
             DeclareMacro("arg_max", 4,
                 (arg, score, generator, result) => {
                     var temp = Variable.MakeGenerated("*MaxScore*");
-                    return Or(And(GenerateArgmaxInit(result),
+                    var resultTemps = MakeArgmaxTemporaries(result);
+                    return Or(And(GenerateArgmaxInit(resultTemps),
                                   new Call("%init", temp),
                                   new Call("%init", score),
                                   generator,
                                   new Call("%maximize_update", temp, score),
-                                  GenerateArgmaxUpdate(result, arg),
+                                  GenerateArgmaxUpdate(resultTemps, arg),
                                   Symbol.Fail),
-                              new Call("nonvar", temp));
+                              And(new Call("nonvar", temp),
+                                  CopyArgmaxResult(resultTemps, result)));
                 });
             Functions.DeclareFunction("arg_max", 3);
             DeclareMacro("sum", 3,
@@ -194,6 +198,35 @@ namespace BotL.Compiler
                             GenerateArgmaxInit(c.Arguments[1]));
             }
             return new Call("%init", result);
+        }
+
+        private static object MakeArgmaxTemporaries(object result)
+        {
+            if (result is Call c && c.IsFunctor(Symbol.Comma, 2))
+            {
+                return And(MakeArgmaxTemporaries(c.Arguments[0]),
+                           MakeArgmaxTemporaries(c.Arguments[1]));
+            }
+            return Variable.MakeGenerated("Temp."+Name(result));
+        }
+
+        private static string Name(object result)
+        {
+            if (result is Symbol s)
+                    return s.Name;
+            if (result is Variable v)
+                return v.Name.Name;
+            throw new ArgumentTypeException("VariableName", 1, "Argument is not a valid variable", result);
+        }
+
+        private static object CopyArgmaxResult(object temps, object result)
+        {
+            if (result is Call c && c.IsFunctor(Symbol.Comma, 2))
+            {
+                return And(CopyArgmaxResult(((Call)temps).Arguments[0], c.Arguments[0]),
+                           CopyArgmaxResult(((Call)temps).Arguments[1], c.Arguments[1]));
+            }
+            return new Call(Symbol.Equal, result, temps);
         }
 
         private static object GenerateArgmaxUpdate(object result, object arg)

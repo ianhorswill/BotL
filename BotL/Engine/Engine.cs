@@ -290,7 +290,7 @@ namespace BotL
                     {
                         var lhs = code[pc++];
                         var rhs = code[pc++];
-                        DataStack[Deref(frameBase + lhs)] = DataStack[Deref(frameBase + rhs)];
+                        DataStack[frameBase + lhs] = DataStack[Deref(frameBase + rhs)];
                         return true;
                     }
 

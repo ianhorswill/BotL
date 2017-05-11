@@ -389,5 +389,39 @@ namespace BotL
         {
             ((GlobalVariable) u.objArg).Value = u.TaggedArg;
         }
+
+        /// <summary>
+        /// Helper function, extracts the specified argument from the data stack. 
+        /// Do not use this unless you know what you're doing.
+        /// </summary>
+        /// <param name="index">Zero-based index of the argument</param>
+        /// <param name="arity">Total number of arguments expected by the primop</param>
+        /// <returns></returns>
+        public static TaggedValue GetPrimopArgument (ushort index, ushort arity) {
+            if (index >= arity) {
+                throw new ArgumentException(string.Format("Primop argument {0} out of range, expected arity: {1}", index, arity));
+            }
+            var addr = Deref(index);
+            if (addr >= DataStack.Length) {
+                throw new ArgumentException(string.Format("Primop argument {0} is invalid, caused stack overflow"));
+            }
+            return DataStack[addr];
+        }
+
+        /// <summary>
+        /// Helper function, extracts the specified argument from the data stack as a reference to an object on the heap. 
+        /// Do not use this unless you know what you're doing.
+        /// </summary>
+        /// <param name="index">Zero-based index of the argument</param>
+        /// <param name="arity">Total number of arguments expected by the primop</param>
+        /// <returns></returns>
+        public static object GetPrimopArgumentAsReference (ushort index, ushort arity) {
+            var val = GetPrimopArgument(index, arity);
+            if (val.Type != TaggedValueType.Reference) {
+                throw new ArgumentException(string.Format("Primop argument {0} should be a reference type, is type {1}", index, val.Type));
+            }
+            return val.reference;
+        }
+
     }
 }

@@ -390,38 +390,115 @@ namespace BotL
             ((GlobalVariable) u.objArg).Value = u.TaggedArg;
         }
 
+
         /// <summary>
-        /// Helper function, extracts the specified argument from the data stack. 
+        /// Declares the specified function as a primitive operation that always returns deterministic success.
         /// Do not use this unless you know what you're doing.
         /// </summary>
-        /// <param name="index">Zero-based index of the argument</param>
-        /// <param name="arity">Total number of arguments expected by the primop</param>
-        /// <returns></returns>
-        public static TaggedValue GetPrimopArgument (ushort index, ushort arity) {
-            if (index >= arity) {
-                throw new ArgumentException(string.Format("Primop argument {0} out of range, expected arity: {1}", index, arity));
+        public static void DefineActionAsPrimop<T0> (string name, Action<T0> fn) {
+            KB.DefinePrimop(name, 1, (argBase, ignore) => {
+                T0 arg0 = GetPrimopArg<T0>(0);
+                fn(arg0);
+                return CallStatus.DeterministicSuccess;
+            });
+        }
+
+        /// <summary>
+        /// Declares the specified function as a primitive operation that always returns deterministic success.
+        /// Do not use this unless you know what you're doing.
+        /// </summary>
+        public static void DefineActionAsPrimop<T0, T1> (string name, Action<T0, T1> fn) {
+            KB.DefinePrimop(name, 2, (argBase, ignore) => {
+                T0 arg0 = GetPrimopArg<T0>(0);
+                T1 arg1 = GetPrimopArg<T1>(1);
+                fn(arg0, arg1);
+                return CallStatus.DeterministicSuccess;
+            });
+        }
+
+        /// <summary>
+        /// Declares the specified function as a primitive operation that always returns deterministic success.
+        /// Do not use this unless you know what you're doing.
+        /// </summary>
+        public static void DefineActionAsPrimop<T0, T1, T2> (string name, Action<T0, T1, T2> fn) {
+            KB.DefinePrimop(name, 3, (argBase, ignore) => {
+                T0 arg0 = GetPrimopArg<T0>(0);
+                T1 arg1 = GetPrimopArg<T1>(1);
+                T2 arg2 = GetPrimopArg<T2>(2);
+                fn(arg0, arg1, arg2);
+                return CallStatus.DeterministicSuccess;
+            });
+        }
+
+        /// <summary>
+        /// Declares the specified function as a primitive operation that always returns deterministic success.
+        /// Do not use this unless you know what you're doing.
+        /// </summary>
+        public static void DefineActionAsPrimop<T0, T1, T2, T3> (string name, Action<T0, T1, T2, T3> fn) {
+            KB.DefinePrimop(name, 4, (argBase, ignore) => {
+                T0 arg0 = GetPrimopArg<T0>(0);
+                T1 arg1 = GetPrimopArg<T1>(1);
+                T2 arg2 = GetPrimopArg<T2>(2);
+                T3 arg3 = GetPrimopArg<T3>(3);
+                fn(arg0, arg1, arg2, arg3);
+                return CallStatus.DeterministicSuccess;
+            });
+        }
+
+        static T GetPrimopArg<T> (ushort index) {
+            return PrimopArgument<T>.Instance.GetValue(index);
+        }
+    }
+
+    #region Primop argument accessors specialized by type
+
+    interface IPrimopArgument<T>
+    {
+        T GetValue (ushort index);
+    }
+
+    class PrimopArgument<T> : IPrimopArgument<T>
+    {
+        internal static readonly IPrimopArgument<T> Instance = PrimopArgumentImpl.Instance as IPrimopArgument<T> ?? new PrimopArgument<T>();
+
+        // Default implementation, when specialized implementations are not available
+        T IPrimopArgument<T>.GetValue (ushort index) {
+            var val = PrimopArgumentImpl.GetPrimopArgument(index);
+            if (val.Type != TaggedValueType.Reference) {
+                throw new ArgumentException(string.Format("Primop argument {0} is invalid, expected reference type, got {1}", index, val.Type));
             }
+            return (T)val.reference;
+        }
+    }
+
+    class PrimopArgumentImpl : IPrimopArgument<int>, IPrimopArgument<float>, IPrimopArgument<bool>, IPrimopArgument<object>
+    {
+        internal static PrimopArgumentImpl Instance = new PrimopArgumentImpl();
+
+        internal static TaggedValue GetPrimopArgument (ushort index) {
             var addr = Deref(index);
             if (addr >= DataStack.Length) {
-                throw new ArgumentException(string.Format("Primop argument {0} is invalid, caused stack overflow"));
+                throw new ArgumentException(string.Format("Primop argument {0} is invalid, caused stack overflow", index));
             }
             return DataStack[addr];
         }
 
-        /// <summary>
-        /// Helper function, extracts the specified argument from the data stack as a reference to an object on the heap. 
-        /// Do not use this unless you know what you're doing.
-        /// </summary>
-        /// <param name="index">Zero-based index of the argument</param>
-        /// <param name="arity">Total number of arguments expected by the primop</param>
-        /// <returns></returns>
-        public static object GetPrimopArgumentAsReference (ushort index, ushort arity) {
-            var val = GetPrimopArgument(index, arity);
-            if (val.Type != TaggedValueType.Reference) {
-                throw new ArgumentException(string.Format("Primop argument {0} should be a reference type, is type {1}", index, val.Type));
-            }
-            return val.reference;
+        int IPrimopArgument<int>.GetValue (ushort index) {
+            return GetPrimopArgument(index).integer;
         }
 
+        float IPrimopArgument<float>.GetValue (ushort index) {
+            return GetPrimopArgument(index).floatingPoint;
+        }
+
+        bool IPrimopArgument<bool>.GetValue (ushort index) {
+            return GetPrimopArgument(index).boolean;
+        }
+
+        object IPrimopArgument<object>.GetValue (ushort index) {
+            return GetPrimopArgument(index).reference;
+        }
     }
+
+    #endregion
 }

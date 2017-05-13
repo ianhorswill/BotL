@@ -23,7 +23,6 @@
 // --------------------------------------------------------------------------------------------------------------------
 #endregion
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 
@@ -81,14 +80,6 @@ namespace BotL
         /// a constant.
         /// </summary>
         private List<float> floatConstants;
-        /// <summary>
-        /// If true, throw an exception if user tries to add a new rule to this predicate.
-        /// </summary>
-        public bool IsLocked;
-        /// <summary>
-        /// True if this is a compiler-generated pseudo-predicate that implements a disjunction.
-        /// </summary>
-        public bool IsNestedPredicate;
         /// <summary>
         /// Number of temporary variables to be reserved in this predicate's stack frame, if this is a primop.
         /// </summary>
@@ -159,6 +150,61 @@ namespace BotL
         public bool IsTable => Table != null;
         public bool IsExternallyCalled;
 
+        [Flags]
+        enum PredicateFlags
+        {
+            None = 0,
+            Locked = 1,                  // Can't add new rules
+            Nested = 2,                  // This is really an internal clause of some other predicate
+            MandatoryInstantiation = 4,  // Can only be called on instantiated arguments
+        }
+
+        private PredicateFlags flags;
+
+        /// <summary>
+        /// If true, throw an exception if user tries to add a new rule to this predicate.
+        /// </summary>
+        public bool IsLocked
+        {
+            get { return (flags & PredicateFlags.Locked) != PredicateFlags.None; }
+            set
+            {
+                if (value)
+                    flags |= PredicateFlags.Locked;
+                else
+                    flags &= ~PredicateFlags.Locked;
+            }
+        }
+
+        /// <summary>
+        /// True if this is a compiler-generated pseudo-predicate that implements a disjunction.
+        /// </summary>
+        public bool IsNestedPredicate
+        {
+            get { return (flags & PredicateFlags.Nested) != PredicateFlags.None; }
+            set
+            {
+                if (value)
+                    flags |= PredicateFlags.Nested;
+                else
+                    flags &= ~PredicateFlags.Nested;
+            }
+        }
+
+        /// <summary>
+        /// True if this is predicate can only be called on instantiated arguments.
+        /// </summary>
+        public bool MandatoryInstantiation
+        {
+            get { return (flags & PredicateFlags.MandatoryInstantiation) != PredicateFlags.None; }
+            set
+            {
+                if (value)
+                    flags |= PredicateFlags.MandatoryInstantiation;
+                else
+                    flags &= ~PredicateFlags.MandatoryInstantiation;
+            }
+        }
         #endregion
 
         #region Adding/removing compiled clauses

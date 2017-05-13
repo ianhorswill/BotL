@@ -71,14 +71,19 @@ namespace BotL
                         return (!Equals(DataStack[addr1].reference, DataStack[addr2].reference)) ? CallStatus.DeterministicSuccess : CallStatus.Fail;
                 }
             });
+            MandatoryInstantation("!=", 2);
             #endregion
 
             #region Numerical operations
             // Numerical comparisons
             DefinePrimop(">", 2, (argBase, ignore) => (DataStack[Deref(argBase)].AsFloat > DataStack[Deref(argBase + 1)].AsFloat) ? CallStatus.DeterministicSuccess : CallStatus.Fail);
+            MandatoryInstantation(">", 2);
             DefinePrimop(">=", 2, (argBase, ignore) => (DataStack[Deref(argBase)].AsFloat >= DataStack[Deref(argBase + 1)].AsFloat) ? CallStatus.DeterministicSuccess : CallStatus.Fail);
+            MandatoryInstantation(">=", 2);
             DefinePrimop("<", 2, (argBase, ignore) => (DataStack[Deref(argBase)].AsFloat < DataStack[Deref(argBase + 1)].AsFloat) ? CallStatus.DeterministicSuccess : CallStatus.Fail);
+            MandatoryInstantation("<", 2);
             DefinePrimop("=<", 2, (argBase, ignore) => (DataStack[Deref(argBase)].AsFloat <= DataStack[Deref(argBase + 1)].AsFloat) ? CallStatus.DeterministicSuccess : CallStatus.Fail);
+            MandatoryInstantation("=<", 2);
             #endregion
 
             #region Type testing
@@ -147,6 +152,7 @@ namespace BotL
                     throw new ArgumentException("Argument to load must be a string");
                 return CallStatus.DeterministicSuccess;
             });
+            MandatoryInstantation("load", 1);
 
             DefinePrimop("load_table", 1, (argBase, ignore) =>
             {
@@ -160,6 +166,7 @@ namespace BotL
                     throw new ArgumentException("Argument to load_table must be a string");
                 return CallStatus.DeterministicSuccess;
             });
+            MandatoryInstantation("load_table", 1);
             #endregion
 
             #region C# interop
@@ -189,6 +196,7 @@ namespace BotL
                 objArg.SetPropertyOrField(name, DataStack[Deref(argBase + 2)].Value);
                 return CallStatus.DeterministicSuccess;
             });
+            MandatoryInstantation("set_property!", 3);
 
             DefinePrimop("in", 2, 1, (argBase, restartCount) =>
             {
@@ -290,6 +298,7 @@ namespace BotL
 
                 return CallStatus.DeterministicSuccess;
             });
+            MandatoryInstantation("adjoin!", 2);
 
             DefinePrimop("item", 3, (argBase, restartCount) =>
             {
@@ -364,6 +373,7 @@ namespace BotL
                 gv.Value = DataStack[valueAddr];
                 return CallStatus.DeterministicSuccess;
             });
+            MandatoryInstantation("set_global", 2);
 
             // Like set_global!, but backtrackable
             DefinePrimop("try_set_global!", 2, (argBase, ignore) =>
@@ -382,6 +392,7 @@ namespace BotL
                 gv.Value = DataStack[valueAddr];
                 return CallStatus.DeterministicSuccess;
             });
+            MandatoryInstantation("try_set_global!", 2);
             #endregion
         }
         
@@ -389,7 +400,6 @@ namespace BotL
         {
             ((GlobalVariable) u.objArg).Value = u.TaggedArg;
         }
-
 
         /// <summary>
         /// Declares the specified function as a primitive operation that always returns deterministic success.
@@ -448,57 +458,63 @@ namespace BotL
         static T GetPrimopArg<T> (ushort index) {
             return PrimopArgument<T>.Instance.GetValue(index);
         }
-    }
 
-    #region Primop argument accessors specialized by type
+        #region Primop argument accessors specialized by type
+        private interface IPrimopArgument<T>
+        {
+            T GetValue(ushort index);
+        }
 
-    interface IPrimopArgument<T>
-    {
-        T GetValue (ushort index);
-    }
+        private class PrimopArgument<T> : IPrimopArgument<T>
+        {
+            internal static readonly IPrimopArgument<T> Instance = PrimopArgumentImpl.Instance as IPrimopArgument<T> ?? new PrimopArgument<T>();
 
-    class PrimopArgument<T> : IPrimopArgument<T>
-    {
-        internal static readonly IPrimopArgument<T> Instance = PrimopArgumentImpl.Instance as IPrimopArgument<T> ?? new PrimopArgument<T>();
-
-        // Default implementation, when specialized implementations are not available
-        T IPrimopArgument<T>.GetValue (ushort index) {
-            var val = PrimopArgumentImpl.GetPrimopArgument(index);
-            if (val.Type != TaggedValueType.Reference) {
-                throw new ArgumentException(string.Format("Primop argument {0} is invalid, expected reference type, got {1}", index, val.Type));
+            // Default implementation, when specialized implementations are not available
+            T IPrimopArgument<T>.GetValue(ushort index)
+            {
+                var val = PrimopArgumentImpl.GetPrimopArgument(index);
+                if (val.Type != TaggedValueType.Reference)
+                {
+                    throw new ArgumentException(string.Format("Primop argument {0} is invalid, expected reference type, got {1}", index, val.Type));
+                }
+                return (T)val.reference;
             }
-            return (T)val.reference;
         }
-    }
 
-    class PrimopArgumentImpl : IPrimopArgument<int>, IPrimopArgument<float>, IPrimopArgument<bool>, IPrimopArgument<object>
-    {
-        internal static PrimopArgumentImpl Instance = new PrimopArgumentImpl();
+        private class PrimopArgumentImpl : IPrimopArgument<int>, IPrimopArgument<float>, IPrimopArgument<bool>, IPrimopArgument<object>
+        {
+            internal static PrimopArgumentImpl Instance = new PrimopArgumentImpl();
 
-        internal static TaggedValue GetPrimopArgument (ushort index) {
-            var addr = Deref(index);
-            if (addr >= DataStack.Length) {
-                throw new ArgumentException(string.Format("Primop argument {0} is invalid, caused stack overflow", index));
+            internal static TaggedValue GetPrimopArgument(ushort index)
+            {
+                var addr = Deref(index);
+                if (addr >= DataStack.Length)
+                {
+                    throw new ArgumentException(string.Format("Primop argument {0} is invalid, caused stack overflow", index));
+                }
+                return DataStack[addr];
             }
-            return DataStack[addr];
-        }
 
-        int IPrimopArgument<int>.GetValue (ushort index) {
-            return GetPrimopArgument(index).integer;
-        }
+            int IPrimopArgument<int>.GetValue(ushort index)
+            {
+                return GetPrimopArgument(index).integer;
+            }
 
-        float IPrimopArgument<float>.GetValue (ushort index) {
-            return GetPrimopArgument(index).floatingPoint;
-        }
+            float IPrimopArgument<float>.GetValue(ushort index)
+            {
+                return GetPrimopArgument(index).floatingPoint;
+            }
 
-        bool IPrimopArgument<bool>.GetValue (ushort index) {
-            return GetPrimopArgument(index).boolean;
-        }
+            bool IPrimopArgument<bool>.GetValue(ushort index)
+            {
+                return GetPrimopArgument(index).boolean;
+            }
 
-        object IPrimopArgument<object>.GetValue (ushort index) {
-            return GetPrimopArgument(index).reference;
+            object IPrimopArgument<object>.GetValue(ushort index)
+            {
+                return GetPrimopArgument(index).reference;
+            }
         }
+        #endregion
     }
-
-    #endregion
 }

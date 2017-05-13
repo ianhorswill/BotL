@@ -325,7 +325,7 @@ namespace BotL.Compiler
             var b = new CodeBuilder(KB.Predicate(spec));
             CompileArglist(head, b, e, true);
             b.Emit(Opcode.CNoGoal);
-            return new CompiledClause(head, b.Code, e.EnvironmentSize, null);
+            return new CompiledClause(head, b, e.EnvironmentSize, null);
         }
         #endregion
 
@@ -341,7 +341,7 @@ namespace BotL.Compiler
             if (body == Symbol.Cut)
                 b.Emit(Opcode.CNoGoal);
 
-            return new CompiledClause(source, b.Code, e.EnvironmentSize, MakeHeadModel(head, e));
+            return new CompiledClause(source, b, e.EnvironmentSize, MakeHeadModel(head, e));
         }
 
         private static object[] MakeHeadModel(object head, BindingEnvironment environment)
@@ -370,19 +370,19 @@ namespace BotL.Compiler
             // Else c is a symbol, so there's nothing to compile.
         }
 
-        private static void CompileArglist(object term, CodeBuilder b, BindingEnvironment e, bool isHead)
+        private static void CompileArglist(object term, CodeBuilder b, BindingEnvironment e, bool isHead, bool warnOnUninstantiated=false)
         {
             var c = term as Call;
             if (c != null)
             {
                 foreach (var a in c.Arguments)
                 {
-                    CompileArgument(a, b, e, isHead);
+                    CompileArgument(a, b, e, isHead, warnOnUninstantiated, term);
                 }
             }
         }
 
-        private static void CompileArgument(object a, CodeBuilder b, BindingEnvironment e, bool isHead=false)
+        private static void CompileArgument(object a, CodeBuilder b, BindingEnvironment e, bool isHead=false, bool warnOnUninstantiated=false, object call=null)
         {
             var v = a as Variable;
             if (v != null)
@@ -390,6 +390,8 @@ namespace BotL.Compiler
                 var variableInfo = e[v];
                 if (variableInfo.Type == VariableType.Void)
                 {
+                    if (warnOnUninstantiated)
+                        b.AddWarning("{0} is always uninstantiated in call {1}", v.Name, call);
                     b.Emit(AdjustArgumentOpcode(Opcode.HeadVoid, isHead));
                 }
                 else if (variableInfo.FirstReferenceCompiled)
@@ -399,6 +401,8 @@ namespace BotL.Compiler
                 }
                 else
                 {
+                    if (warnOnUninstantiated)
+                        b.AddWarning("{0} is always uninstantiated in call {1}", v.Name, call);
                     b.Emit(AdjustArgumentOpcode(Opcode.HeadVarFirst, isHead));
                     b.Emit((byte) variableInfo.EnvironmentIndex);
                     variableInfo.FirstReferenceCompiled = true;
@@ -492,8 +496,9 @@ namespace BotL.Compiler
                 CompileBuiltin(c, b, e, lastCall);
             else
             {
-                b.EmitGoal(KB.Predicate(new PredicateIndicator(goal)));
-                CompileArglist(goal, b, e, false);
+                var predicate = KB.Predicate(new PredicateIndicator(goal));
+                b.EmitGoal(predicate);
+                CompileArglist(goal, b, e, false, predicate.MandatoryInstantiation);
                 // Else c is a symbol, so there's nothing to compile.
                 b.Emit(lastCall ? Opcode.CLastCall : Opcode.CCall);
             }
@@ -672,7 +677,7 @@ namespace BotL.Compiler
         {
             var b1 = new CodeBuilder(b.Predicate);
             CompileGoal(disjunct, b1, e, true);
-            var compiledClause = new CompiledClause(disjunct, b1.Code, e.EnvironmentSize, EmptyHeadModel);
+            var compiledClause = new CompiledClause(disjunct, b1, e.EnvironmentSize, EmptyHeadModel);
             return compiledClause;
         }
         #endregion

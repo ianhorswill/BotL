@@ -40,6 +40,8 @@ namespace BotL.Compiler
         private readonly List<byte> code = new List<byte>();
         public readonly Predicate Predicate;
 
+        public List<string> WarningList;
+
         public byte[] Code => code.ToArray();
 
         public void Emit(Opcode op)
@@ -102,6 +104,13 @@ namespace BotL.Compiler
         {
             Emit(Opcode.CBuiltin);
             Emit((byte)builtinOpcode);
+        }
+
+        public void AddWarning(string formatString, params object[] args)
+        {
+            if (WarningList == null)
+                WarningList = new List<string>();
+            WarningList.Add(string.Format(formatString, args));
         }
     }
 }

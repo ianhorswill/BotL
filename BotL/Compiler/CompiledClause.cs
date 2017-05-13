@@ -23,6 +23,7 @@
 // --------------------------------------------------------------------------------------------------------------------
 #endregion
 using System.Collections.Generic;
+using BotL.Compiler;
 
 namespace BotL
 {
@@ -51,6 +52,16 @@ namespace BotL
         /// </summary>
         public readonly object[] HeadModel;
 
+        public CompiledClause(object source, CodeBuilder b, ushort environmentSize, object[] headModel)
+            : this(source, b.Code, environmentSize, headModel)
+        {
+            if (b.WarningList != null)
+            {
+                foreach (var w in b.WarningList)
+                    AddWarning(w);
+            }
+        }
+
         public CompiledClause(object source, byte[] code, ushort environmentSize, object[] headModel)
         {
             Source = source;
@@ -65,21 +76,21 @@ namespace BotL
         }
 
         #region Warning handling
-        private readonly Dictionary<CompiledClause, List<string>> WarningTable = new Dictionary<CompiledClause, List<string>>();
+        private readonly Dictionary<CompiledClause, List<string>> warningTable = new Dictionary<CompiledClause, List<string>>();
         internal void AddWarning(string format, params object[] args)
         {
             var warning = string.Format(format, args);
-            if (WarningTable.TryGetValue(this, out List<string> warningList))
+            if (warningTable.TryGetValue(this, out List<string> warningList))
                 warningList.Add(warning);
             else
-                WarningTable[this] = new List<string> {warning};
+                warningTable[this] = new List<string> {warning};
         }
 
         internal IEnumerable<string> Warnings
         {
             get
             {
-                if (WarningTable.TryGetValue(this, out List<string> warnings))
+                if (warningTable.TryGetValue(this, out List<string> warnings))
                     foreach (var w in warnings) yield return w;
             }
         }

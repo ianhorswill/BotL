@@ -186,6 +186,28 @@ namespace BotL
         }
 
         /// <summary>
+        /// Mark predicate as requiring its arguments to be instantiated.
+        /// This allows some extra compile-time checking.
+        /// </summary>
+        /// <param name="name">Predicate name</param>
+        /// <param name="arity">Predicate arity</param>
+        public static void MandatoryInstantation(string name, int arity)
+        {
+            Predicate(Symbol.Intern(name), arity).MandatoryInstantiation = true;
+        }
+
+        /// <summary>
+        /// Mark predicate as requiring its arguments to be instantiated.
+        /// This allows some extra compile-time checking.
+        /// </summary>
+        /// <param name="name">Predicate name</param>
+        public static void MandatoryInstantationMetaPredicate(string name)
+        {
+            for (int arity = 2; arity < Compiler.Compiler.MaxSpecialPredicateArity; arity++)
+                Predicate(Symbol.Intern(name), arity).MandatoryInstantiation = true;
+        }
+
+        /// <summary>
         /// Define a new primop.  Don't use this unless you know what you're doing.
         /// </summary>
         /// <param name="name">Name of the primop</param>

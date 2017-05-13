@@ -154,6 +154,7 @@ namespace BotL
                 predicate.Table.AddRow(GetRow(argBase + 1, predicate.Arity));
                 return CallStatus.DeterministicSuccess;
             });
+            KB.MandatoryInstantationMetaPredicate("assert_internal!");
 
             KB.DefineMetaPrimop("retract_internal!", (argBase, ignore) =>
             {
@@ -184,6 +185,7 @@ namespace BotL
                 predicate.Table.rows[rowNum][predicate.Arity - 1] = DataStack[Deref(argBase + predicate.Arity)].Value;
                 return CallStatus.DeterministicSuccess;
             });
+            KB.MandatoryInstantationMetaPredicate("update_internal!");
 
             KB.DefineMetaPrimop("increment_internal!", (argBase, ignore) =>
             {
@@ -200,6 +202,7 @@ namespace BotL
                     Convert.ToSingle(predicate.Table.rows[rowNum][predicate.Arity - 1]) + DataStack[Deref(argBase + predicate.Arity)].AsFloat;
                 return CallStatus.DeterministicSuccess;
             });
+            KB.MandatoryInstantationMetaPredicate("increment_internal!");
 
             KB.DefineMetaPrimop("retractall_internal!", (argBase, ignore) =>
             {

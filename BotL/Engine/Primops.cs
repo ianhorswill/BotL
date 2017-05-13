@@ -465,7 +465,7 @@ namespace BotL
             T GetValue(ushort index);
         }
 
-        private class PrimopArgument<T> : IPrimopArgument<T>
+        private sealed class PrimopArgument<T> : IPrimopArgument<T>
         {
             internal static readonly IPrimopArgument<T> Instance = PrimopArgumentImpl.Instance as IPrimopArgument<T> ?? new PrimopArgument<T>();
 
@@ -475,22 +475,23 @@ namespace BotL
                 var val = PrimopArgumentImpl.GetPrimopArgument(index);
                 if (val.Type != TaggedValueType.Reference)
                 {
-                    throw new ArgumentException(string.Format("Primop argument {0} is invalid, expected reference type, got {1}", index, val.Type));
+                    throw new ArgumentException(
+                        $"Primop argument {index} is invalid, expected reference type, got {val.Type}");
                 }
                 return (T)val.reference;
             }
         }
 
-        private class PrimopArgumentImpl : IPrimopArgument<int>, IPrimopArgument<float>, IPrimopArgument<bool>, IPrimopArgument<object>
+        private sealed class PrimopArgumentImpl : IPrimopArgument<int>, IPrimopArgument<float>, IPrimopArgument<bool>, IPrimopArgument<object>
         {
-            internal static PrimopArgumentImpl Instance = new PrimopArgumentImpl();
+            internal static readonly PrimopArgumentImpl Instance = new PrimopArgumentImpl();
 
             internal static TaggedValue GetPrimopArgument(ushort index)
             {
                 var addr = Deref(index);
                 if (addr >= DataStack.Length)
                 {
-                    throw new ArgumentException(string.Format("Primop argument {0} is invalid, caused stack overflow", index));
+                    throw new ArgumentException($"Primop argument {index} is invalid, caused stack overflow");
                 }
                 return DataStack[addr];
             }

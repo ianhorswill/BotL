@@ -44,7 +44,7 @@ namespace BotL.Compiler
                 if (p.IsUserDefined)
                     foreach (var c in p.Clauses)
                         foreach (var w in c.Warnings)
-                            Warn(output, "In rule {0}: {1}", c.Source, w);
+                            Warn(output, "{0} in rule {1}", w, c.Source);
         }
 
         private static void WarnUnreferenced(TextWriter output, Dictionary<Predicate, List<Predicate>> refs)

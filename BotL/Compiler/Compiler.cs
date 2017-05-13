@@ -306,7 +306,7 @@ namespace BotL.Compiler
             foreach (var v in e.Variables)
             {
                 if (v.IsSingleton && !v.Variable.IsGenerated && !v.Variable.Name.Name.StartsWith("_"))
-                    clause.AddWarning("Singleton variable {0} - might be a typo", v.Variable.Name);
+                    clause.AddWarning("singleton variable {0}", v.Variable.Name);
             }
         }
 

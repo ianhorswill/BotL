@@ -35,7 +35,7 @@
     <Reference Include="System.Core" />
     <Reference Include="System.Data" />
     <Reference Include="UnityEngine">
-      <HintPath>..\..\UnityProlog\Prolog\bin\Release\UnityEngine.dll</HintPath>
+      <HintPath>..\..\UnityEngine.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>

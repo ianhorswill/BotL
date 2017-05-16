@@ -119,10 +119,9 @@ namespace BotL.Compiler
                             {
                                 var rtemp = Variable.MakeGenerated("*Count*");
                                 return And(new Call("%init_zero_int", rtemp),
-                                    Or(And(generator,
-                                            new Call("%inc_and_repeat", rtemp)),
-                                        And(new Call("nonvar", rtemp),
-                                            new Call(Symbol.Equal, rtemp, result))));
+                                           Or(And(generator,
+                                                  new Call("%inc_and_repeat", rtemp)),
+                                              new Call(Symbol.Equal, rtemp, result)));
                             });
             Functions.DeclareFunction("count", 1);
             DeclareMacro("sum", 3,
@@ -130,10 +129,9 @@ namespace BotL.Compiler
                             {
                                 var rtemp = Variable.MakeGenerated("*Sum*");
                                 return And(new Call("%init_zero", rtemp),
-                                    Or(And(generator,
-                                            new Call("%sum_update_and_repeat", rtemp, score)),
-                                        And(new Call("nonvar", rtemp),
-                                            new Call(Symbol.Equal, rtemp, result))));
+                                           Or(And(generator,
+                                                  new Call("%sum_update_and_repeat", rtemp, score)),
+                                              new Call(Symbol.Equal, rtemp, result)));
                             });
             Functions.DeclareFunction("sum", 2);
             DeclareMacro("sum", 2,
@@ -142,10 +140,9 @@ namespace BotL.Compiler
                                 var score = Variable.MakeGenerated("*Score*");
                                 var rtemp = Variable.MakeGenerated("*Sum*");
                                 return And(new Call("%init_zero", rtemp),
-                                    Or(And(Call.AddArgument(generator, score),
-                                            new Call("%sum_update_and_repeat", rtemp, score)),
-                                        And(new Call("nonvar", rtemp),
-                                            new Call(Symbol.Equal, rtemp, result))));
+                                           Or(And(Call.AddArgument(generator, score),
+                                                  new Call("%sum_update_and_repeat", rtemp, score)),
+                                              new Call(Symbol.Equal, rtemp, result)));
                             });
             Functions.DeclareFunction("sum", 1);
 

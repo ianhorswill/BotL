@@ -114,6 +114,17 @@ namespace BotL.Compiler
                                   CopyArgmaxResult(resultTemps, result)));
                 });
             Functions.DeclareFunction("arg_max", 3);
+            DeclareMacro("count", 2,
+                            (generator, result) =>
+                            {
+                                var rtemp = Variable.MakeGenerated("*Count*");
+                                return And(new Call("%init_zero_int", rtemp),
+                                    Or(And(generator,
+                                            new Call("%inc_and_repeat", rtemp)),
+                                        And(new Call("nonvar", rtemp),
+                                            new Call(Symbol.Equal, rtemp, result))));
+                            });
+            Functions.DeclareFunction("count", 1);
             DeclareMacro("sum", 3,
                             (score, generator, result) =>
                             {

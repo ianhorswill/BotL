@@ -548,7 +548,8 @@ namespace BotL.Compiler
 
                 case Builtin.UnsafeInitialize:
                 case Builtin.UnsafeInitializeZero:
-                {
+                case Builtin.UnsafeInitializeZeroInt:
+                    {
                     if (!(c.Arguments[0] is Variable v))
                         throw new InvalidOperationException("Argument to unsafe_initialize is not a variable");
                     var vi = e[v];
@@ -579,6 +580,18 @@ namespace BotL.Compiler
                     b.Emit((byte) rhsi.EnvironmentIndex);
                     break;
                 }
+
+                case Builtin.IncAndRepeat:
+                    {
+                        if (!(c.Arguments[0] is Variable arg))
+                            throw new InvalidOperationException("Argument to %inc_and_repeat must be a variable.");
+                        var argi = e[arg];
+                        if (!argi.FirstReferenceCompiled)
+                            throw new InvalidOperationException("Argument to %inc_and_repeat is uninstantiated variable");
+                        b.EmitBuiltin(builtin);
+                        b.Emit((byte)argi.EnvironmentIndex);
+                        break;
+                    }
 
                 case Builtin.LessThan:
                 case Builtin.GreaterThan:

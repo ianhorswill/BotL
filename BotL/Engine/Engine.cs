@@ -286,6 +286,10 @@ namespace BotL
                         DataStack[frameBase + code[pc++]].Set(0f);
                         return true;
 
+                    case Builtin.UnsafeInitializeZeroInt:
+                        DataStack[frameBase + code[pc++]].Set(0);
+                        return true;
+
                     case Builtin.UnsafeSet:
                     {
                         var lhs = code[pc++];
@@ -329,6 +333,13 @@ namespace BotL
                             var lhs = frameBase + code[pc++];
                             var rhs = Deref(frameBase + code[pc++]);
                             DataStack[lhs].floatingPoint += DataStack[rhs].AsFloat;
+                            return false;
+                        }
+
+                    case Builtin.IncAndRepeat:
+                        {
+                            var arg = frameBase + code[pc++];
+                            DataStack[arg].integer++;
                             return false;
                         }
 

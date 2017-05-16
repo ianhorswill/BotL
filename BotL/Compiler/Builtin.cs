@@ -52,9 +52,13 @@ namespace BotL.Compiler
         /// </summary>
         UnsafeInitialize,
         /// <summary>
-        /// Forcibly set a variable to 0
+        /// Forcibly set a variable to 0.0
         /// </summary>
         UnsafeInitializeZero,
+        /// <summary>
+        /// Forcibly set a variable to 0
+        /// </summary>
+        UnsafeInitializeZeroInt,
         /// <summary>
         /// Forcibly set a variable to the current value of another (does not alias)
         /// </summary>
@@ -79,6 +83,10 @@ namespace BotL.Compiler
         /// Add second argument to first and fail.
         /// </summary>
         SumUpdateAndRepeat,
+        /// <summary>
+        /// Add 1 to argument and fail.
+        /// </summary>
+        IncAndRepeat,
         /// <summary>
         /// Test that a functional expression evaluates to a non-false value
         /// Used for treating method calls as predicates
@@ -112,12 +120,14 @@ namespace BotL.Compiler
             DefineBuiltin("nonvar", 1, Builtin.NonVar);
             DefineBuiltin("%init", 1, Builtin.UnsafeInitialize);
             DefineBuiltin("%init_zero", 1, Builtin.UnsafeInitializeZero);
+            DefineBuiltin("%init_zero_int", 1, Builtin.UnsafeInitializeZeroInt);
             DefineBuiltin("%unsafe_set", 2, Builtin.UnsafeSet);
             DefineBuiltin("%maximize_update", 2, Builtin.MaximizeUpdate);
             DefineBuiltin("%minimize_update", 2, Builtin.MinimizeUpdate);
             DefineBuiltin("%maximize_update_and_repeat", 2, Builtin.MaximizeUpdateAndRepeat);
             DefineBuiltin("%minimize_update_and_repeat", 2, Builtin.MinimizeUpdateAndRepeat);
             DefineBuiltin("%sum_update_and_repeat", 2, Builtin.SumUpdateAndRepeat);
+            DefineBuiltin("%inc_and_repeat", 1, Builtin.IncAndRepeat);
             DefineBuiltin("<", 2, Builtin.LessThan);
             DefineBuiltin("=<", 2, Builtin.LessEq);
             DefineBuiltin(">", 2, Builtin.GreaterThan);

@@ -819,7 +819,7 @@ namespace BotL
                                         if (restartedClauseNumber == 0)
                                             dTop += headPredicate.Tempvars;
                                         ChoicePointStack[cTop++] = new ChoicePoint(goalFrame, startOfCall,
-                                            headPredicate, (byte) (restartedClauseNumber + 1),
+                                            headPredicate, (ushort) (restartedClauseNumber + 1),
                                             dTopSave, trailSave, savedUTop, eTop);
                                         break;
 
@@ -942,7 +942,7 @@ namespace BotL
                                         if (restartedClauseNumber == 0)
                                             dTop += headPredicate.Tempvars;
                                         ChoicePointStack[cTop++] = new ChoicePoint(goalFrame, startOfCall,
-                                            headPredicate, (byte) (restartedClauseNumber + 1),
+                                            headPredicate, (ushort) (restartedClauseNumber + 1),
                                             dTopSave, trailSave, savedUTop, eTop);
                                         break;
 

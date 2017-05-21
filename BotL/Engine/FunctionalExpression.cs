@@ -52,13 +52,14 @@ namespace BotL
         /// <param name="pc">PC within clause</param>
         /// <param name="stack">top of the data stack</param>
         /// <returns>PC of the next instruction after the functional expression</returns>
-        public static ushort Eval(Predicate p, byte[] clause, ushort pc, ushort frameBase, ushort stack)
+        public static ushort Eval(Predicate p, byte[] clause, ushort pc, ushort goalFrame, ushort frameBase, ushort stack)
         {
             // The top of the stack is actually at 
             stack += EvalStackOffset;
 
             while (true)
             {
+                Profiler.MaybeSampleStack(goalFrame);
                 var fOpcode = (FOpcode) clause[pc++];
                 switch (fOpcode)
                 {

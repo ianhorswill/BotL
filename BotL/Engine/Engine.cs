@@ -345,8 +345,8 @@ namespace BotL
 
                     case Builtin.LessThan:
                     {
-                        pc = FunctionalExpression.Eval(predicate, code, pc, frameBase, dTop);
-                        pc = FunctionalExpression.Eval(predicate, code, pc, frameBase, (ushort)(dTop+1));
+                        pc = FunctionalExpression.Eval(predicate, code, pc, goalFrame, frameBase, dTop);
+                        pc = FunctionalExpression.Eval(predicate, code, pc, goalFrame, frameBase, (ushort)(dTop+1));
                         var leftArg = DataStack[dTop + FunctionalExpression.EvalStackOffset].AsFloat;
                         var rightArg = DataStack[dTop + 1 + FunctionalExpression.EvalStackOffset].AsFloat;
                         return leftArg < rightArg;
@@ -354,8 +354,8 @@ namespace BotL
 
                     case Builtin.LessEq:
                         {
-                            pc = FunctionalExpression.Eval(predicate, code, pc, frameBase, dTop);
-                            pc = FunctionalExpression.Eval(predicate, code, pc, frameBase, (ushort)(dTop + 1));
+                            pc = FunctionalExpression.Eval(predicate, code, pc, goalFrame, frameBase, dTop);
+                            pc = FunctionalExpression.Eval(predicate, code, pc, goalFrame, frameBase, (ushort)(dTop + 1));
                             var leftArg = DataStack[dTop + FunctionalExpression.EvalStackOffset].AsFloat;
                             var rightArg = DataStack[dTop + 1 + FunctionalExpression.EvalStackOffset].AsFloat;
                             return leftArg <= rightArg;
@@ -363,8 +363,8 @@ namespace BotL
 
                     case Builtin.GreaterThan:
                         {
-                            pc = FunctionalExpression.Eval(predicate, code, pc, frameBase, dTop);
-                            pc = FunctionalExpression.Eval(predicate, code, pc, frameBase, (ushort)(dTop + 1));
+                            pc = FunctionalExpression.Eval(predicate, code, pc, goalFrame, frameBase, dTop);
+                            pc = FunctionalExpression.Eval(predicate, code, pc, goalFrame, frameBase, (ushort)(dTop + 1));
                             var leftArg = DataStack[dTop + FunctionalExpression.EvalStackOffset].AsFloat;
                             var rightArg = DataStack[dTop + 1 + FunctionalExpression.EvalStackOffset].AsFloat;
                             return leftArg > rightArg;
@@ -372,8 +372,8 @@ namespace BotL
 
                     case Builtin.GreaterEq:
                         {
-                            pc = FunctionalExpression.Eval(predicate, code, pc, frameBase, dTop);
-                            pc = FunctionalExpression.Eval(predicate, code, pc, frameBase, (ushort)(dTop + 1));
+                            pc = FunctionalExpression.Eval(predicate, code, pc, goalFrame, frameBase, dTop);
+                            pc = FunctionalExpression.Eval(predicate, code, pc, goalFrame, frameBase, (ushort)(dTop + 1));
                             var leftArg = DataStack[dTop + FunctionalExpression.EvalStackOffset].AsFloat;
                             var rightArg = DataStack[dTop + 1 + FunctionalExpression.EvalStackOffset].AsFloat;
                             return leftArg >= rightArg;
@@ -381,26 +381,26 @@ namespace BotL
 
                     case Builtin.IntegerTest:
                         {
-                            pc = FunctionalExpression.Eval(predicate, code, pc, frameBase, dTop);
+                            pc = FunctionalExpression.Eval(predicate, code, pc, goalFrame, frameBase, dTop);
                             return DataStack[dTop + FunctionalExpression.EvalStackOffset].Type == TaggedValueType.Integer;
                         }
 
                     case Builtin.FloatTest:
                         {
-                            pc = FunctionalExpression.Eval(predicate, code, pc, frameBase, dTop);
+                            pc = FunctionalExpression.Eval(predicate, code, pc, goalFrame, frameBase, dTop);
                             return DataStack[dTop + FunctionalExpression.EvalStackOffset].Type == TaggedValueType.Float;
                         }
 
                     case Builtin.NumberTest:
                         {
-                            pc = FunctionalExpression.Eval(predicate, code, pc, frameBase, dTop);
+                            pc = FunctionalExpression.Eval(predicate, code, pc, goalFrame, frameBase, dTop);
                             var argType = DataStack[dTop + FunctionalExpression.EvalStackOffset].Type;
                             return argType == TaggedValueType.Integer || argType == TaggedValueType.Float;
                         }
 
                     case Builtin.StringTest:
                         {
-                            pc = FunctionalExpression.Eval(predicate, code, pc, frameBase, dTop);
+                            pc = FunctionalExpression.Eval(predicate, code, pc, goalFrame, frameBase, dTop);
                             var addr = dTop + FunctionalExpression.EvalStackOffset;
                             return DataStack[addr].Type == TaggedValueType.Reference
                                    && DataStack[addr].reference is string;
@@ -408,7 +408,7 @@ namespace BotL
 
                     case Builtin.SymbolTest:
                         {
-                            pc = FunctionalExpression.Eval(predicate, code, pc, frameBase, dTop);
+                            pc = FunctionalExpression.Eval(predicate, code, pc, goalFrame, frameBase, dTop);
                             var addr = dTop + FunctionalExpression.EvalStackOffset;
                             return DataStack[addr].Type == TaggedValueType.Reference
                                    && DataStack[addr].reference is Symbol;
@@ -416,7 +416,7 @@ namespace BotL
 
                     case Builtin.MissingTest:
                         {
-                            pc = FunctionalExpression.Eval(predicate, code, pc, frameBase, dTop);
+                            pc = FunctionalExpression.Eval(predicate, code, pc, goalFrame, frameBase, dTop);
                             var addr = dTop + FunctionalExpression.EvalStackOffset;
                             return DataStack[addr].Type == TaggedValueType.Reference
                                    && DataStack[addr].reference is Missing;
@@ -424,7 +424,7 @@ namespace BotL
 
                     case Builtin.TestNotFalse:
                         {
-                            pc = FunctionalExpression.Eval(predicate, code, pc, frameBase, dTop);
+                            pc = FunctionalExpression.Eval(predicate, code, pc, goalFrame, frameBase, dTop);
                             var addr = dTop + FunctionalExpression.EvalStackOffset;
                             // Accept anything but the constant false
                             return DataStack[addr].Type != TaggedValueType.Boolean
@@ -433,7 +433,7 @@ namespace BotL
 
                     case Builtin.Throw:
                     {
-                        pc = FunctionalExpression.Eval(predicate, code, pc, frameBase, dTop);
+                        pc = FunctionalExpression.Eval(predicate, code, pc, goalFrame, frameBase, dTop);
                         var addr = dTop + FunctionalExpression.EvalStackOffset;
                         // Accept anything but the constant false
                         var arg = DataStack[addr].Value;
@@ -519,9 +519,9 @@ namespace BotL
                                     case OpcodeConstantType.FunctionalExpression:
                                     {
                                         // Get the value of the functional expression
-                                        headPc = FunctionalExpression.Eval(headPredicate, headCode, headPc, dTop, dTop);
+                                        headPc = FunctionalExpression.Eval(headPredicate, headCode, headPc, goalFrame, dTop, dTop);
                                         var resultAddress = dTop + FunctionalExpression.EvalStackOffset;
-                                        goalPc = FunctionalExpression.Eval(goalPredicate, goalCode, goalPc,
+                                        goalPc = FunctionalExpression.Eval(goalPredicate, goalCode, goalPc, goalFrame,
                                             EnvironmentStack[goalFrame].Base,
                                             (ushort) (dTop + 1));
                                         // Goal result is not ad address resultAddress+1
@@ -559,7 +559,7 @@ namespace BotL
                             else if (headCType == OpcodeConstantType.FunctionalExpression)
                             {
                                 // Get the value of the functional expression
-                                headPc = FunctionalExpression.Eval(headPredicate, headCode, headPc, dTop, dTop);
+                                headPc = FunctionalExpression.Eval(headPredicate, headCode, headPc, goalFrame, dTop, dTop);
                                 var resultAddress = dTop + FunctionalExpression.EvalStackOffset;
                                 switch (goalCType)
                                 {
@@ -594,7 +594,7 @@ namespace BotL
                             }
                             else if (goalCType == OpcodeConstantType.FunctionalExpression)
                             {
-                                goalPc = FunctionalExpression.Eval(goalPredicate, goalCode, goalPc,
+                                goalPc = FunctionalExpression.Eval(goalPredicate, goalCode, goalPc, goalFrame,
                                     EnvironmentStack[goalFrame].Base, dTop);
                                 var resultAddress = dTop + FunctionalExpression.EvalStackOffset;
                                 switch (headCType)
@@ -699,21 +699,21 @@ namespace BotL
                         //
                         case (int) Opcode.HeadConst + (int) Opcode.GoalVarFirst:
                             headPc = SetVarToConstant(EnvironmentStack[goalFrame].Base + goalCode[goalPc++],
-                                headPredicate, headCode, headPc,
+                                headPredicate, headCode, headPc, goalFrame,
                                 dTop,
                                 dTop);
                             break;
 
                         case (int) Opcode.HeadVarFirst + (int) Opcode.GoalConst:
                             goalPc = SetVarToConstant(dTop + headCode[headPc++],
-                                goalPredicate, goalCode, goalPc,
+                                goalPredicate, goalCode, goalPc, goalFrame,
                                 EnvironmentStack[goalFrame].Base,
                                 dTop);
                             break;
 
                         case (int) Opcode.HeadConst + (int) Opcode.GoalVarMatch:
                             if (!MatchVarConstant(EnvironmentStack[goalFrame].Base + goalCode[goalPc++],
-                                headPredicate, headCode, ref headPc,
+                                headPredicate, headCode, ref headPc, goalFrame,
                                 dTop,
                                 dTop))
                                 goto fail;
@@ -721,7 +721,7 @@ namespace BotL
 
                         case (int) Opcode.HeadVarMatch + (int) Opcode.GoalConst:
                             if (!MatchVarConstant(dTop + headCode[headPc++],
-                                goalPredicate, goalCode, ref goalPc,
+                                goalPredicate, goalCode, ref goalPc, goalFrame,
                                 EnvironmentStack[goalFrame].Base,
                                 dTop))
                                 goto fail;
@@ -792,6 +792,7 @@ namespace BotL
                         case (int) Opcode.CSpecial + (int) Opcode.CLastCall:
                             if (headPredicate.Table != null)
                             {
+                                Profiler.MaybeSampleStack(goalFrame, headPredicate);
                                 bool canContinue;
                                 var nextRow = headPredicate.Table.MatchTableRows(restartedClauseNumber, dTop,
                                     out canContinue);
@@ -916,6 +917,7 @@ namespace BotL
                         case (int) Opcode.CSpecial + (int) Opcode.CCall:
                             if (headPredicate.Table != null)
                             {
+                                Profiler.MaybeSampleStack(goalFrame, headPredicate);
                                 bool canContinue;
                                 var nextRow = headPredicate.Table.MatchTableRows(restartedClauseNumber, dTop,
                                     out canContinue);
@@ -1350,12 +1352,12 @@ namespace BotL
             }
         }
 
-        private static bool MatchVarConstant(int address, Predicate p, byte[] clause, ref ushort pc, ushort frameBase, ushort dTop)
+        private static bool MatchVarConstant(int address, Predicate p, byte[] clause, ref ushort pc, ushort goalFrame, ushort frameBase, ushort dTop)
         {
             var a = Deref((ushort)address);
             if (DataStack[a].Type == TaggedValueType.Unbound)
             {
-                pc = SetVarToConstant(a, p, clause, pc, frameBase, dTop);
+                pc = SetVarToConstant(a, p, clause, pc, goalFrame, frameBase, dTop);
                 return true;
             }
 
@@ -1378,7 +1380,7 @@ namespace BotL
                     return DataStack[a].EqualReference(p.GetObjectConstant<object>(clause[pc++]));
 
                 case OpcodeConstantType.FunctionalExpression:
-                    pc = FunctionalExpression.Eval(p, clause, pc, frameBase, dTop);
+                    pc = FunctionalExpression.Eval(p, clause, pc, goalFrame, frameBase, dTop);
                     var resultAddress = dTop + FunctionalExpression.EvalStackOffset;
                     // Goal result is not ad address resultAddress+1
                     var headResultType = DataStack[resultAddress].Type;
@@ -1424,7 +1426,7 @@ namespace BotL
             return address;
         }
 
-        private static ushort SetVarToConstant(int address, Predicate p, byte[] clause, ushort pc, ushort frameBase, ushort dTop)
+        private static ushort SetVarToConstant(int address, Predicate p, byte[] clause, ushort pc, ushort goalFrame, ushort frameBase, ushort dTop)
         {
             SaveVariable((ushort)address);  // Don't need to deref because this is only called for XFirstVar.
             switch ((OpcodeConstantType) clause[pc++])
@@ -1451,7 +1453,7 @@ namespace BotL
                     break;
 
                 case OpcodeConstantType.FunctionalExpression:
-                    pc = FunctionalExpression.Eval(p, clause, pc, frameBase, dTop);
+                    pc = FunctionalExpression.Eval(p, clause, pc, goalFrame, frameBase, dTop);
                     DataStack[address] = DataStack[dTop+FunctionalExpression.EvalStackOffset];
                     break;
             }

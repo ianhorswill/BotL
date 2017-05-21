@@ -59,12 +59,38 @@ namespace BotL
 #endif
         }
 
+        /// <summary>
+        /// Sample the stack if the time is right.
+        /// </summary>
+        /// <param name="goalFrame">EnvironmentStack position of the goal frame.</param>
+        /// <param name="currentPrimitive">The primitive predicate that goalFrame is currently calling.</param>
+        [Conditional("BotLProfiler")]
+        internal static void MaybeSampleStack(ushort goalFrame, Predicate currentPrimitive)
+        {
 #if BotLProfiler
+            if (++timeSinceSample >= SampleInterval)
+            {
+                SampleStack(goalFrame, currentPrimitive);
+                timeSinceSample = 0;
+            }
+#endif
+        }
+
+#if BotLProfiler
+        private static void SampleStack(ushort goalFrane, Predicate currentPrimitive)
+        {
+            var node = SampleStack(goalFrane);
+            node.ExclusiveTicks--;
+            var child = node.GetChild(currentPrimitive);
+            child.InclusiveTicks++;
+            child.ExclusiveTicks++;
+        }
+
         /// <summary>
         /// Sample the running frames on the stack
         /// </summary>
         /// <param name="goalFrame"></param>
-        private static void SampleStack(ushort goalFrame)
+        private static ProfileNode SampleStack(ushort goalFrame)
         {
             TotalSamples++;
             // We aren't looking at all the frames in the environment stack, since it includes frames
@@ -85,6 +111,7 @@ namespace BotL
             }
             // node is now the node for goalFrame
             node.ExclusiveTicks++;
+            return node;
         }
 
         public class ProfileNode

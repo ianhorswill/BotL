@@ -458,6 +458,7 @@ namespace BotL
             {
                 while (true)
                 {
+                    Profiler.MaybeSampleStack(goalFrame);
                     SanityCheckStack(goalFrame, eTop, cTop, dTop);
                     //Debug.Assert(
                     //    (goal == Trampoline && startOfCall == 0) || goal[startOfCall - 2] == (byte) Opcode.CGoal,

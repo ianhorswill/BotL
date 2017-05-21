@@ -23,7 +23,6 @@
 // --------------------------------------------------------------------------------------------------------------------
 #endregion
 using System;
-using System.CodeDom;
 using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
@@ -109,7 +108,7 @@ namespace BotL.Unity
                                 break;
 
                             case KeyCode.PageUp:
-                                scrollPosition.y -= Math.Max(0, WindowRect.height * 0.5f);
+                                scrollPosition.y -= Mathf.Max(0, WindowRect.height * 0.5f);
                                 break;
                         }
                     break;
@@ -128,7 +127,7 @@ namespace BotL.Unity
                     scrollPosition,
                     new Rect(0, 0, WindowRect.width, viewHeight), false, true);
             mouseClickY += scrollPosition.y;
-            viewHeight = Math.Max(
+            viewHeight = Mathf.Max(
                 viewHeight,
                 RenderAt(ELNode.Root, 0, 20));
             GUI.EndScrollView();

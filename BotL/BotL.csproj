@@ -18,7 +18,7 @@
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DefineConstants>TRACE;DEBUG;BotLProfiler</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
@@ -26,7 +26,7 @@
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
+    <DefineConstants>TRACE;BotLProfiler</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
@@ -43,6 +43,7 @@
     <Compile Include="Compiler\Lint.cs" />
     <Compile Include="Engine\ArgumentTypeException.cs" />
     <Compile Include="Engine\CallFailedException.cs" />
+    <Compile Include="Engine\Profiler.cs" />
     <Compile Include="Parser\Call.cs" />
     <Compile Include="Engine\CallStatus.cs" />
     <Compile Include="Engine\ChoicePoint.cs" />
@@ -87,6 +88,7 @@
     <Compile Include="TypeUtils.cs" />
     <Compile Include="Engine\UndoRecord.cs" />
     <Compile Include="Unity\BotLConsole.cs" />
+    <Compile Include="Unity\BotLProfiler.cs" />
     <Compile Include="Unity\Console.cs" />
     <Compile Include="Unity\ELInspector.cs" />
     <Compile Include="Unity\ExtensionMethods.cs" />

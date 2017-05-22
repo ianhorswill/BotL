@@ -431,6 +431,12 @@ namespace BotL
                             break;
                         }
 
+                    case FOpcode.UserFunction:
+                    {
+                        stack = UserFunction.UserFunctions[clause[pc++]].Run(stack);
+                        break;
+                    }
+
                     default:
                         throw new InvalidOperationException("Bad opcode in compiled functional expression");
                 }

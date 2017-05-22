@@ -44,6 +44,7 @@
     <Compile Include="Engine\ArgumentTypeException.cs" />
     <Compile Include="Engine\CallFailedException.cs" />
     <Compile Include="Engine\Profiler.cs" />
+    <Compile Include="Engine\UserFunction.cs" />
     <Compile Include="Parser\Call.cs" />
     <Compile Include="Engine\CallStatus.cs" />
     <Compile Include="Engine\ChoicePoint.cs" />

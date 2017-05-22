@@ -765,6 +765,8 @@ namespace BotL.Compiler
                     if (fOpcode == FOpcode.Array || fOpcode == FOpcode.ArrayList || fOpcode == FOpcode.Queue ||
                         fOpcode == FOpcode.Hashset  || fOpcode == FOpcode.Format)
                         b.Emit((byte) c.Arity);
+                    else if (fOpcode == FOpcode.UserFunction)
+                        b.Emit((byte)UserFunction.Subopcode(c));
                 }
             }
             else

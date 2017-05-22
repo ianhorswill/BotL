@@ -243,6 +243,10 @@ namespace BotL
         /// </summary>
         Format,
         /// <summary>
+        /// Call a function defined by user C# code
+        /// </summary>
+        UserFunction,
+        /// <summary>
         /// Marks the end of a functional expression
         /// </summary>
         Return = 255
@@ -251,6 +255,11 @@ namespace BotL
     internal static class FOpcodeTable
     {
         static readonly Dictionary<PredicateIndicator, FOpcode> OpcodeTable = new Dictionary<PredicateIndicator, FOpcode>();
+
+        internal static void DefineUserFunction(Symbol name, int arity)
+        {
+            OpcodeTable[new PredicateIndicator(name, arity)] = FOpcode.UserFunction;
+        }
 
         internal static bool ReverseArguments(FOpcode o)
         {

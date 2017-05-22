@@ -67,6 +67,7 @@
     <Compile Include="QueueTests.cs" />
     <Compile Include="StructureTests.cs" />
     <Compile Include="TableTests.cs" />
+    <Compile Include="UserFunctionTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\BotL\BotL.csproj">

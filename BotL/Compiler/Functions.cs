@@ -22,9 +22,11 @@
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
 #endregion
+
+using System;
 using System.Collections.Generic;
 
-namespace BotL.Compiler
+namespace BotL
 {
     /// <summary>
     /// Table of predicates that are callable as functions
@@ -48,6 +50,43 @@ namespace BotL.Compiler
             if (exp is Symbol || exp is Call)
                 return HoistableFunctions.Contains(new PredicateIndicator(exp));
             return false;
+        }
+
+        public static void DeclareFunction(string name, Func<int, int> f)
+        {
+            var n = Symbol.Intern(name);
+            new UserFunction(n, 1, stack =>
+            {
+                if (Engine.DataStack[stack-1].Type != TaggedValueType.Integer)
+                    throw new ArgumentTypeException(n.Name, 1, "Should be an integer", Engine.DataStack[stack-1].Value);
+                Engine.DataStack[stack-1].Set(f(Engine.DataStack[stack-1].integer));
+                return stack;
+            });
+        }
+
+        public static void DeclareFunction(string name, Func<float, float> f)
+        {
+            var n = Symbol.Intern(name);
+            new UserFunction(n, 1, stack =>
+            {
+                var arg1Type = Engine.DataStack[stack-1].Type;
+                if (arg1Type != TaggedValueType.Integer && arg1Type != TaggedValueType.Float)
+                    throw new ArgumentTypeException(n.Name, 1, "Should be a number", Engine.DataStack[stack-1].Value);
+                Engine.DataStack[stack-1].Set(f(Engine.DataStack[stack-1].AsFloat));
+                return stack;
+            });
+        }
+
+        public static void DeclareFunction<T>(string name, Func<T, object> f) where T:class
+        {
+            var n = Symbol.Intern(name);
+            new UserFunction(n, 1, stack =>
+            {
+                if (Engine.DataStack[stack-1].Type != TaggedValueType.Reference || !(Engine.DataStack[stack-1].reference is T arg))
+                    throw new ArgumentTypeException(n.Name, 1, "Should be a "+typeof(T).Name, Engine.DataStack[stack-1].Value);
+                Engine.DataStack[stack-1].SetReference(f(arg));
+                return stack;
+            });
         }
     }
 }

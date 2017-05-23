@@ -1,5 +1,4 @@
-﻿using System;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 using BotL;
 
 namespace Test
@@ -12,6 +11,13 @@ namespace Test
         {
             Functions.DeclareFunction("int_function", (int x) => x+1);
             TestTrue("X=int_function(937), X=938");
+        }
+
+        [TestMethod]
+        public void Int2FunctionTest()
+        {
+            Functions.DeclareFunction("int2_function", (int x, int y) => x - y);
+            TestTrue("X=int2_function(937, 930), X=7");
         }
 
         [TestMethod]

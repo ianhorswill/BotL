@@ -25,6 +25,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Runtime.InteropServices.ComTypes;
 
 namespace BotL
 {
@@ -57,10 +58,18 @@ namespace BotL
             var n = Symbol.Intern(name);
             new UserFunction(n, 1, stack =>
             {
-                if (Engine.DataStack[stack-1].Type != TaggedValueType.Integer)
-                    throw new ArgumentTypeException(n.Name, 1, "Should be an integer", Engine.DataStack[stack-1].Value);
-                Engine.DataStack[stack-1].Set(f(Engine.DataStack[stack-1].integer));
+                Engine.DataStack[stack-1].Set(f(IntArg(name, stack, 1)));
                 return stack;
+            });
+        }
+
+        public static void DeclareFunction(string name, Func<int, int, int> f)
+        {
+            var n = Symbol.Intern(name);
+            new UserFunction(n, 2, stack =>
+            {
+                Engine.DataStack[stack - 2].Set(f(IntArg(name, stack, 1), IntArg(name, stack, 2)));
+                return (ushort)(stack-1);
             });
         }
 
@@ -69,24 +78,69 @@ namespace BotL
             var n = Symbol.Intern(name);
             new UserFunction(n, 1, stack =>
             {
-                var arg1Type = Engine.DataStack[stack-1].Type;
-                if (arg1Type != TaggedValueType.Integer && arg1Type != TaggedValueType.Float)
-                    throw new ArgumentTypeException(n.Name, 1, "Should be a number", Engine.DataStack[stack-1].Value);
-                Engine.DataStack[stack-1].Set(f(Engine.DataStack[stack-1].AsFloat));
+                Engine.DataStack[stack - 1].Set(f(FloatArg(name, stack, 1)));
                 return stack;
             });
         }
 
-        public static void DeclareFunction<T>(string name, Func<T, object> f) where T:class
+        public static void DeclareFunction(string name, Func<float, float, float> f)
+        {
+            var n = Symbol.Intern(name);
+            new UserFunction(n, 2, stack =>
+            {
+                Engine.DataStack[stack - 2].Set(f(FloatArg(name, stack, 1), FloatArg(name, stack, 2)));
+                return (ushort)(stack - 1);
+            });
+        }
+
+        public static void DeclareFunction<T>(string name, Func<T, object> f) where T : class
         {
             var n = Symbol.Intern(name);
             new UserFunction(n, 1, stack =>
             {
-                if (Engine.DataStack[stack-1].Type != TaggedValueType.Reference || !(Engine.DataStack[stack-1].reference is T arg))
-                    throw new ArgumentTypeException(n.Name, 1, "Should be a "+typeof(T).Name, Engine.DataStack[stack-1].Value);
-                Engine.DataStack[stack-1].SetReference(f(arg));
+                Engine.DataStack[stack - 1].SetReference(f(ReferenceArg<T>(name, stack, 1)));
                 return stack;
             });
+        }
+
+        public static void DeclareFunction<T1,T2>(string name, Func<T1, T2, object> f) 
+            where T1 : class
+            where T2 : class
+        {
+            var n = Symbol.Intern(name);
+            new UserFunction(n, 2, stack =>
+            {
+                Engine.DataStack[stack - 2].SetReference(f(ReferenceArg<T1>(name, stack, 1), ReferenceArg<T2>(name, stack, 2)));
+                return (ushort)(stack - 1);
+            });
+        }
+
+        private static int IntArg(string functionName, ushort stack, int argumentIndex)
+        {
+            if (Engine.DataStack[stack - argumentIndex].Type != TaggedValueType.Integer)
+                throw new ArgumentTypeException(functionName, argumentIndex, "Should be an integer",
+                    Engine.DataStack[stack - argumentIndex].Value);
+            var arg = Engine.DataStack[stack - argumentIndex].integer;
+            return arg;
+        }
+
+        private static float FloatArg(string name, ushort stack, int argumentIndex)
+        {
+            var arg1Type = Engine.DataStack[stack - argumentIndex].Type;
+            if (arg1Type != TaggedValueType.Integer && arg1Type != TaggedValueType.Float)
+                throw new ArgumentTypeException(name, argumentIndex, "Should be a number",
+                    Engine.DataStack[stack - argumentIndex].Value);
+            var asFloat = Engine.DataStack[stack - argumentIndex].AsFloat;
+            return asFloat;
+        }
+
+        private static T ReferenceArg<T>(string funcName, ushort stack, int argumentIndex) where T : class
+        {
+            if (Engine.DataStack[stack - argumentIndex].Type != TaggedValueType.Reference ||
+                !(Engine.DataStack[stack - argumentIndex].reference is T arg))
+                throw new ArgumentTypeException(funcName, argumentIndex, "Should be a " + typeof(T).Name,
+                    Engine.DataStack[stack - argumentIndex].Value);
+            return arg;
         }
     }
 }

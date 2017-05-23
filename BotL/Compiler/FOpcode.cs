@@ -263,7 +263,7 @@ namespace BotL
 
         internal static bool ReverseArguments(FOpcode o)
         {
-            return o == FOpcode.ArrayList || o == FOpcode.Queue;
+            return o == FOpcode.ArrayList || o == FOpcode.Queue || o == FOpcode.UserFunction;
         }
 
         internal static FOpcode Opcode(Call c)

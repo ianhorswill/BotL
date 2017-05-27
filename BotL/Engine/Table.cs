@@ -153,9 +153,9 @@ namespace BotL
                     throw new InvalidOperationException("Attempting to add row to a non-table " + predicate);
                 predicate.Table.AddRow(GetRow(argBase + 1, predicate.Arity));
                 return CallStatus.DeterministicSuccess;
-            });
-            KB.MandatoryInstantationMetaPredicate("assert_internal!");
-
+            },
+            mandatoryInstantiation: true, deterministic: true);
+            
             KB.DefineMetaPrimop("retract_internal!", (argBase, ignore) =>
             {
                 var predicate = (Predicate)DataStack[Deref(argBase)].reference;
@@ -169,7 +169,8 @@ namespace BotL
                     return CallStatus.Fail;
                 predicate.Table.rows.RemoveAt(rowNum);
                 return CallStatus.DeterministicSuccess;
-            });
+            },
+            mandatoryInstantiation: true, semiDeterministic: true);
 
             KB.DefineMetaPrimop("update_internal!", (argBase, ignore) =>
             {
@@ -184,9 +185,9 @@ namespace BotL
                     return CallStatus.Fail;
                 predicate.Table.rows[rowNum][predicate.Arity - 1] = DataStack[Deref(argBase + predicate.Arity)].Value;
                 return CallStatus.DeterministicSuccess;
-            });
-            KB.MandatoryInstantationMetaPredicate("update_internal!");
-
+            },
+            mandatoryInstantiation: true, semiDeterministic: true);
+            
             KB.DefineMetaPrimop("increment_internal!", (argBase, ignore) =>
             {
                 var predicate = (Predicate)DataStack[Deref(argBase)].reference;
@@ -201,8 +202,8 @@ namespace BotL
                 predicate.Table.rows[rowNum][predicate.Arity - 1] =
                     Convert.ToSingle(predicate.Table.rows[rowNum][predicate.Arity - 1]) + DataStack[Deref(argBase + predicate.Arity)].AsFloat;
                 return CallStatus.DeterministicSuccess;
-            });
-            KB.MandatoryInstantationMetaPredicate("increment_internal!");
+            },
+            mandatoryInstantiation: true, semiDeterministic: true);
 
             KB.DefineMetaPrimop("retractall_internal!", (argBase, ignore) =>
             {
@@ -214,7 +215,8 @@ namespace BotL
                 while ((rowNum = table.FindRowWithWildcards(argBase + 1, rowNum))>= 0)
                     predicate.Table.rows.RemoveAt(rowNum);
                 return CallStatus.DeterministicSuccess;
-            });
+            },
+            deterministic: true);
         }
 
         #region Helper functions for primops

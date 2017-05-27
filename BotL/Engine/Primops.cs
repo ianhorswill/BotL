@@ -70,50 +70,56 @@ namespace BotL
                     default:
                         return (!Equals(DataStack[addr1].reference, DataStack[addr2].reference)) ? CallStatus.DeterministicSuccess : CallStatus.Fail;
                 }
-            });
-            MandatoryInstantation("!=", 2);
+            }, mandatoryInstatiation: true, semiDeterministic: true);
             #endregion
 
             #region Numerical operations
             // Numerical comparisons
-            DefinePrimop(">", 2, (argBase, ignore) => (DataStack[Deref(argBase)].AsFloat > DataStack[Deref(argBase + 1)].AsFloat) ? CallStatus.DeterministicSuccess : CallStatus.Fail);
-            MandatoryInstantation(">", 2);
-            DefinePrimop(">=", 2, (argBase, ignore) => (DataStack[Deref(argBase)].AsFloat >= DataStack[Deref(argBase + 1)].AsFloat) ? CallStatus.DeterministicSuccess : CallStatus.Fail);
-            MandatoryInstantation(">=", 2);
-            DefinePrimop("<", 2, (argBase, ignore) => (DataStack[Deref(argBase)].AsFloat < DataStack[Deref(argBase + 1)].AsFloat) ? CallStatus.DeterministicSuccess : CallStatus.Fail);
-            MandatoryInstantation("<", 2);
-            DefinePrimop("=<", 2, (argBase, ignore) => (DataStack[Deref(argBase)].AsFloat <= DataStack[Deref(argBase + 1)].AsFloat) ? CallStatus.DeterministicSuccess : CallStatus.Fail);
-            MandatoryInstantation("=<", 2);
+            DefinePrimop(">", 2, (argBase, ignore) => (DataStack[Deref(argBase)].AsFloat > DataStack[Deref(argBase + 1)].AsFloat) ? CallStatus.DeterministicSuccess : CallStatus.Fail,
+                mandatoryInstatiation: true, semiDeterministic: true);
+            DefinePrimop(">=", 2, (argBase, ignore) => (DataStack[Deref(argBase)].AsFloat >= DataStack[Deref(argBase + 1)].AsFloat) ? CallStatus.DeterministicSuccess : CallStatus.Fail,
+                mandatoryInstatiation: true, semiDeterministic: true);
+            DefinePrimop("<", 2, (argBase, ignore) => (DataStack[Deref(argBase)].AsFloat < DataStack[Deref(argBase + 1)].AsFloat) ? CallStatus.DeterministicSuccess : CallStatus.Fail,
+                mandatoryInstatiation: true, semiDeterministic: true);
+            DefinePrimop("=<", 2, (argBase, ignore) => (DataStack[Deref(argBase)].AsFloat <= DataStack[Deref(argBase + 1)].AsFloat) ? CallStatus.DeterministicSuccess : CallStatus.Fail,
+                mandatoryInstatiation: true, semiDeterministic: true);
             #endregion
 
             #region Type testing
             // Binding tests
-            DefinePrimop("var", 1, (argBase, ignore) => (DataStack[Deref(argBase)].Type == TaggedValueType.Unbound) ? CallStatus.DeterministicSuccess : CallStatus.Fail);
-            DefinePrimop("nonvar", 1, (argBase, ignore) => (DataStack[Deref(argBase)].Type != TaggedValueType.Unbound) ? CallStatus.DeterministicSuccess : CallStatus.Fail);
+            DefinePrimop("var", 1, (argBase, ignore) => (DataStack[Deref(argBase)].Type == TaggedValueType.Unbound) ? CallStatus.DeterministicSuccess : CallStatus.Fail,
+                semiDeterministic: true);
+            DefinePrimop("nonvar", 1, (argBase, ignore) => (DataStack[Deref(argBase)].Type != TaggedValueType.Unbound) ? CallStatus.DeterministicSuccess : CallStatus.Fail,
+                semiDeterministic: true);
 
             // Type tests
-            DefinePrimop("integer", 1, (argBase, ignore) => (DataStack[Deref(argBase)].Type == TaggedValueType.Integer) ? CallStatus.DeterministicSuccess : CallStatus.Fail);
-            DefinePrimop("float", 1, (argBase,ignore) => (DataStack[Deref(argBase)].Type == TaggedValueType.Float) ? CallStatus.DeterministicSuccess : CallStatus.Fail);
+            DefinePrimop("integer", 1, (argBase, ignore) => (DataStack[Deref(argBase)].Type == TaggedValueType.Integer) ? CallStatus.DeterministicSuccess : CallStatus.Fail,
+                semiDeterministic: true);
+            DefinePrimop("float", 1, (argBase,ignore) => (DataStack[Deref(argBase)].Type == TaggedValueType.Float) ? CallStatus.DeterministicSuccess : CallStatus.Fail,
+                semiDeterministic: true);
             DefinePrimop("number", 1, (argBase, ignore) =>
             {
                 var addr = Deref(argBase);
                 return (DataStack[addr].Type == TaggedValueType.Float ||
                        DataStack[addr].Type == TaggedValueType.Integer) ? CallStatus.DeterministicSuccess : CallStatus.Fail;
-            });
+            },
+                semiDeterministic: true);
             DefinePrimop("symbol", 1, (argBase, ignore) =>
             {
                 var addr = Deref(argBase);
                 return (DataStack[addr].Type == TaggedValueType.Reference &&
                        DataStack[addr].reference != null &&
                        DataStack[addr].reference is Symbol) ? CallStatus.DeterministicSuccess : CallStatus.Fail;
-            });
+            },
+                semiDeterministic: true);
             DefinePrimop("string", 1, (argBase, ignore) =>
             {
                 var addr = Deref(argBase);
                 return (DataStack[addr].Type == TaggedValueType.Reference &&
                        DataStack[addr].reference != null &&
                        DataStack[addr].reference is string) ? CallStatus.DeterministicSuccess : CallStatus.Fail;
-            });
+            },
+                semiDeterministic: true);
 
             DefinePrimop("missing", 1, (argBase, ignore) =>
             {
@@ -122,7 +128,8 @@ namespace BotL
                         DataStack[addr].reference == Structs.PaddingValue)
                     ? CallStatus.DeterministicSuccess
                     : CallStatus.Fail;
-            });
+            },
+                semiDeterministic: true);
             #endregion
 
             #region IO
@@ -130,13 +137,15 @@ namespace BotL
             {
                 Repl.StandardOutput.Write(DataStack[Deref(argBase)]);
                 return CallStatus.DeterministicSuccess;
-            });
+            },
+            deterministic: true);
 
             DefinePrimop("write_line", 1, (argBase, ignore) =>
             {
                 Repl.StandardOutput.WriteLine(DataStack[Deref(argBase)]);
                 return CallStatus.DeterministicSuccess;
-            });
+            },
+            deterministic: true);
             #endregion
 
             #region Environment-related stuff
@@ -151,8 +160,8 @@ namespace BotL
                 else
                     throw new ArgumentException("Argument to load must be a string");
                 return CallStatus.DeterministicSuccess;
-            });
-            MandatoryInstantation("load", 1);
+            },
+            mandatoryInstatiation: true, deterministic: true);
 
             DefinePrimop("load_table", 1, (argBase, ignore) =>
             {
@@ -165,13 +174,13 @@ namespace BotL
                 else
                     throw new ArgumentException("Argument to load_table must be a string");
                 return CallStatus.DeterministicSuccess;
-            });
-            MandatoryInstantation("load_table", 1);
+            },
+            mandatoryInstatiation: true, deterministic: true);
             #endregion
 
             #region C# interop
 
-            DefinePrimop("set_property!", 3, 0, (argBase, ignore) =>
+            DefinePrimop("set_property!", 3, (argBase, ignore) =>
             {
                 var oAddr = Deref(argBase);
                 if (DataStack[oAddr].Type != TaggedValueType.Reference)
@@ -195,10 +204,10 @@ namespace BotL
                 }
                 objArg.SetPropertyOrField(name, DataStack[Deref(argBase + 2)].Value);
                 return CallStatus.DeterministicSuccess;
-            });
-            MandatoryInstantation("set_property!", 3);
+            },
+            mandatoryInstatiation: true, deterministic: true);
 
-            DefinePrimop("in", 2, 1, (argBase, restartCount) =>
+            DefinePrimop("in", 2, (argBase, restartCount) =>
             {
                 var memberAddr = Deref(argBase);
                 var collectionAddr = Deref(argBase + 1);
@@ -265,7 +274,8 @@ namespace BotL
                     }
                     throw new ArgumentException("Invalid collecction argument to in/2.");
                 }
-            });
+            },
+            tempVars: 1);
 
             DefinePrimop("adjoin!", 2, (argBase, ignore) =>
             {
@@ -297,8 +307,8 @@ namespace BotL
                 }
 
                 return CallStatus.DeterministicSuccess;
-            });
-            MandatoryInstantation("adjoin!", 2);
+            },
+            mandatoryInstatiation: true, deterministic: true);
 
             DefinePrimop("item", 3, (argBase, restartCount) =>
             {
@@ -372,8 +382,8 @@ namespace BotL
                     throw new ArgumentException("Unknown global variable: "+name);
                 gv.Value = DataStack[valueAddr];
                 return CallStatus.DeterministicSuccess;
-            });
-            MandatoryInstantation("set_global", 2);
+            },
+            mandatoryInstatiation: true, deterministic: true);
 
             // Like set_global!, but backtrackable
             DefinePrimop("try_set_global!", 2, (argBase, ignore) =>
@@ -391,8 +401,8 @@ namespace BotL
                 UndoStack[UTop++].Set(UndoTrySetGlobal, gv, ref gv.Value);
                 gv.Value = DataStack[valueAddr];
                 return CallStatus.DeterministicSuccess;
-            });
-            MandatoryInstantation("try_set_global!", 2);
+            },
+            mandatoryInstatiation: true);
             #endregion
         }
         
@@ -410,7 +420,8 @@ namespace BotL
                 T0 arg0 = GetPrimopArg<T0>(0);
                 fn(arg0);
                 return CallStatus.DeterministicSuccess;
-            });
+            },
+            mandatoryInstatiation: true, deterministic: true);
         }
 
         /// <summary>
@@ -423,7 +434,8 @@ namespace BotL
                 T1 arg1 = GetPrimopArg<T1>(1);
                 fn(arg0, arg1);
                 return CallStatus.DeterministicSuccess;
-            });
+            },
+            mandatoryInstatiation: true, deterministic: true);
         }
 
         /// <summary>
@@ -437,7 +449,8 @@ namespace BotL
                 T2 arg2 = GetPrimopArg<T2>(2);
                 fn(arg0, arg1, arg2);
                 return CallStatus.DeterministicSuccess;
-            });
+            },
+            mandatoryInstatiation: true, deterministic: true);
         }
 
         /// <summary>
@@ -452,7 +465,8 @@ namespace BotL
                 T3 arg3 = GetPrimopArg<T3>(3);
                 fn(arg0, arg1, arg2, arg3);
                 return CallStatus.DeterministicSuccess;
-            });
+            },
+            mandatoryInstatiation: true, deterministic: true);
         }
 
         static T GetPrimopArg<T> (ushort index) {

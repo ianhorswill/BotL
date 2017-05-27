@@ -226,15 +226,20 @@ namespace BotL
         internal static void DefineELPrimops()
         {
             KB.DefinePrimop("read_nonexclusive", 3, (argBase, restartCount) => ReadEL(argBase, restartCount, false));
-            KB.DefinePrimop("read_exclusive", 3, (argBase, restartCount) => ReadEL(argBase, restartCount, true));
-            KB.DefinePrimop("write_nonexclusive!", 3, (argBase, restartCount) => WriteEL(argBase, false));
-            KB.DefinePrimop("write_nonexclusive_to_end!", 3, (argBase, restartCount) => WriteEL(argBase, false, true));
-            KB.DefinePrimop("write_exclusive!", 3, (argBase, restartCount) => WriteEL(argBase, true));
+            KB.DefinePrimop("read_exclusive", 3, (argBase, restartCount) => ReadEL(argBase, restartCount, true),
+                semiDeterministic: true);
+            KB.DefinePrimop("write_nonexclusive!", 3, (argBase, restartCount) => WriteEL(argBase, false),
+                deterministic: true);
+            KB.DefinePrimop("write_nonexclusive_to_end!", 3, (argBase, restartCount) => WriteEL(argBase, false, true),
+                deterministic: true);
+            KB.DefinePrimop("write_exclusive!", 3, (argBase, restartCount) => WriteEL(argBase, true),
+                deterministic: true);
             KB.DefinePrimop("delete_el_node!", 1, (argBase, ignore) =>
             {
                 ((ELNode)DataStack[Deref(argBase)].reference).Delete();
                 return CallStatus.DeterministicSuccess;
-            });
+            },
+            deterministic: true);
         }
 
         private static ELNode DecodeNodeArg(ushort stackAddress)

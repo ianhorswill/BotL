@@ -50,6 +50,8 @@ namespace BotL.Compiler
             DeclareMacro("ignore", 1, exp => Or(And(exp, Symbol.Cut), Symbol.TruePredicate));
             DeclareMacro("check", 1, exp => {
                 var indicator = new PredicateIndicator(exp);
+                if (KB.Predicate(indicator).Deterministic)
+                    return exp;
                 return Or(And(exp, Symbol.Cut),
                           new Call("%call_failed", indicator.Functor));
             });

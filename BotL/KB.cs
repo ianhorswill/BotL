@@ -151,27 +151,21 @@ namespace BotL
             return Predicate(new PredicateIndicator(call, arity));
         }
 
+        #region Primop declarations
         /// <summary>
         /// A predicate you call as meta(predicate/n, arg1, arg2, ..., argn) and that really means
         /// meta(predicate(arg1, ..., argn)).
         /// </summary>
-        public static void DefineMetaPrimop(string name, Compiler.Compiler.PredicateImplementation implementation)
+        public static void DefineMetaPrimop(string name, Compiler.Compiler.PredicateImplementation implementation,
+            bool mandatoryInstantiation = false,
+            bool deterministic = false,
+            bool semiDeterministic = false)
         {
-            var s = Symbol.Intern(name);
             for (int arity=2; arity < Compiler.Compiler.MaxSpecialPredicateArity; arity++)
-                DefinePrimop(s, arity, 0, implementation);
-        }
-
-        /// <summary>
-        /// Define a new primop.  Don't use this unless you know what you're doing.
-        /// </summary>
-        /// <param name="name">Name of the primop</param>
-        /// <param name="arity">Arity</param>
-        /// <param name="tempVars">Number of additional slots to reserve at the end of the primop's stack frame.</param>
-        /// <param name="implementation">Delegate to implement the primop</param>
-        public static void DefinePrimop(string name, int arity, byte tempVars, Compiler.Compiler.PredicateImplementation implementation)
-        {
-            DefinePrimop(Symbol.Intern(name), arity, tempVars, implementation);
+                DefinePrimop(name, arity, implementation,
+                    mandatoryInstatiation: mandatoryInstantiation,
+                    deterministic: deterministic,
+                    semiDeterministic: semiDeterministic);
         }
 
         /// <summary>
@@ -180,45 +174,27 @@ namespace BotL
         /// <param name="name">Name of the primop</param>
         /// <param name="arity">Arity</param>
         /// <param name="implementation">Delegate to implement the primop</param>
-        public static void DefinePrimop(string name, int arity, Compiler.Compiler.PredicateImplementation implementation)
+        /// <param name="tempVars">Number of temporary variables to preserve in the primop's stack frame.</param>
+        /// <param name="mandatoryInstatiation">Whether the primop requires its arguments to be instantiated.  If so, the compiler will issue a warning when it can prove one of the arguments will be uninstantiated at the time of a call to this primop.</param>
+        /// <param name="deterministic">True if this primop will always either succeed exactly once or throw an exception</param>
+        /// <param name="semiDeterministic">True if this primop will never succeed more than once.</param>
+        public static void DefinePrimop(string name, int arity,
+            Compiler.Compiler.PredicateImplementation implementation,
+            byte tempVars = 0,
+            bool mandatoryInstatiation = false, 
+            bool deterministic=false,
+            bool semiDeterministic = false)
         {
-            DefinePrimop(Symbol.Intern(name), arity, 0, implementation);
+            var nameSym = Symbol.Intern(name);
+            var primop = Compiler.Compiler.MakePrimop(nameSym, arity, implementation, tempVars);
+            PredicateTable[new PredicateIndicator(nameSym, arity)] = primop;
+            primop.MandatoryInstantiation = mandatoryInstatiation;
+            primop.Deterministic = deterministic;
+            primop.SemiDeterministic = semiDeterministic;
         }
+        #endregion
 
-        /// <summary>
-        /// Mark predicate as requiring its arguments to be instantiated.
-        /// This allows some extra compile-time checking.
-        /// </summary>
-        /// <param name="name">Predicate name</param>
-        /// <param name="arity">Predicate arity</param>
-        public static void MandatoryInstantation(string name, int arity)
-        {
-            Predicate(Symbol.Intern(name), arity).MandatoryInstantiation = true;
-        }
-
-        /// <summary>
-        /// Mark predicate as requiring its arguments to be instantiated.
-        /// This allows some extra compile-time checking.
-        /// </summary>
-        /// <param name="name">Predicate name</param>
-        public static void MandatoryInstantationMetaPredicate(string name)
-        {
-            for (int arity = 2; arity < Compiler.Compiler.MaxSpecialPredicateArity; arity++)
-                Predicate(Symbol.Intern(name), arity).MandatoryInstantiation = true;
-        }
-
-        /// <summary>
-        /// Define a new primop.  Don't use this unless you know what you're doing.
-        /// </summary>
-        /// <param name="name">Name of the primop</param>
-        /// <param name="arity">Arity</param>
-        /// <param name="tempVars">Number of additional slots to reserve at the end of the primop's stack frame.</param>
-        /// <param name="implementation">Delegate to implement the primop</param>
-        private static void DefinePrimop(Symbol name, int arity, byte tempVars, Compiler.Compiler.PredicateImplementation implementation)
-        {
-            PredicateTable[new PredicateIndicator(name, arity)] = Compiler.Compiler.MakePrimop(name, arity, implementation, tempVars);
-        }
-
+        #region Table declarations
         /// <summary>
         /// Create an empty table.
         /// </summary>
@@ -263,5 +239,6 @@ namespace BotL
         {
             PredicateTable[new PredicateIndicator(name, arity)].Table.AddRow(row);
         }
+        #endregion
     }
 }

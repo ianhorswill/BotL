@@ -165,7 +165,8 @@ namespace BotL
                     throw new InstantiationException("enqueue: second argument must be instantiated.");
                 queue.Enqueue(DataStack[vAddr].Value);
                 return CallStatus.DeterministicSuccess;
-            });
+            },
+            mandatoryInstatiation: true, deterministic: true);
 
             // Nonbacktrackable dequeue
             DefinePrimop("dequeue", 2, (argBase, ignore) =>
@@ -182,7 +183,8 @@ namespace BotL
                     return CallStatus.DeterministicSuccess;
                 }
                 return DataStack[vAddr].EqualGeneral(value) ? CallStatus.DeterministicSuccess : CallStatus.Fail;
-            });
+            },
+            semiDeterministic: true);
             // Dequeue can also be called as a function
             Functions.DeclareFunction("dequeue", 1);
 
@@ -274,7 +276,8 @@ namespace BotL
                     throw new ArgumentTypeException("set_generate_mode", 1, "should be a queue", DataStack[qAddr].Value);
                 queue.mode = MatchMode.Generate;
                 return CallStatus.DeterministicSuccess;
-            });
+            },
+            mandatoryInstatiation: true, deterministic: true);
         }
 
         private static void RestoreHead(ref UndoRecord arg)

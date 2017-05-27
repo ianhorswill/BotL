@@ -157,6 +157,8 @@ namespace BotL
             Locked = 1,                  // Can't add new rules
             Nested = 2,                  // This is really an internal clause of some other predicate
             MandatoryInstantiation = 4,  // Can only be called on instantiated arguments
+            Deterministic = 8,           // Fully deterministic - always succeeds exactly once or throws an exception
+            SemiDeterministic = 16       // Semi-deterministic - succeeds at most once
         }
 
         private PredicateFlags flags;
@@ -203,6 +205,36 @@ namespace BotL
                     flags |= PredicateFlags.MandatoryInstantiation;
                 else
                     flags &= ~PredicateFlags.MandatoryInstantiation;
+            }
+        }
+
+        /// <summary>
+        /// True if this is predicate always succeeds exactly once or throws an exception
+        /// </summary>
+        public bool Deterministic
+        {
+            get { return (flags & PredicateFlags.Deterministic) != PredicateFlags.None; }
+            set
+            {
+                if (value)
+                    flags |= PredicateFlags.Deterministic;
+                else
+                    flags &= ~PredicateFlags.Deterministic;
+            }
+        }
+
+        /// <summary>
+        /// True if this is predicate succeeds at most once.
+        /// </summary>
+        public bool SemiDeterministic
+        {
+            get { return (flags & PredicateFlags.SemiDeterministic) != PredicateFlags.None; }
+            set
+            {
+                if (value)
+                    flags |= PredicateFlags.SemiDeterministic;
+                else
+                    flags &= ~PredicateFlags.SemiDeterministic;
             }
         }
         #endregion

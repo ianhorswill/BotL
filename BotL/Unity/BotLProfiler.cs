@@ -19,6 +19,7 @@ namespace BotL.Unity
         public KeyCode ActivationKey = KeyCode.F3;	//Key used to show/hide inspector
         // Amount by which to indent children relative to parents
         public int Indentation = 10;
+        private const string controlName = "BotLProfiler";
         #endregion
 
 #if BotLProfiler
@@ -58,8 +59,13 @@ namespace BotL.Unity
             switch (Event.current.type)
             {
                 case EventType.mouseDown:
-                    mouseClicked = true;
-                    mouseClickY = Event.current.mousePosition.y - WindowRect.y;
+                    if(ShowInspector && WindowRect.Contains(Event.current.mousePosition))
+                    {
+                        GUI.FocusControl(controlName);
+                        mouseClicked = true;
+                        mouseClickY = Event.current.mousePosition.y - WindowRect.y;
+                        Event.current.Use();
+                    }
                     break;
 
                 case EventType.KeyUp:
@@ -67,7 +73,8 @@ namespace BotL.Unity
                     {
                         ShowInspector = !ShowInspector;
                     }
-                    else
+                    else if (GUIUtility.keyboardControl == controlID)
+                    {
                         switch (Event.current.keyCode)
                         {
                             case KeyCode.PageDown:
@@ -78,6 +85,8 @@ namespace BotL.Unity
                                 scrollPosition.y -= Mathf.Max(0, WindowRect.height * 0.5f);
                                 break;
                         }
+                        Event.current.Use();
+                    }
                     break;
             }
         }
@@ -99,6 +108,8 @@ namespace BotL.Unity
                 RenderChildren(Profiler.CallTreeRoot, 10, Style.lineHeight));
             GUI.EndScrollView();
             mouseClicked = false;
+            GUI.SetNextControlName(controlName);
+            controlID = GUIUtility.GetControlID(FocusType.Keyboard);
         }
 
         private float RenderAt(Profiler.ProfileNode node, float x, float y)
@@ -131,6 +142,7 @@ namespace BotL.Unity
 
         #region Node expansion control
         private static readonly HashSet<Profiler.ProfileNode> ExpandedNodes = new HashSet<Profiler.ProfileNode>();
+        private int controlID;
 
         bool NodeExpanded(Profiler.ProfileNode node)
         {

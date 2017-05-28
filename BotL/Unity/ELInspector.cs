@@ -64,6 +64,9 @@ namespace BotL.Unity
         // ReSharper disable once InconsistentNaming
         private static int IDCount = typeof(ELInspector).GetHashCode();
 
+        // Internal Unity GUI control ID.  I think this is different from ID, but the docs aren't clear.
+        private int controlID;
+
         /// <summary>
         /// Total height of the dumped EL database
         /// </summary>
@@ -91,8 +94,13 @@ namespace BotL.Unity
             switch (Event.current.type)
             {
                 case EventType.mouseDown:
-                    mouseClicked = true;
-                    mouseClickY = Event.current.mousePosition.y - WindowRect.y;
+                    if (ShowInspector && WindowRect.Contains(Event.current.mousePosition))
+                    {
+                        mouseClicked = true;
+                        mouseClickY = Event.current.mousePosition.y - WindowRect.y;
+                        GUI.FocusControl(ControlName);
+                        Event.current.Use();
+                    }
                     break;
 
                 case EventType.KeyUp:
@@ -100,7 +108,8 @@ namespace BotL.Unity
                     {
                         ShowInspector = !ShowInspector;
                     }
-                    else
+                    else if (GUIUtility.keyboardControl == controlID)
+                    {
                         switch (Event.current.keyCode)
                         {
                             case KeyCode.PageDown:
@@ -111,6 +120,8 @@ namespace BotL.Unity
                                 scrollPosition.y -= Mathf.Max(0, WindowRect.height * 0.5f);
                                 break;
                         }
+                        Event.current.Use();
+                    }
                     break;
             }
         }
@@ -132,9 +143,13 @@ namespace BotL.Unity
                 RenderAt(ELNode.Root, 0, 20));
             GUI.EndScrollView();
             mouseClicked = false;
+            GUI.SetNextControlName(ControlName);
+            controlID = GUIUtility.GetControlID(FocusType.Keyboard);
         }
 
         readonly StringBuilder stringBuilder = new StringBuilder();
+        private string ControlName = "ELInspector";
+
         private float RenderAt(ELNode node, float x, float y)
         {
             stringBuilder.Length = 0;

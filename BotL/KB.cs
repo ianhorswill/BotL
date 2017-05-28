@@ -61,6 +61,20 @@ namespace BotL
         }
 
         /// <summary>
+        /// Call the predicate with specified name, without arguments.
+        /// Intended for imperatives - throws exception if predicate doesn't succeed.
+        /// NOT REENTRANT: do not call this from methods that were themselves
+        /// called from BotL code.
+        /// </summary>
+        /// <param name="predicateName">Name of the predicate</param>
+        // ReSharper disable once UnusedMember.Global
+        public static void Run(string predicateName)
+        {
+            if (!IsTrue(predicateName))
+                throw new CallFailedException(Symbol.Intern(predicateName));
+        }
+
+        /// <summary>
         /// Compile a single statement (rule or fact) and add it to the KB.
         /// </summary>
         /// <param name="statement"></param>

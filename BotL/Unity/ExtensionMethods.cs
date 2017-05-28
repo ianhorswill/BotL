@@ -54,5 +54,31 @@ namespace BotL.Unity
             UnityUtilities.SetUnityGlobals(gameObject, null);
             return Engine.Run(predicateName);
         }
+
+        /// <summary>
+        /// Run the specified predicate with no arguments.  Throw exception if it fails.
+        /// Intended for calling imperatives.
+        /// </summary>
+        /// <param name="comp">Component calling predicate; used to set $this and $gameobject.</param>
+        /// <param name="predicateName">Name of BotL predicate to run.</param>
+        // ReSharper disable once UnusedMember.Global
+        public static void RunBotL(this Component comp, string predicateName)
+        {
+            if (!comp.IsTrue(predicateName))
+                throw new CallFailedException(Symbol.Intern(predicateName));
+        }
+
+        /// <summary>
+        /// Run the specified predicate with no arguments.  Throw exception if it fails.
+        /// Intended for calling imperatives.
+        /// </summary>
+        /// <param name="gameObject">GameObject calling predicate; used to set $gameobject.</param>
+        /// <param name="predicateName">Name of BotL predicate to run.</param>
+        // ReSharper disable once UnusedMember.Global
+        public static void RunBotL(this GameObject gameObject, string predicateName)
+        {
+            if (!gameObject.IsTrue(predicateName))
+                throw new CallFailedException(Symbol.Intern(predicateName));
+        }
     }
 }

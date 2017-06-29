@@ -124,6 +124,7 @@ namespace BotL
         internal ELNode FirstChild;
         #endregion
 
+        #region Properties
         public int ChildIntValue
         {
             get
@@ -189,6 +190,69 @@ namespace BotL
                 throw new InvalidOperationException("ChildValue called on node with no children: " + this);
             }
         }
+
+        public IEnumerable<int> AllChildIntValues
+        {
+            get
+            {
+                for (var c = FirstChild; c != null; c = c.NextSibling)
+                {
+                    if (c.Key.Type != TaggedValueType.Integer)
+                        throw new InvalidOperationException(
+                            "ChildIntValues called on node with child wrong key type: " + c.Key.Value);
+                    yield return c.Key.integer;
+                }
+            }
+        }
+
+        public IEnumerable<float> AllChildFloatValues
+        {
+            get
+            {
+                for (var c = FirstChild; c != null; c = c.NextSibling)
+                {
+                    if (c.Key.Type != TaggedValueType.Float)
+                        throw new InvalidOperationException(
+                            "ChildIntValues called on node with child wrong key type: " + c.Key.Value);
+                    yield return c.Key.floatingPoint;
+                }
+            }
+        }
+
+        public IEnumerable<object> AllChildValues
+        {
+            get
+            {
+                for (var c = FirstChild; c != null; c = c.NextSibling)
+                {
+                    yield return c.Key.Value;
+                }
+            }
+        }
+
+        public IEnumerable<T> ChildValues<T>() where T: class
+        {
+            for (var c = FirstChild; c != null; c = c.NextSibling)
+            {
+                T value = c.Key.Value as T;
+                if (value == null)
+                    throw new InvalidOperationException(
+                            $"ChildValues<{typeof(T).Name}> called on node with child wrong key type: {c.Key.Value}");
+                yield return value;
+            }
+        }
+
+        public int ChildCount
+        {
+            get
+            {
+                int count = 0;
+                for (var c = FirstChild; c != null; c = c.NextSibling)
+                    count++;
+                return count;
+            }
+        }
+        #endregion
         /// <summary>
         /// Find a child matching the specified key.
         /// </summary>
@@ -538,6 +602,12 @@ namespace BotL
             if (FirstChild.NextSibling != null)
                 FirstChild.NextSibling.previousSibling = FirstChild;
             return FirstChild;
+        }
+
+        public void DeleteAllChildren()
+        {
+            while (FirstChild != null)
+                FirstChild.Delete();
         }
 
         /// <summary>

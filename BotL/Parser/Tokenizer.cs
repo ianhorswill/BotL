@@ -75,6 +75,8 @@ namespace BotL.Parser
             }
             if (first == '"')
                 return ReadString();
+            if (first == '\'')
+                return ReadQuotedSymbol();
             token.Append(first);
             if (IsSingleCharToken(first))
                 return Symbol.Intern(token.ToString());
@@ -154,6 +156,13 @@ namespace BotL.Parser
         private static bool IsSingleCharToken(char first)
         {
             return SingleCharTokens.Contains(first);
+        }
+
+        private object ReadQuotedSymbol()
+        {
+            for (var c = Get(); c != '\''; c = Get())
+                token.Append(c);
+            return Symbol.Intern(token.ToString());
         }
 
         private object ReadSymbol()

@@ -34,6 +34,9 @@ namespace BotL
     // ReSharper disable once InconsistentNaming
     public static class KB
     {
+        internal static readonly GlobalVariable TopLevelPredicate = GlobalVariable.DefineGlobal("%topLevelPredicate", null);
+        internal static readonly GlobalVariable TopLevelArgV = GlobalVariable.DefineGlobal("%topLevelArgv", null);
+
         static KB()
         {
             Primops.DefinePrimops(); // Must come first or calls to primops in the librarty code below get confused.
@@ -44,7 +47,7 @@ namespace BotL
             Lock(Symbol.TruePredicate, 0);
             Compiler.Compiler.Compile("X = X");
             Lock("=", 2);
-            Compiler.Compiler.Compile("apply(P, L) <-- apply_internal(P, length(L), L)");
+            Compiler.Compiler.Compile("apply(P, L) <-- C=length(L), apply_internal(P, C, L)");
             Compiler.Compiler.Compile("apply_internal(P, 0, _) <-- !, call(P)");
             Compiler.Compiler.Compile("apply_internal(P, 1, L) <-- !, call(P, L[0])");
             Compiler.Compiler.Compile("apply_internal(P, 2, L) <-- !, call(P, L[0], L[1])");
@@ -57,6 +60,9 @@ namespace BotL
             Compiler.Compiler.Compile("apply_internal(_, _, _) <-- '%call_failed'(apply)");
             Lock("apply",2);
             Lock("apply_internal", 3);
+
+            Compiler.Compiler.Compile("'%apply_top_level' <-- apply($'%topLevelPredicate', $'%topLevelArgv')");
+            Lock("%apply_top_level", 0);
         }
 
         /// <summary>

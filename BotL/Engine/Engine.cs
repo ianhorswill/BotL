@@ -148,6 +148,20 @@ namespace BotL
         {
             return Run(KB.Predicate(new PredicateIndicator(entryPoint)));
         }
+
+        private static readonly Predicate TopLevelApply = KB.Predicate(Symbol.Intern("%apply_top_level"), 0);
+
+        public static bool Apply(Symbol functor, params object[] arguments)
+        {
+            KB.TopLevelPredicate.Value.SetReference(functor);
+            KB.TopLevelArgV.Value.SetReference(arguments);
+            return Run(TopLevelApply);
+        }
+
+        public static bool Apply(string functor, params object[] arguments)
+        {
+            return Apply(Symbol.Intern(functor), arguments);
+        }
         #endregion
 
         #region Trampoline used to start user code

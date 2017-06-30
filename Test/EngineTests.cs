@@ -463,6 +463,18 @@ a(X,Y) <-- g(Y,X)");
             TestFalse("apply('=', array(1,2))");
         }
 
+        [TestMethod]
+        public void EngineApplySucceed()
+        {
+            Assert.IsTrue(Engine.Apply(Symbol.Equal, 1, 1));
+        }
+
+        [TestMethod]
+        public void EngineApplyFail()
+        {
+            Assert.IsFalse(Engine.Apply(Symbol.Equal, 1, 2));
+        }
+
         private void TestFalse(string code)
         {
             Assert.IsFalse(Engine.Run(code));

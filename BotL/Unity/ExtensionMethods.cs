@@ -22,6 +22,8 @@
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
 #endregion
+
+using JetBrains.Annotations;
 using UnityEngine;
 
 namespace BotL.Unity
@@ -41,7 +43,22 @@ namespace BotL.Unity
             UnityUtilities.SetUnityGlobals(comp.gameObject, comp);
             return Engine.Run(predicateName);
         }
-        
+
+        /// <summary>
+        /// Run the specified predicate with the specified arguments.  Returns true if it succeeds.
+        /// WARNING: this uses a params argument, so it allocates memory.
+        /// </summary>
+        /// <param name="comp">Component calling predicate; used to set $this and $gameobject.</param>
+        /// <param name="predicateName">Name of BotL predicate to run.</param>
+        /// <returns>Success or failure</returns>
+        /// <param name="arguments">Arguments to pass to predicate.</param>
+        [UsedImplicitly]
+        public static bool IsTrue(this Component comp, string predicateName, params object[] arguments)
+        {
+            UnityUtilities.SetUnityGlobals(comp.gameObject, comp);
+            return Engine.Apply(predicateName, arguments);
+        }
+
         /// <summary>
         /// Run the specified predicate with no arguments.  Returns true if it succeeds.
         /// </summary>
@@ -53,6 +70,21 @@ namespace BotL.Unity
         {
             UnityUtilities.SetUnityGlobals(gameObject, null);
             return Engine.Run(predicateName);
+        }
+
+        /// <summary>
+        /// Run the specified predicate with the specified arguments.  Returns true if it succeeds.
+        /// WARNING: uses a params argument, so it allocates memory
+        /// </summary>
+        /// <param name="gameObject">GameObject calling predicate; used to set $gameobject.</param>
+        /// <param name="predicateName">Name of BotL predicate to run.</param>
+        /// <returns>Success or failure</returns>
+        /// <param name="arguments">Arguments to pass to predicate.</param>
+        [UsedImplicitly]
+        public static bool IsTrue(this GameObject gameObject, string predicateName, params object[] arguments)
+        {
+            UnityUtilities.SetUnityGlobals(gameObject, null);
+            return Engine.Apply(predicateName, arguments);
         }
 
         /// <summary>
@@ -69,6 +101,21 @@ namespace BotL.Unity
         }
 
         /// <summary>
+        /// Run the specified predicate with the specified arguments.  Throw exception if it fails.
+        /// Intended for calling imperatives.
+        /// WARNING: uses a params argument, so allocates memory
+        /// </summary>
+        /// <param name="comp">Component calling predicate; used to set $this and $gameobject.</param>
+        /// <param name="predicateName">Name of BotL predicate to run.</param>
+        /// <param name="arguments">Arguments to pass to predicate.</param>
+        [UsedImplicitly]
+        public static void RunBotL(this Component comp, string predicateName, params object[] arguments)
+        {
+            if (!comp.IsTrue(predicateName, arguments))
+                throw new CallFailedException(Symbol.Intern(predicateName));
+        }
+
+        /// <summary>
         /// Run the specified predicate with no arguments.  Throw exception if it fails.
         /// Intended for calling imperatives.
         /// </summary>
@@ -78,6 +125,21 @@ namespace BotL.Unity
         public static void RunBotL(this GameObject gameObject, string predicateName)
         {
             if (!gameObject.IsTrue(predicateName))
+                throw new CallFailedException(Symbol.Intern(predicateName));
+        }
+
+        /// <summary>
+        /// Run the specified predicate with the specified arguments.  Throw exception if it fails.
+        /// Intended for calling imperatives.
+        /// WARNING: uses a params argument, so allocates memory.
+        /// </summary>
+        /// <param name="gameObject">GameObject calling predicate; used to set $gameobject.</param>
+        /// <param name="predicateName">Name of BotL predicate to run.</param>
+        /// <param name="arguments">Arguments to pass to predicate.</param>
+        [UsedImplicitly]
+        public static void RunBotL(this GameObject gameObject, string predicateName, params object[] arguments)
+        {
+            if (!gameObject.IsTrue(predicateName, arguments))
                 throw new CallFailedException(Symbol.Intern(predicateName));
         }
     }

@@ -451,6 +451,18 @@ a(X,Y) <-- g(Y,X)");
             TestTrue("call(con, a, X), X=c");
         }
 
+        [TestMethod]
+        public void ApplySucceed()
+        {
+            TestTrue("apply('=', array(1,1))");
+        }
+
+        [TestMethod]
+        public void ApplyFail()
+        {
+            TestFalse("apply('=', array(1,2))");
+        }
+
         private void TestFalse(string code)
         {
             Assert.IsFalse(Engine.Run(code));

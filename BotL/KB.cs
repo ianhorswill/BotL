@@ -44,6 +44,19 @@ namespace BotL
             Lock(Symbol.TruePredicate, 0);
             Compiler.Compiler.Compile("X = X");
             Lock("=", 2);
+            Compiler.Compiler.Compile("apply(P, L) <-- apply_internal(P, length(L), L)");
+            Compiler.Compiler.Compile("apply_internal(P, 0, _) <-- !, call(P)");
+            Compiler.Compiler.Compile("apply_internal(P, 1, L) <-- !, call(P, L[0])");
+            Compiler.Compiler.Compile("apply_internal(P, 2, L) <-- !, call(P, L[0], L[1])");
+            Compiler.Compiler.Compile("apply_internal(P, 3, L) <-- !, call(P, L[0], L[1], L[2])");
+            Compiler.Compiler.Compile("apply_internal(P, 4, L) <-- !, call(P, L[0], L[1], L[2], L[3])");
+            Compiler.Compiler.Compile("apply_internal(P, 5, L) <-- !, call(P, L[0], L[1], L[2], L[3], L[4])");
+            Compiler.Compiler.Compile("apply_internal(P, 6, L) <-- !, call(P, L[0], L[1], L[2], L[3], L[4], L[5])");
+            Compiler.Compiler.Compile("apply_internal(P, 7, L) <-- !, call(P, L[0], L[1], L[2], L[3], L[4], L[5], L[6])");
+            Compiler.Compiler.Compile("apply_internal(P, 8, L) <-- !, call(P, L[0], L[1], L[2], L[3], L[4], L[5], L[6], L[7])");
+            Compiler.Compiler.Compile("apply_internal(_, _, _) <-- '%call_failed'(apply)");
+            Lock("apply",2);
+            Lock("apply_internal", 3);
         }
 
         /// <summary>

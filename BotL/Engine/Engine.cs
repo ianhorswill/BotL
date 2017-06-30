@@ -1142,6 +1142,7 @@ namespace BotL
                             goalPredicate = EnvironmentStack[goalFrame].Predicate;
                             goalCode = EnvironmentStack[goalFrame].CompiledClause.Code;
                             startOfCall = goalPc = cp.CallingPC;
+                            callerCp = cTop;
                             //Debug.Assert(goalFrame == 0 || goal[startOfCall - 2] == (byte) Opcode.CGoal,
                             //    "Invalid startOfCall");
 
@@ -1171,7 +1172,6 @@ namespace BotL
                                 }
                             }
                             headCode = headRule.Code;
-                            callerCp = cTop;
 
                             DebugConsoleRestartMessage(goalPredicate, headPredicate, cp);
 

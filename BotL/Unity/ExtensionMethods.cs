@@ -60,6 +60,23 @@ namespace BotL.Unity
         }
 
         /// <summary>
+        /// Run the specified predicate with the specified arguments, followed by an extra, unbound,
+        /// output argument.  Returns the value of the output argument.  Thus, FunctionValue("=", 1)
+        /// would run =(1,R), and return the value of R (which would be 1).
+        /// WARNING: this uses a params argument, so it allocates memory.
+        /// </summary>
+        /// <param name="comp">Component calling predicate; used to set $this and $gameobject.</param>
+        /// <param name="predicateName">Name of BotL predicate to run.</param>
+        /// <returns>Success or failure</returns>
+        /// <param name="arguments">Arguments to pass to predicate.</param>
+        [UsedImplicitly]
+        public static T FunctionValue<T>(this Component comp, string predicateName, params object[] arguments)
+        {
+            UnityUtilities.SetUnityGlobals(comp.gameObject, comp);
+            return Engine.ApplyFunction<T>(predicateName, arguments);
+        }
+
+        /// <summary>
         /// Run the specified predicate with no arguments.  Returns true if it succeeds.
         /// </summary>
         /// <param name="gameObject">GameObject calling predicate; used to set $gameobject.</param>
@@ -85,6 +102,23 @@ namespace BotL.Unity
         {
             UnityUtilities.SetUnityGlobals(gameObject, null);
             return Engine.Apply(predicateName, arguments);
+        }
+
+        /// <summary>
+        /// Run the specified predicate with the specified arguments, followed by an extra, unbound,
+        /// output argument.  Returns the value of the output argument.  Thus, FunctionValue("=", 1)
+        /// would run =(1,R), and return the value of R (which would be 1).
+        /// WARNING: this uses a params argument, so it allocates memory.
+        /// </summary>
+        /// <param name="gameObject">GameObject calling predicate; used to set $gameobject; $this is set to null.</param>
+        /// <param name="predicateName">Name of BotL predicate to run.</param>
+        /// <returns>Success or failure</returns>
+        /// <param name="arguments">Arguments to pass to predicate.</param>
+        [UsedImplicitly]
+        public static T FunctionValue<T>(this GameObject gameObject, string predicateName, params object[] arguments)
+        {
+            UnityUtilities.SetUnityGlobals(gameObject, null);
+            return Engine.ApplyFunction<T>(predicateName, arguments);
         }
 
         /// <summary>

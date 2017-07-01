@@ -150,6 +150,7 @@ namespace BotL
         }
 
         private static readonly Predicate TopLevelApply = KB.Predicate(Symbol.Intern("%apply_top_level"), 0);
+        private static readonly Predicate TopLevelApplyFunction = KB.Predicate(Symbol.Intern("%apply_top_level_function"), 0);
 
         public static bool Apply(Symbol functor, params object[] arguments)
         {
@@ -162,6 +163,24 @@ namespace BotL
         {
             return Apply(Symbol.Intern(functor), arguments);
         }
+
+        public static T ApplyFunction<T>(Symbol functor, params object[] arguments)
+        {
+            KB.TopLevelPredicate.Value.SetReference(functor);
+            KB.TopLevelArgV.Value.SetReference(arguments);
+            if (!Run(TopLevelApplyFunction))
+                throw new CallFailedException(functor);
+            var result = KB.TopLevelReturnValue.Value.Value;
+            if (result is T)
+                return (T)result;
+            throw new InvalidCastException($"Call to BotL predicate {functor} did not return a value of type {typeof(T).Name}");
+        }
+
+        public static T ApplyFunction<T>(string functor, params object[] arguments)
+        {
+            return ApplyFunction<T>(Symbol.Intern(functor), arguments);
+        }
+
         #endregion
 
         #region Trampoline used to start user code

@@ -22,6 +22,8 @@
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
 #endregion
+
+using System;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using BotL;
 using BotL.Compiler;
@@ -473,6 +475,28 @@ a(X,Y) <-- g(Y,X)");
         public void EngineApplyFail()
         {
             Assert.IsFalse(Engine.Apply(Symbol.Equal, 1, 2));
+        }
+
+        [TestMethod]
+        public void EngineApplyFunctionSucceed()
+        {
+            Assert.AreEqual(1, Engine.ApplyFunction<int>("=", 1));
+        }
+
+        [TestMethod, ExpectedException(typeof(CallFailedException))]
+        public void EngineApplyFunctionFail()
+        {
+            // Why this test makes sense:
+            // ApplyFunction calls the predicate with one extra, unbound argument, to take the return
+            // value.  There are no args here, so it calls nonvar with one argument, the unbound variable.
+            // That causes nonvar to fail, which then tests ApplyFunction's handling of failed calls.
+            Engine.ApplyFunction<int>("nonvar");
+        }
+
+        [TestMethod, ExpectedException(typeof(InvalidCastException))]
+        public void EngineApplyFunctionTypeError()
+        {
+            Engine.ApplyFunction<int>("=", "foo");
         }
 
         private void TestFalse(string code)

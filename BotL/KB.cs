@@ -36,6 +36,7 @@ namespace BotL
     {
         internal static readonly GlobalVariable TopLevelPredicate = GlobalVariable.DefineGlobal("%topLevelPredicate", null);
         internal static readonly GlobalVariable TopLevelArgV = GlobalVariable.DefineGlobal("%topLevelArgv", null);
+        internal static readonly GlobalVariable TopLevelReturnValue = GlobalVariable.DefineGlobal("%topLevelReturnValue", null);
 
         static KB()
         {
@@ -63,6 +64,23 @@ namespace BotL
 
             Compiler.Compiler.Compile("'%apply_top_level' <-- apply($'%topLevelPredicate', $'%topLevelArgv')");
             Lock("%apply_top_level", 0);
+
+            Compiler.Compiler.Compile("apply_function(P, L, R) <-- C=length(L), apply_function_internal(P, C, L, R)");
+            Compiler.Compiler.Compile("apply_function_internal(P, 0, _, R) <-- !, call(P, R)");
+            Compiler.Compiler.Compile("apply_function_internal(P, 1, L, R) <-- !, call(P, L[0], R)");
+            Compiler.Compiler.Compile("apply_function_internal(P, 2, L, R) <-- !, call(P, L[0], L[1], R)");
+            Compiler.Compiler.Compile("apply_function_internal(P, 3, L, R) <-- !, call(P, L[0], L[1], L[2], R)");
+            Compiler.Compiler.Compile("apply_function_internal(P, 4, L, R) <-- !, call(P, L[0], L[1], L[2], L[3], R)");
+            Compiler.Compiler.Compile("apply_function_internal(P, 5, L, R) <-- !, call(P, L[0], L[1], L[2], L[3], L[4], R)");
+            Compiler.Compiler.Compile("apply_function_internal(P, 6, L, R) <-- !, call(P, L[0], L[1], L[2], L[3], L[4], L[5], R)");
+            Compiler.Compiler.Compile("apply_function_internal(P, 7, L, R) <-- !, call(P, L[0], L[1], L[2], L[3], L[4], L[5], L[6], R)");
+            Compiler.Compiler.Compile("apply_function_internal(P, 8, L, R) <-- !, call(P, L[0], L[1], L[2], L[3], L[4], L[5], L[6], L[7], R)");
+            Compiler.Compiler.Compile("apply_function_internal(_, _, _, _) <-- '%call_failed'(apply_function)");
+            Lock("apply_function", 2);
+            Lock("apply_function_internal", 3);
+
+            Compiler.Compiler.Compile("'%apply_top_level_function' <-- apply_function($'%topLevelPredicate', $'%topLevelArgv', R), set!($'%topLevelReturnValue' = R)");
+            Lock("%apply_top_level_function", 0);
         }
 
         /// <summary>

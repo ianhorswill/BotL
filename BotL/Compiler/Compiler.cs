@@ -272,10 +272,16 @@ namespace BotL.Compiler
         {
             CurrentTopLevelExpression = assertion;
             CurrentGoal = null;
+
+            // SPECIAL CASE: declaration
             if (ProcessDeclaration(assertion))
                 return null;
+
+            // It's not a declaration; transform it.
             assertion = Transform.TransformTopLevel(assertion);
             CurrentGoal = null;
+
+            // Analyze variables in the transformed code
             BindingEnvironment e = new BindingEnvironment();
             assertion = Transform.Variablize(assertion, e);
             AnalyzeVariables(assertion, e);
@@ -283,8 +289,30 @@ namespace BotL.Compiler
                 e.IncrementVoidVariableReferences();
             AllocateVariables(assertion, e);
 
+            var isRule = IsRule(assertion);
+
+            // SPECIAL CASE: non-rule assertions
+            if (!isRule && e.VariableCount == 0)
+            {
+                // SPECIAL-CASE: storing to the EL database
+                if (Call.IsFunctor(assertion, Symbol.Slash, 2) || Call.IsFunctor(assertion, Symbol.Colon, 2))
+                {
+                    DoCompileTimeELAssertion((Call) assertion);
+                    return null;
+                }
+
+                // SPECIAL-CASE: storing into a table
+                var predicate = KB.Predicate(new PredicateIndicator(assertion));
+                if (predicate.IsTable)
+                {
+                    predicate.Table.AddRow(((Call)assertion).Arguments);
+                    return null;
+                }
+            }
+
+            // We have to generate code for it
             CompiledClause clause;
-            if (Call.IsFunctor(assertion, Symbol.Implication, 2))
+            if (isRule)
             {
                 var implication = assertion as Call;
                 // ReSharper disable once PossibleNullReferenceException
@@ -295,11 +323,50 @@ namespace BotL.Compiler
             }
             else
             {
+                // It's a fact
                 clause = CompileFact(assertion, e);
                 Predicate.AddClause(new PredicateIndicator(assertion), clause);
             }
             GenerateSingletonWarnings(clause, e);
             return e;
+        }
+
+        private static ELNode DoCompileTimeELAssertion(Call assertion)
+        {
+            if (assertion.IsFunctor(Symbol.Slash, 1))
+            {
+                return ELNode.Root / assertion.Arguments[0];
+            }
+
+            if (assertion.Arity != 2)
+                throw new InvalidOperationException($"Invalid EL expression {assertion}");
+
+            var parentExp = assertion.Arguments[0] as Call;
+            if (parentExp == null)
+                throw new InvalidOperationException($"Invalid EL expression {assertion.Arguments[0]}");
+
+            var parent = DoCompileTimeELAssertion(parentExp);
+
+            var childKey = assertion.Arguments[1];
+            if (childKey is Call)
+                throw new InvalidOperationException($"Invalid EL key {assertion.Arguments[1]}");
+
+            switch (assertion.Functor.Name)
+            {
+                case "/":
+                    return parent / childKey;
+
+                case ":":
+                    return parent % childKey;
+
+                default:
+                    throw new InvalidOperationException($"Invalid EL expression {assertion}");
+            }
+        }
+
+        private static bool IsRule(object assertion)
+        {
+            return Call.IsFunctor(assertion, Symbol.Implication, 2);
         }
 
         private static void GenerateSingletonWarnings(CompiledClause clause, BindingEnvironment e)

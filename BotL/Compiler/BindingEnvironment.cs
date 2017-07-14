@@ -35,6 +35,10 @@ namespace BotL.Compiler
         private readonly Dictionary<Variable, VariableInfo> variableInfoTable = new Dictionary<Variable, VariableInfo>();
         private ushort nextIndex;
 
+        // Number of variables appearing in assertion being compiled.
+        // Used to help detect non-rule assertions.
+        public int VariableCount => variableTable.Count;
+
         internal IEnumerable<VariableInfo> Variables
         {
             get

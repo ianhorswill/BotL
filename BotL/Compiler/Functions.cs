@@ -35,6 +35,7 @@ namespace BotL
     public static class Functions
     {
         private static readonly HashSet<PredicateIndicator> HoistableFunctions = new HashSet<PredicateIndicator>();
+        private static readonly Dictionary<PredicateIndicator, Func<Call, bool>> HoistChecks = new Dictionary<PredicateIndicator, Func<Call, bool>>();
 
         public static void DeclareFunction(string name, int arity)
         {
@@ -46,10 +47,27 @@ namespace BotL
             HoistableFunctions.Add(new PredicateIndicator(p.Functor, p.Arity - 1));
         }
 
+        internal static void DeclareHoistCheck(string functor, int arity, Func<Call, bool> check)
+        {
+            DeclareHoistCheck(new PredicateIndicator(functor, arity), check);
+        }
+
+        internal static void DeclareHoistCheck(PredicateIndicator p, Func<Call, bool> check)
+        {
+            HoistChecks[p] = check;
+        }
+
         public static bool IsFunctionRelation(object exp)
         {
             if (exp is Symbol || exp is Call)
-                return HoistableFunctions.Contains(new PredicateIndicator(exp));
+            {
+                var predicateIndicator = new PredicateIndicator(exp);
+                if (!HoistableFunctions.Contains(predicateIndicator))
+                    return false;
+                if (HoistChecks.TryGetValue(predicateIndicator, out Func<Call, bool> test))
+                    return test((Call) exp);
+                return true;
+            }
             return false;
         }
 

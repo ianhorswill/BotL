@@ -126,6 +126,11 @@ namespace BotL
         /// </summary>
         Length,
         /// <summary>
+        /// Format: Item
+        /// Look up an item in a collection
+        /// </summary>
+        Item,
+        /// <summary>
         /// Format: Array Length
         /// Creates an object[] array of the specified length, fills it with the top Length
         /// values of the stack, and pushes the array.
@@ -295,6 +300,10 @@ namespace BotL
             OpcodeTable[new PredicateIndicator("new", 1)] = FOpcode.Constructor;
             OpcodeTable[new PredicateIndicator("::", 2)] = FOpcode.ComponentLookup;
             OpcodeTable[new PredicateIndicator("length", 1)] = FOpcode.Length;
+            OpcodeTable[new PredicateIndicator("item", 2)] = FOpcode.Item;
+            // if a call to item in argument position has a constant for the index, don't hoist it
+            // call the builtin function instead.
+            Functions.DeclareHoistCheck("item", 2, c => !(c.Arguments[1] is int));
 
             OpcodeTable[new PredicateIndicator("abs", 1)] = FOpcode.Abs;
             OpcodeTable[new PredicateIndicator("sqrt", 1)] = FOpcode.Sqrt;

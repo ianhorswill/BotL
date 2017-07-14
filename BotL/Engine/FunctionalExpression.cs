@@ -206,6 +206,21 @@ namespace BotL
                     }
                         break;
 
+                    case FOpcode.Item:
+                    {
+                        var indexAddr = --stack;
+                        if (DataStack[indexAddr].Type != TaggedValueType.Integer)
+                            throw new ArgumentTypeException("item", 2, "Index argument is not an integer",
+                                DataStack[indexAddr].Value);
+                        var listAddr = --stack;
+                        var list = DataStack[listAddr].reference as IList;
+                        if (DataStack[listAddr].Type != TaggedValueType.Reference || list == null)
+                            throw new ArgumentTypeException("item", 1, "List argument is not an list",
+                                DataStack[indexAddr].Value);
+                        DataStack[stack++].SetGeneral(list[DataStack[indexAddr].integer]);
+                    }
+                        break;
+
                     case FOpcode.Array:
                     {
                         var result = new object[clause[pc++]];

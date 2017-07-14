@@ -28,7 +28,6 @@ using System.IO;
 using System.Linq;
 using BotL.Parser;
 using BotL.Unity;
-using UnityEngine;
 
 namespace BotL.Compiler
 {
@@ -38,6 +37,7 @@ namespace BotL.Compiler
         ///  The goal currently being compiled
         /// </summary>
         public static object CurrentGoal { get; set; }
+        // ReSharper disable once UnusedAutoPropertyAccessor.Global
         public static object CurrentTopLevelExpression { get; private set; }
 
 
@@ -74,8 +74,9 @@ namespace BotL.Compiler
             var path = name as string;
             if (path == null)
             {
-                if (name is Symbol)
-                    path = ((Symbol) name).Name;
+                var symbol = name as Symbol;
+                if (symbol != null)
+                    path = symbol.Name;
                 else throw new ArgumentException("Invalid source module name: "+name);
             }
 
@@ -766,7 +767,7 @@ namespace BotL.Compiler
                         fOpcode == FOpcode.Hashset  || fOpcode == FOpcode.Format)
                         b.Emit((byte) c.Arity);
                     else if (fOpcode == FOpcode.UserFunction)
-                        b.Emit((byte)UserFunction.Subopcode(c));
+                        b.Emit(UserFunction.Subopcode(c));
                 }
             }
             else

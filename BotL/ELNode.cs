@@ -190,7 +190,9 @@ namespace BotL
                 throw new InvalidOperationException("ChildValue called on node with no children: " + this);
             }
         }
+        #endregion
 
+        #region Iterators
         public IEnumerable<int> AllChildIntValues
         {
             get
@@ -230,14 +232,14 @@ namespace BotL
             }
         }
 
-        public IEnumerable<T> ChildValues<T>() where T: class
+        public IEnumerable<T> EnumerateChildValues<T>() where T: class
         {
             for (var c = FirstChild; c != null; c = c.NextSibling)
             {
                 T value = c.Key.Value as T;
                 if (value == null)
                     throw new InvalidOperationException(
-                            $"ChildValues<{typeof(T).Name}> called on node with child wrong key type: {c.Key.Value}");
+                            $"EnumerateChildValues<{typeof(T).Name}> called on node with child wrong key type: {c.Key.Value}");
                 yield return value;
             }
         }

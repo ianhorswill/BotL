@@ -221,6 +221,17 @@ namespace BotL
                     }
                         break;
 
+                    case FOpcode.Key:
+                        {
+                            var addr = stack - 1;
+                            var elNode = DataStack[addr].Value as ELNode;
+                            if (elNode == null)
+                                throw new ArgumentTypeException("key", 1, "Argument is not an EL node",
+                                    DataStack[addr].Value);
+                            DataStack[addr] = elNode.Key;  // This is a tagged value so we just copy it.
+                        }
+                        break;
+
                     case FOpcode.Array:
                     {
                         var result = new object[clause[pc++]];

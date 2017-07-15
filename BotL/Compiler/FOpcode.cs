@@ -131,6 +131,11 @@ namespace BotL
         /// </summary>
         Item,
         /// <summary>
+        /// Format: Key
+        /// Replaces TOS with the key of the ELNode on top of the stack
+        /// </summary>
+        Key,
+        /// <summary>
         /// Format: Array Length
         /// Creates an object[] array of the specified length, fills it with the top Length
         /// values of the stack, and pushes the array.
@@ -304,6 +309,8 @@ namespace BotL
             // if a call to item in argument position has a constant for the index, don't hoist it
             // call the builtin function instead.
             Functions.DeclareHoistCheck("item", 2, c => !(c.Arguments[1] is int));
+
+            OpcodeTable[new PredicateIndicator("key", 1)] = FOpcode.Key;
 
             OpcodeTable[new PredicateIndicator("abs", 1)] = FOpcode.Abs;
             OpcodeTable[new PredicateIndicator("sqrt", 1)] = FOpcode.Sqrt;

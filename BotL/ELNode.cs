@@ -510,6 +510,9 @@ namespace BotL
                 return ExpandWrite(elExpr, Symbol.Underscore);
             if (updateOperation.Name == "retract_internal!")
             {
+                if (Variable.IsVariableExpression(elExpr))
+                    return new Call("delete_el_node!", elExpr);
+
                 var node = Variable.MakeGenerated("*Node*");
                 var lookup = ExpandEL(elExpr, node);
                 return Macros.And(lookup, new Call("delete_el_node!", node));

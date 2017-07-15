@@ -50,7 +50,7 @@ namespace BotL.Compiler
             if (!StructSlots.TryGetValue(type, out slots))
                 throw new ArgumentException("Unknown struct name: " + type);
             var size = slots.Length;
-            if (Transform.IsVariableName(o))
+            if (Variable.IsVariableName(o))
             {
                 FlattenVariable((Symbol)o, slots, destination);
             }

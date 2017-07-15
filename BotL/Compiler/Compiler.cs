@@ -24,10 +24,13 @@
 #endregion
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using BotL.Parser;
 using BotL.Unity;
+using JetBrains.Annotations;
 
 namespace BotL.Compiler
 {
@@ -39,7 +42,6 @@ namespace BotL.Compiler
         public static object CurrentGoal { get; set; }
         // ReSharper disable once UnusedAutoPropertyAccessor.Global
         public static object CurrentTopLevelExpression { get; private set; }
-
 
         public const int MaxSpecialPredicateArity=10;
         static Compiler()
@@ -85,6 +87,7 @@ namespace BotL.Compiler
             return UnityUtilities.CanonicalizePath(path);
         }
 
+        private static Exception previouslyPrintedLoadException;
         public static void CompileFile(string path)
         {
             var canonical = CanonicalizeSourceName(path);
@@ -98,8 +101,13 @@ namespace BotL.Compiler
                 }
                 catch (Exception e)
                 {
-                    if (Repl.StandardError != null)
+                    while (e is TargetInvocationException) e = e.InnerException;
+
+                    if (Repl.StandardError != null && previouslyPrintedLoadException != e)
+                    {
                         Repl.StandardError.WriteLine($"{path}:{reader.Line}: {e.Message}");
+                        previouslyPrintedLoadException = e;
+                    }
                     throw;
                 }
             }

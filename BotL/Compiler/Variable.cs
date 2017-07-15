@@ -22,6 +22,9 @@
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
 #endregion
+
+using System;
+
 namespace BotL.Compiler
 {
     /// <summary>
@@ -82,6 +85,28 @@ namespace BotL.Compiler
         public override string ToString()
         {
             return Name.Name;
+        }
+
+        /// <summary>
+        /// Term is a variable name
+        /// </summary>
+        public static bool IsVariableName(object o)
+        {
+            var s = o as Symbol;
+            return s != null && IsVarChar(s.Name[0]);
+        }
+
+        /// <summary>
+        /// Is a valid first character for a variable name.
+        /// </summary>
+        private static bool IsVarChar(char c)
+        {
+            return c == '_' || Char.IsUpper(c);
+        }
+
+        public static bool IsVariableExpression(object o)
+        {
+            return o is Variable || IsVariableName(o);
         }
     }
 }

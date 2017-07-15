@@ -313,7 +313,7 @@ namespace BotL.Compiler
         /// <returns>Rewritten term</returns>
         internal static object Variablize(object term, BindingEnvironment e)
         {
-            if (IsVariableName(term))
+            if (Variable.IsVariableName(term))
                 return e[(Symbol)term];
             var c = term as Call;
             if (c != null)
@@ -337,23 +337,6 @@ namespace BotL.Compiler
                 }
             }
             return term;
-        }
-
-        /// <summary>
-        /// Term is a variable name
-        /// </summary>
-        public static bool IsVariableName(object o)
-        {
-            var s = o as Symbol;
-            return s != null && IsVarChar(s.Name[0]);
-        }
-
-        /// <summary>
-        /// Is a valid first character for a variable name.
-        /// </summary>
-        private static bool IsVarChar(char c)
-        {
-            return c == '_' || Char.IsUpper(c);
         }
         #endregion
     }

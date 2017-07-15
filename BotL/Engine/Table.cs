@@ -304,7 +304,11 @@ namespace BotL
 
         private static object Expand(Symbol functor, object arg)
         {
-            var c = (Call)arg;
+            if (Variable.IsVariableExpression(arg))
+                return ELNode.ExpandUpdate(functor, arg);
+            var c = arg as Call;
+            if (c==null)
+                throw new SyntaxError("Invalid assertion in assert!, update!, etc.", arg);
             if (c.Functor == Symbol.Slash || c.Functor == Symbol.Colon
                 || c.Functor.Name == ">>" || c.Functor == ELNode.WriteToEnd)
                 return ELNode.ExpandUpdate(functor, arg);

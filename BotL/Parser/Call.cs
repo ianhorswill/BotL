@@ -23,6 +23,7 @@
 // --------------------------------------------------------------------------------------------------------------------
 #endregion
 using System;
+using System.Runtime.CompilerServices;
 using BotL.Compiler;
 using BotL.Parser;
 
@@ -42,6 +43,8 @@ namespace BotL
 
         public readonly Symbol Functor;
         public readonly object[] Arguments;
+
+        public object this[int i] => Arguments[i];
 
         public int Arity => Arguments.Length;
 

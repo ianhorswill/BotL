@@ -139,12 +139,26 @@ namespace BotL.Compiler
             DeclareMacro("sum", 2,
                             (generator, result) =>
                             {
-                                var score = Variable.MakeGenerated("*Score*");
-                                var rtemp = Variable.MakeGenerated("*Sum*");
-                                return And(new Call("%init_zero", rtemp),
-                                           Or(And(Call.AddArgument(generator, score),
-                                                  new Call("%sum_update_and_repeat", rtemp, score)),
-                                              new Call(Symbol.Equal, rtemp, result)));
+                                if (Call.IsFunctor(generator, Symbol.Colon, 2))
+                                {
+                                    var c = (Call)generator;
+                                    var score = c[0];
+                                    var realGenerator = c[1];
+                                    var rtemp = Variable.MakeGenerated("*Sum*");
+                                    return And(new Call("%init_zero", rtemp),
+                                        Or(And(realGenerator,
+                                                new Call("%sum_update_and_repeat", rtemp, score)),
+                                            new Call(Symbol.Equal, rtemp, result)));
+                                }
+                                else
+                                {
+                                    var score = Variable.MakeGenerated("*Score*");
+                                    var rtemp = Variable.MakeGenerated("*Sum*");
+                                    return And(new Call("%init_zero", rtemp),
+                                        Or(And(Call.AddArgument(generator, score),
+                                                new Call("%sum_update_and_repeat", rtemp, score)),
+                                            new Call(Symbol.Equal, rtemp, result)));
+                                }
                             });
             Functions.DeclareFunction("sum", 1);
 
@@ -198,6 +212,9 @@ namespace BotL.Compiler
 
             DeclareMacro("@", 2, (nodeExpr, nodeVar) => new Call(">>", nodeExpr, nodeVar));
             Functions.DeclareFunction("@", 1);
+
+            DeclareMacro("value", 2, (nodeExpr, nodeVar) => new Call(":", nodeExpr, nodeVar));
+            Functions.DeclareFunction("value", 1);
         }
 
         private static object GenerateArgmaxInit(object result)

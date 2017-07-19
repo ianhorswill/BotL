@@ -148,6 +148,21 @@ namespace BotL
             deterministic: true);
             #endregion
 
+            #region Debugging support
+#if !DEBUG
+            DefinePrimop("log", 1, (argBase, ignore) =>
+            {
+                var value = DataStack[Deref(argBase)].Value;
+                var debugString = value as string;
+                if (debugString == null)
+                    debugString = Parser.ExpressionParser.WriteExpressionToString(value);
+                UnityEngine.Debug.Log(debugString);
+                return CallStatus.DeterministicSuccess;
+            },
+            deterministic: true);
+#endif
+            #endregion
+
             #region Environment-related stuff
             DefinePrimop("load", 1, (argBase, ignore) =>
             {
@@ -176,9 +191,9 @@ namespace BotL
                 return CallStatus.DeterministicSuccess;
             },
             mandatoryInstatiation: true, deterministic: true);
-            #endregion
+#endregion
 
-            #region C# interop
+#region C# interop
 
             DefinePrimop("set_property!", 3, (argBase, ignore) =>
             {
@@ -353,9 +368,9 @@ namespace BotL
             Functions.DeclareFunction("item", 2);
             Functions.DeclareFunction("listof", 1);
             Functions.DeclareFunction("setof", 1);
-            #endregion
+#endregion
 
-            #region Meta-operations
+#region Meta-operations
             DefinePrimop("call", 2, (argBase, ignore) =>
             {
                 var addr1 = Deref(argBase);
@@ -365,9 +380,9 @@ namespace BotL
                 DataStack[argBase].reference = Predicate(sym, DataStack[argBase + 1].integer);
                 return CallStatus.CallIndirect;
             });
-            #endregion
+#endregion
 
-            #region Global variables
+#region Global variables
             DefinePrimop("set_global!", 2, (argBase, ignore) =>
             {
                 var nameAddr = Deref(argBase);
@@ -403,7 +418,7 @@ namespace BotL
                 return CallStatus.DeterministicSuccess;
             },
             mandatoryInstatiation: true);
-            #endregion
+#endregion
         }
         
         static void UndoTrySetGlobal(ref UndoRecord u)
@@ -473,7 +488,7 @@ namespace BotL
             return PrimopArgument<T>.Instance.GetValue(index);
         }
 
-        #region Primop argument accessors specialized by type
+#region Primop argument accessors specialized by type
         private interface IPrimopArgument<T>
         {
             T GetValue(ushort index);
@@ -530,6 +545,6 @@ namespace BotL
                 return GetPrimopArgument(index).reference;
             }
         }
-        #endregion
+#endregion
     }
 }

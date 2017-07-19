@@ -24,13 +24,11 @@
 #endregion
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using BotL.Parser;
 using BotL.Unity;
-using JetBrains.Annotations;
 
 namespace BotL.Compiler
 {
@@ -88,20 +86,24 @@ namespace BotL.Compiler
         }
 
         private static Exception previouslyPrintedLoadException;
+        public static string CurrentSourceFile { get; private set; }
+
         public static void CompileFile(string path)
         {
             var canonical = CanonicalizeSourceName(path);
             using (var f = File.OpenText(canonical))
             {
+                var oldSource = CurrentSourceFile;
                 var reader = new PositionTrackingTextReader(f, path);
                 try
                 {
+                    CurrentSourceFile = canonical;
                     LoadedSourceFiles.Add(canonical);
                     CompileStream(new ExpressionParser(reader), true);
                 }
                 catch (Exception e)
                 {
-                    while (e is TargetInvocationException) e = e.InnerException;
+                    while (e is TargetInvocationException && e.InnerException != null) e = e.InnerException;
 
                     if (Repl.StandardError != null && previouslyPrintedLoadException != e)
                     {
@@ -109,6 +111,10 @@ namespace BotL.Compiler
                         previouslyPrintedLoadException = e;
                     }
                     throw;
+                }
+                finally
+                {
+                    CurrentSourceFile = oldSource;
                 }
             }
         }
@@ -1006,7 +1012,9 @@ namespace BotL.Compiler
 
         internal static Predicate MakeTable(Symbol name, int arity)
         {
-            return new Predicate(name, arity, null, new Table(name, arity))
+            var table = new Table(name, arity);
+            table.DefinedInFile = CurrentSourceFile;
+            return new Predicate(name, arity, null, table)
             {
                 FirstClause = SpecialClauses[arity]
             };
@@ -1024,6 +1032,7 @@ namespace BotL.Compiler
                     throw new Exception("No rows found in table file");
                 var arity = rows[0].Length;
                 var table = new Table(predicateName, arity);
+                table.DefinedInFile = CurrentSourceFile;
                 table.AddRows(rows);
                 if (parser.Signature.Count != rows[0].Length)
                 {

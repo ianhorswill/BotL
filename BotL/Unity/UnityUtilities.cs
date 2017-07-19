@@ -74,9 +74,9 @@ namespace BotL.Unity
         /// <returns>Full path</returns>
         internal static string CanonicalizePath(string path)
         {
-            if (Path.IsPathRooted(path))
-                return path;
-            return PathWithinAssets(path);
+            if (!Path.IsPathRooted(path))
+                path = PathWithinAssets(path);
+            return path.Replace('/', Path.DirectorySeparatorChar);
         }
 
         // This has to be in a separate method from CanonicalizePath in order for the latter

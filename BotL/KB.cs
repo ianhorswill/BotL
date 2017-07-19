@@ -260,9 +260,19 @@ namespace BotL
         private static void DefineTable(Symbol name, int arity)
         {
             var p = new PredicateIndicator(name, arity);
-            if (PredicateTable.ContainsKey(p))
-                throw new InvalidOperationException($"Predicate {p} is already defined");
+            CheckTableDefined(p);
             PredicateTable[p] = Compiler.Compiler.MakeTable(name, arity);
+        }
+
+        private static void CheckTableDefined(PredicateIndicator p)
+        {
+            if (PredicateTable.ContainsKey(p))
+            {
+                var pred = PredicateTable[p];
+                if (pred.IsTable && pred.Table.DefinedInFile != null)
+                    throw new InvalidOperationException($"Predicate {p} is already defined in file {pred.Table.DefinedInFile}");
+                throw new InvalidOperationException($"Predicate {p} is already defined");
+            }
         }
 
         /// <summary>
@@ -270,8 +280,7 @@ namespace BotL
         /// </summary>
         internal static void DefineTable(PredicateIndicator p)
         {
-            if (PredicateTable.ContainsKey(p))
-                throw new InvalidOperationException($"Predicate {p} is already defined");
+            CheckTableDefined(p);
             PredicateTable[p] = Compiler.Compiler.MakeTable(p.Functor, p.Arity);
         }
 

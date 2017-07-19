@@ -49,6 +49,7 @@ namespace BotL
         // ReSharper disable once MemberCanBePrivate.Global
         public readonly int Arity;
         private readonly List<object[]> rows = new List<object[]>();
+        public string DefinedInFile { get; set; }
 
         #region Row matching
         /// <summary>

@@ -483,7 +483,7 @@ namespace BotL
             }
             if (c.IsFunctor(Symbol.Slash, 2))
             {
-                if (c.Arguments[0] is Symbol)
+                if (c.Arguments[0] is Symbol || Call.IsFunctor(c.Arguments[0], Symbol.DollarSign, 1))
                     return new Call("read_nonexclusive", c.Arguments[0], c.Arguments[1], resultVar);
                 var temp = Variable.MakeGenerated("*Node*");
                 var parentCode = ExpandEL(c.Arguments[0], temp);
@@ -491,7 +491,7 @@ namespace BotL
             }
             if (c.IsFunctor(Symbol.Colon, 2))
             {
-                if (c.Arguments[0] is Symbol)
+                if (c.Arguments[0] is Symbol || Call.IsFunctor(c.Arguments[0], Symbol.DollarSign, 1))
                     return new Call("read_exclusive", c.Arguments[0], c.Arguments[1], resultVar);
                 var temp = Variable.MakeGenerated("*Node*");
                 var parentCode = ExpandEL(c.Arguments[0], temp);
@@ -532,7 +532,7 @@ namespace BotL
             }
             if (c.IsFunctor(Symbol.Slash, 2))
             {
-                if (c.Arguments[0] is Symbol)
+                if (c.Arguments[0] is Symbol || Call.IsFunctor(c.Arguments[0], Symbol.DollarSign, 1))
                     return new Call("write_nonexclusive!", c.Arguments[0], c.Arguments[1], resultVar);
                 var temp = Variable.MakeGenerated("*Node*");
                 var parentCode = ExpandWrite(c.Arguments[0], temp);
@@ -540,7 +540,7 @@ namespace BotL
             }
             if (c.IsFunctor(WriteToEnd, 2))
             {
-                if (c.Arguments[0] is Symbol)
+                if (c.Arguments[0] is Symbol || Call.IsFunctor(c.Arguments[0], Symbol.DollarSign, 1))
                     return new Call("write_nonexclusive_to_end!", c.Arguments[0], c.Arguments[1], resultVar);
                 var temp = Variable.MakeGenerated("*Node*");
                 var parentCode = ExpandWrite(c.Arguments[0], temp);
@@ -548,7 +548,7 @@ namespace BotL
             }
             if (c.IsFunctor(Symbol.Colon, 2))
             {
-                if (c.Arguments[0] is Symbol)
+                if (c.Arguments[0] is Symbol || Call.IsFunctor(c.Arguments[0], Symbol.DollarSign, 1))
                     return new Call("write_exclusive!", c.Arguments[0], c.Arguments[1], resultVar);
                 var temp = Variable.MakeGenerated("*Node*");
                 var parentCode = ExpandWrite(c.Arguments[0], temp);
@@ -658,23 +658,27 @@ namespace BotL
             get
             {
                 if (parent == null)
-                    return "/";
+                    return "@(/)";
                 var b = new StringBuilder();
+                b.Append("@(");
                 BuildName(b);
+                b.Append(")");
                 return b.ToString();
             }
         }
 
         void BuildName(StringBuilder b)
         {
-            if (parent != null)
-                b.Append('/');
-            if (parent?.parent != null)
+            if (parent == null)
+                // We're the root
+                b.Append("/");
+            else
             {
                 parent.BuildName(b);
-                b.Append(parent.IsExclusive? Symbol.Colon: Symbol.Slash);
+                if (parent != Root)
+                    b.Append(parent.IsExclusive? Symbol.Colon: Symbol.Slash);
+                b.Append(Key);
             }
-            b.Append(Key);
         }
         #endregion
     }

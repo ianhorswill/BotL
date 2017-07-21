@@ -131,10 +131,15 @@ namespace BotL
         /// </summary>
         Item,
         /// <summary>
-        /// Format: Key
+        /// Format: NodeKey
         /// Replaces TOS with the key of the ELNode on top of the stack
         /// </summary>
-        Key,
+        NodeKey,
+        /// <summary>
+        /// Format: NodeParent
+        /// Replaces TOS with the parent of the ELNode on top of the stack
+        /// </summary>
+        NodeParent,
         /// <summary>
         /// Format: Array Length
         /// Creates an object[] array of the specified length, fills it with the top Length
@@ -310,7 +315,8 @@ namespace BotL
             // call the builtin function instead.
             Functions.DeclareHoistCheck("item", 2, c => !(c.Arguments[1] is int));
 
-            OpcodeTable[new PredicateIndicator("key", 1)] = FOpcode.Key;
+            OpcodeTable[new PredicateIndicator("node_key", 1)] = FOpcode.NodeKey;
+            OpcodeTable[new PredicateIndicator("node_parent", 1)] = FOpcode.NodeParent;
 
             OpcodeTable[new PredicateIndicator("abs", 1)] = FOpcode.Abs;
             OpcodeTable[new PredicateIndicator("sqrt", 1)] = FOpcode.Sqrt;

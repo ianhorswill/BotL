@@ -27,6 +27,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
 using BotL.Compiler;
+using JetBrains.Annotations;
 using static BotL.Engine;
 
 namespace BotL
@@ -64,7 +65,7 @@ namespace BotL
             node.FirstChild = null;
             node.previousSibling = null;
             node.NextSibling = nextSibling;
-            node.parent = parent;
+            node.Parent = parent;
             node.IsExclusive = false;
 #if DEBUG
             node.inUse = true;
@@ -97,7 +98,7 @@ namespace BotL
 
         private ELNode(ELNode parent)
         {
-            this.parent = parent;
+            Parent = parent;
         }
 
         private ELNode(ref TaggedValue key, ELNode nextSibling, ELNode parent)
@@ -105,7 +106,7 @@ namespace BotL
             Key = key;
             keyHash = key.Hash();
             NextSibling = nextSibling;
-            this.parent = parent;
+            Parent = parent;
         }
         #endregion
 
@@ -114,7 +115,7 @@ namespace BotL
         private bool inUse = true;  // Sanity checking for allocation/deallocation problems.
 #endif
         internal bool IsExclusive;
-        private ELNode parent;
+        public ELNode Parent { get; private set; }
         // ReSharper disable once MemberCanBePrivate.Global
         public TaggedValue Key;
         private int keyHash;
@@ -193,6 +194,7 @@ namespace BotL
         #endregion
 
         #region Iterators
+        [UsedImplicitly]
         public IEnumerable<int> AllChildIntValues
         {
             get
@@ -207,6 +209,7 @@ namespace BotL
             }
         }
 
+        [UsedImplicitly]
         public IEnumerable<float> AllChildFloatValues
         {
             get
@@ -221,6 +224,7 @@ namespace BotL
             }
         }
 
+        [UsedImplicitly]
         public IEnumerable<object> AllChildValues
         {
             get
@@ -232,6 +236,7 @@ namespace BotL
             }
         }
 
+        [UsedImplicitly]
         public IEnumerable<T> EnumerateChildValues<T>() where T: class
         {
             for (var c = FirstChild; c != null; c = c.NextSibling)
@@ -244,6 +249,7 @@ namespace BotL
             }
         }
 
+        [UsedImplicitly]
         public int ChildCount
         {
             get
@@ -277,7 +283,7 @@ namespace BotL
         {
             if (previousSibling == null)
                 // We're first in the list
-                parent.FirstChild = NextSibling;
+                Parent.FirstChild = NextSibling;
             else
                 previousSibling.NextSibling = NextSibling;
             if (NextSibling != null)
@@ -609,6 +615,7 @@ namespace BotL
             return FirstChild;
         }
 
+        [UsedImplicitly]
         public void DeleteAllChildren()
         {
             while (FirstChild != null)
@@ -657,7 +664,7 @@ namespace BotL
         {
             get
             {
-                if (parent == null)
+                if (Parent == null)
                     return "@(/)";
                 var b = new StringBuilder();
                 b.Append("@(");
@@ -669,14 +676,14 @@ namespace BotL
 
         void BuildName(StringBuilder b)
         {
-            if (parent == null)
+            if (Parent == null)
                 // We're the root
                 b.Append("/");
             else
             {
-                parent.BuildName(b);
-                if (parent != Root)
-                    b.Append(parent.IsExclusive? Symbol.Colon: Symbol.Slash);
+                Parent.BuildName(b);
+                if (Parent != Root)
+                    b.Append(Parent.IsExclusive? Symbol.Colon: Symbol.Slash);
                 b.Append(Key);
             }
         }

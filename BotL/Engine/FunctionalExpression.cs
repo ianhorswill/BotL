@@ -48,6 +48,7 @@ namespace BotL
         /// </summary>
         /// <param name="p">Predicate being executed (for access to constant tables)</param>
         /// <param name="clause">Compiled clause code</param>
+        /// <param name="goalFrame">The frame of the predicate evaluating this functional expression.</param>
         /// <param name="frameBase">Base address of clause's environment in DataStack</param>
         /// <param name="pc">PC within clause</param>
         /// <param name="stack">top of the data stack</param>
@@ -221,14 +222,25 @@ namespace BotL
                     }
                         break;
 
-                    case FOpcode.Key:
+                    case FOpcode.NodeKey:
                         {
                             var addr = stack - 1;
                             var elNode = DataStack[addr].Value as ELNode;
                             if (elNode == null)
-                                throw new ArgumentTypeException("key", 1, "Argument is not an EL node",
+                                throw new ArgumentTypeException("node_key", 1, "Argument is not an EL node",
                                     DataStack[addr].Value);
                             DataStack[addr] = elNode.Key;  // This is a tagged value so we just copy it.
+                        }
+                        break;
+
+                    case FOpcode.NodeParent:
+                        {
+                            var addr = stack - 1;
+                            var elNode = DataStack[addr].Value as ELNode;
+                            if (elNode == null)
+                                throw new ArgumentTypeException("node_parent", 1, "Argument is not an EL node",
+                                    DataStack[addr].Value);
+                            DataStack[addr].SetReference(elNode.Parent);
                         }
                         break;
 

@@ -202,6 +202,13 @@ namespace BotL.Parser
         {
             bool gotOne = false;
             int peek = reader.Peek();
+            if (peek == delimiter)
+            {
+                // Edge case: line starts with a completely empty cell
+                itemHandler("");
+                gotOne = true;
+            }
+
             while (peek >= 0)
             {
                 if (peek == '\r' || peek == '\n')

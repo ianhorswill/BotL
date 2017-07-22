@@ -179,7 +179,8 @@ namespace BotL.Unity
                     throw new InvalidOperationException("Invalid type in EL Node key: "+node.Key.Type);
             }
 
-            stringBuilder.Append(node.IsExclusive?":":"/");
+            if (node.FirstChild != null)
+                stringBuilder.Append(node.IsExclusive?":":"/");
             var suppressChildren = node.FirstChild != null && !DisplayChildren(node);
             if (suppressChildren)
                 stringBuilder.Append(" ...");

@@ -376,7 +376,7 @@ namespace BotL
                 var addr1 = Deref(argBase);
                 var sym = DataStack[addr1].reference as Symbol;
                 if (DataStack[addr1].Type != TaggedValueType.Reference || sym == null)
-                    throw new ArgumentException("Predicate name argument to call should be a symbol, but got "+DataStack[addr1].Value);
+                    throw new ArgumentException("Predicate name argument to call should be a symbol, but got "+DataStack[addr1].ValueOrUnbound);
                 DataStack[argBase].reference = Predicate(sym, DataStack[argBase + 1].integer);
                 return CallStatus.CallIndirect;
             });

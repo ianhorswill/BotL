@@ -100,6 +100,11 @@ namespace BotL.Parser
         // ReSharper disable once InconsistentNaming
         public bool EOF => tok.PeekToken() == Tokenizer.EOFToken;
 
+        public int CurrentSourceLineNumber
+        {
+            get { return tok.CurrentSourceLineNumber; }
+        }
+
         public object Read(bool isArgument=false)
         {
             return ReadExpression(ReadPrimary(), 0, isArgument);

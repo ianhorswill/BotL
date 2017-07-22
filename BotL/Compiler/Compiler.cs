@@ -63,6 +63,7 @@ namespace BotL.Compiler
         {
             while (!expressionParser.EOF)
             {
+                CurrentSourceLineNumber = expressionParser.CurrentSourceLineNumber;
                 CompileInternal(expressionParser.Read());
                 expressionParser.SwallowStatementDeliminters(requireDelimiters);
             }
@@ -87,6 +88,7 @@ namespace BotL.Compiler
 
         private static Exception previouslyPrintedLoadException;
         public static string CurrentSourceFile { get; private set; }
+        public static int CurrentSourceLineNumber { get; private set; }
 
         public static void CompileFile(string path)
         {
@@ -402,12 +404,14 @@ namespace BotL.Compiler
             CurrentGoal = head;
             var spec = new PredicateIndicator(head);
             if (spec.Arity == 0)
-                return new CompiledClause(head, TrivialFactCode, 0, null);
+                return new CompiledClause(head, TrivialFactCode, 0, null,
+                    CurrentSourceFile, CurrentSourceLineNumber);
 
             var b = new CodeBuilder(KB.Predicate(spec));
             CompileArglist(head, b, e, true);
             b.Emit(Opcode.CNoGoal);
-            return new CompiledClause(head, b, e.EnvironmentSize, null);
+            return new CompiledClause(head, b, e.EnvironmentSize, null,
+                CurrentSourceFile, CurrentSourceLineNumber);
         }
         #endregion
 
@@ -423,7 +427,8 @@ namespace BotL.Compiler
             if (body == Symbol.Cut)
                 b.Emit(Opcode.CNoGoal);
 
-            return new CompiledClause(source, b, e.EnvironmentSize, MakeHeadModel(head, e));
+            return new CompiledClause(source, b, e.EnvironmentSize, MakeHeadModel(head, e),
+                CurrentSourceFile, CurrentSourceLineNumber);
         }
 
         private static object[] MakeHeadModel(object head, BindingEnvironment environment)
@@ -750,7 +755,8 @@ namespace BotL.Compiler
 
         #region Compiling nested clauses (disjunctions)
         private static readonly CompiledClause TrueDisjunctClause
-            = new CompiledClause(true, TrivialFactCode, 0, null);
+            = new CompiledClause(true, TrivialFactCode, 0, null,
+                CurrentSourceFile, CurrentSourceLineNumber);
         private static void CompileDisjuncts(object goal, CodeBuilder b, BindingEnvironment e, Predicate nested)
         {
             if (goal.Equals(true) || goal == Symbol.TruePredicate)
@@ -772,7 +778,8 @@ namespace BotL.Compiler
         {
             var b1 = new CodeBuilder(b.Predicate);
             CompileGoal(disjunct, b1, e, true);
-            var compiledClause = new CompiledClause(disjunct, b1, e.EnvironmentSize, EmptyHeadModel);
+            var compiledClause = new CompiledClause(disjunct, b1, e.EnvironmentSize, EmptyHeadModel,
+                CurrentSourceFile, CurrentSourceLineNumber);
             return compiledClause;
         }
         #endregion
@@ -1007,7 +1014,7 @@ namespace BotL.Compiler
             {
                 headModel[i] = new StackReference(i);
             }
-            return new CompiledClause(null, code, (ushort)arity, headModel);
+            return new CompiledClause(null, code, (ushort)arity, headModel, null, 0);
         }
 
         internal static Predicate MakeTable(Symbol name, int arity)

@@ -197,7 +197,7 @@ namespace BotL
         /// stack.
         /// </summary>
         private static readonly CompiledClause TrampolineRule =
-            new CompiledClause(null, Trampoline, 0, null);
+            new CompiledClause(null, Trampoline, 0, null, null, 0);
 
         /// <summary>
         /// This is just a placeholder predicate so that the TrampolineRule has a predicate it belongs to

@@ -37,6 +37,9 @@ namespace BotL
         /// Source code for the rule.
         /// </summary>
         public readonly object Source;
+
+        public readonly string SourceFile;
+        public readonly int SourceLine;
         /// <summary>
         /// Compiled bytecode for the rule.
         /// </summary>
@@ -52,8 +55,8 @@ namespace BotL
         /// </summary>
         public readonly object[] HeadModel;
 
-        public CompiledClause(object source, CodeBuilder b, ushort environmentSize, object[] headModel)
-            : this(source, b.Code, environmentSize, headModel)
+        public CompiledClause(object source, CodeBuilder b, ushort environmentSize, object[] headModel, string sourceFile, int sourceLine)
+            : this(source, b.Code, environmentSize, headModel, sourceFile, sourceLine)
         {
             if (b.WarningList != null)
             {
@@ -62,12 +65,14 @@ namespace BotL
             }
         }
 
-        public CompiledClause(object source, byte[] code, ushort environmentSize, object[] headModel)
+        public CompiledClause(object source, byte[] code, ushort environmentSize, object[] headModel, string sourceFile, int sourceLine)
         {
             Source = source;
             Code = code;
             EnvironmentSize = environmentSize;
             HeadModel = headModel;
+            SourceFile = sourceFile;
+            SourceLine = sourceLine;
         }
 
         public override string ToString()

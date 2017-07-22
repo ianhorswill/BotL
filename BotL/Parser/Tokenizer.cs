@@ -47,6 +47,15 @@ namespace BotL.Parser
         // ReSharper disable once InconsistentNaming
         private const char EOFChar = (char)0xffff;
 
+        public int CurrentSourceLineNumber
+        {
+            get
+            {
+                var p = sourceText as PositionTrackingTextReader;
+                return p?.Line ?? 0;
+            }
+        }
+
         public object GetToken()
         {
             if (ungotToken != null)

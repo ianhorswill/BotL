@@ -44,14 +44,14 @@ namespace BotL.Compiler
                 if (p.IsUserDefined)
                     foreach (var c in p.Clauses)
                         foreach (var w in c.Warnings)
-                            Warn(output, "{0} in rule {1}", w, c.Source);
+                            Warn(output, c.SourceFile, c.SourceLine, "{0} in rule {1}", w, c.Source);
         }
 
         private static void WarnUnreferenced(TextWriter output, Dictionary<Predicate, List<Predicate>> refs)
         {
             foreach (var p in KB.AllRulePredicates)
                 if (p.IsUserDefined && !refs.ContainsKey(p) && !p.IsExternallyCalled && !p.IsLocked && p.FirstClause != null)
-                    Warn(output, "unused predicate {0}", p);
+                    Warn(output, p.FirstClause.SourceFile, p.FirstClause.SourceLine, "unused predicate {0}", p);
         }
 
         private static void WarnUndefined(TextWriter output, Dictionary<Predicate, List<Predicate>> refs)
@@ -62,12 +62,22 @@ namespace BotL.Compiler
                 var referrers = pair.Value;
                 if (!predicate.IsDefined)
                     foreach (var referrer in referrers)
-                        Warn(output, "undefined predicate {0} referenced by {1}", predicate, referrer);
+                        Warn(output, referrer.FirstClause.SourceFile, referrer.FirstClause.SourceLine, "undefined predicate {0} referenced by {1}", predicate, referrer);
             }
         }
 
-        private static void Warn(TextWriter output, string format, params object[] args)
+        private static void Warn(TextWriter output, string sourceFile, int sourceLine, string format, params object[] args)
         {
+            if (sourceFile != null)
+            {
+#if DEBUG
+                // Can't reference UnityEngine in debug builds
+                var shortened = sourceFile;
+#else
+                var shortened = sourceFile.Replace((UnityEngine.Application.dataPath+'/').Replace('/', Path.DirectorySeparatorChar), "");
+#endif
+                output.Write("{0}:{1} ", shortened, sourceLine);
+            }
             output.Write("Warning: ");
             output.WriteLine(format, args);
         }

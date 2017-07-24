@@ -336,7 +336,7 @@ namespace BotL
         {
             Debug.Assert(!isExclusive || restartCount == 0);
             var parentNode = DecodeNodeArg(argBase);
-            if (parentNode.IsExclusive != isExclusive)
+            if (parentNode.IsExclusive != isExclusive && parentNode.FirstChild != null)
             {
                 if (isExclusive)
                     throw new ArgumentException("Exclusive read of non-exclusive EL node "+parentNode);

@@ -1029,6 +1029,8 @@ namespace BotL.Compiler
 
         internal static Predicate LoadTable(string path)
         {
+            if (Path.GetExtension(path) == String.Empty)
+                path = Path.ChangeExtension(path, ".csv");
             using (var file = File.OpenText(UnityUtilities.CanonicalizePath(path)))
             {
                 var parser = new CSVParser(',', new PositionTrackingTextReader(file, path));

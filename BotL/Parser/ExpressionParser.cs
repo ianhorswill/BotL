@@ -86,6 +86,11 @@ namespace BotL.Parser
             DefinePrefixOperator("#", 300);
         }
 
+        public static object Parse(string code)
+        {
+            return new ExpressionParser(code).Read();
+        }
+
         private readonly Tokenizer tok;
 
         private static readonly Dictionary<Symbol, OperatorInfo> OperatorTable = new Dictionary<Symbol, OperatorInfo>();

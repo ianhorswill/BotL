@@ -26,6 +26,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using BotL.Compiler;
 
@@ -144,6 +145,8 @@ namespace BotL.Parser
                         case "string":
                         case "symbol":
                         case "list":
+                        case "expression":
+                        case "expression list":
                             row.Add(cell);
                             break;
 
@@ -193,6 +196,17 @@ namespace BotL.Parser
                     return result.ToArray();
                 }
 
+                case "expression":
+                    if (item == "")
+                        return null;
+                    return ExpressionParser.Parse(item);
+
+                case "expression list":
+                    var trim = item.Trim(' ');
+                    if (trim == "")
+                        return new object[0];
+                    return trim.Split(',').Select(ExpressionParser.Parse).ToArray();
+                    
                 default:
                     return new ExpressionParser(item).Read();
             }

@@ -598,7 +598,7 @@ namespace BotL
             return FirstChild;
         }
 
-        public ELNode StoreNonExclusive(object newKey)
+        public ELNode StoreNonExclusive(object newKey, bool atEnd = false)
         {
             if (IsExclusive)
                 throw new InvalidOperationException("Non-exclusive store to an exclusive ELNode: "+this);
@@ -609,10 +609,24 @@ namespace BotL
             if (probe != null)
                 return probe;
             // Otherwise make a new node.
-            FirstChild = Allocate(ref k, FirstChild, this);
-            if (FirstChild.NextSibling != null)
-                FirstChild.NextSibling.previousSibling = FirstChild;
-            return FirstChild;
+            if (atEnd)
+            {
+                if (FirstChild == null)
+                    return FirstChild = Allocate(ref k, FirstChild, this);
+                else
+                {
+                    var last = FirstChild;
+                    while (last.NextSibling != null) last = last.NextSibling;
+                    return last.NextSibling = Allocate(ref k, null, this);
+                }
+            }
+            else
+            {
+                FirstChild = Allocate(ref k, FirstChild, this);
+                if (FirstChild.NextSibling != null)
+                    FirstChild.NextSibling.previousSibling = FirstChild;
+                return FirstChild;
+            }
         }
 
         [UsedImplicitly]

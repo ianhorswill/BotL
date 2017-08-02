@@ -23,13 +23,12 @@
 // --------------------------------------------------------------------------------------------------------------------
 #endregion
 using System;
-using System.Runtime.CompilerServices;
-using BotL.Compiler;
+using System.Collections;
 using BotL.Parser;
 
 namespace BotL
 {
-    public class Call
+    public class Call : IList
     {
         public Call(Symbol f, params object[] args)
         {
@@ -44,7 +43,16 @@ namespace BotL
         public readonly Symbol Functor;
         public readonly object[] Arguments;
 
-        public object this[int i] => Arguments[i];
+        public object this[int i]
+        {
+            get
+            {
+                if (i == 0)
+                    return Functor;
+                return Arguments[i-1];
+            }
+            set { throw new NotImplementedException(); }
+        }
 
         public int Arity => Arguments.Length;
 
@@ -78,6 +86,60 @@ namespace BotL
             Array.Copy(Arguments, extendedArgs, Arguments.Length);
             extendedArgs[extendedArgs.Length - 1] = t;
             return new Call(Functor, extendedArgs);
+        }
+
+        public IEnumerator GetEnumerator()
+        {
+            yield return Functor;
+            foreach (var arg in Arguments)
+                yield return arg;
+        }
+
+        public void CopyTo(Array array, int index)
+        {
+            for (int i=0; i < Count; i++)
+                array.SetValue(this[i], index+i); 
+        }
+
+        public bool IsReadOnly => true;
+        public bool IsFixedSize => true;
+
+        public int Count => Arguments.Length + 1;
+        public object SyncRoot => this;
+        public bool IsSynchronized => false;
+        public int Add(object value)
+        {
+            throw new NotImplementedException();
+        }
+
+        public bool Contains(object value)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void Clear()
+        {
+            throw new NotImplementedException();
+        }
+
+        public int IndexOf(object value)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void Insert(int index, object value)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void Remove(object value)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void RemoveAt(int index)
+        {
+            throw new NotImplementedException();
         }
     }
 }

@@ -142,8 +142,8 @@ namespace BotL.Compiler
                                 if (Call.IsFunctor(generator, Symbol.Colon, 2))
                                 {
                                     var c = (Call)generator;
-                                    var score = c[0];
-                                    var realGenerator = c[1];
+                                    var score = c[1];
+                                    var realGenerator = c[2];
                                     var rtemp = Variable.MakeGenerated("*Sum*");
                                     return And(new Call("%init_zero", rtemp),
                                         Or(And(realGenerator,

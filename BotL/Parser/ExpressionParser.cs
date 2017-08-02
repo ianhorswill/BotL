@@ -340,8 +340,9 @@ namespace BotL.Parser
                 b.Append('"');
                 return;
             }
+            var c = expression as Call;
             var l = expression as IList;
-            if (l != null)
+            if (l != null && c == null)
             {
                 switch (l.GetType().Name)
                 {
@@ -400,7 +401,6 @@ namespace BotL.Parser
                     b.Append(".0");
                 return;
             }
-            var c = expression as Call;
             if (c == null)
             {
                 b.Append(expression);

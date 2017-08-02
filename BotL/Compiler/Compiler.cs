@@ -311,7 +311,8 @@ namespace BotL.Compiler
             if (!isRule && e.VariableCount == 0)
             {
                 // SPECIAL-CASE: storing to the EL database
-                if (Call.IsFunctor(assertion, Symbol.Slash, 2) || Call.IsFunctor(assertion, Symbol.Colon, 2))
+                if (Call.IsFunctor(assertion, Symbol.Slash, 2) || Call.IsFunctor(assertion, Symbol.Colon, 2)
+                    || Call.IsFunctor(assertion, ELNode.WriteToEnd, 2))
                 {
                     DoCompileTimeELAssertion((Call) assertion);
                     return null;
@@ -371,6 +372,9 @@ namespace BotL.Compiler
             {
                 case "/":
                     return parent / childKey;
+
+                case "/>":
+                    return parent.StoreNonExclusive(childKey, true);
 
                 case ":":
                     return parent % childKey;

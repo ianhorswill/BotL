@@ -617,7 +617,8 @@ namespace BotL
                 {
                     var last = FirstChild;
                     while (last.NextSibling != null) last = last.NextSibling;
-                    return last.NextSibling = Allocate(ref k, null, this);
+                    last.NextSibling = Allocate(ref k, null, this);
+                    return last.NextSibling;
                 }
             }
             else

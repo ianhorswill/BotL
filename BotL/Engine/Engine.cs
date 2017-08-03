@@ -1353,7 +1353,7 @@ namespace BotL
                     return DataStack[a1].floatingPoint == DataStack[a2].floatingPoint;
 
                 case TaggedValueType.Reference:
-                    return DataStack[a1].reference == DataStack[a2].reference;
+                    return Equals(DataStack[a1].reference, DataStack[a2].reference);
 
                 default:
                     throw new InvalidOperationException("Invalid tagged value type "+DataStack[a1].Type);

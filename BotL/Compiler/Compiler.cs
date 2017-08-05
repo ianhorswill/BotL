@@ -316,7 +316,7 @@ namespace BotL.Compiler
                 if (Call.IsFunctor(assertion, Symbol.Slash, 2) || Call.IsFunctor(assertion, Symbol.Colon, 2)
                     || Call.IsFunctor(assertion, ELNode.WriteToEnd, 2))
                 {
-                    DoCompileTimeELAssertion((Call) assertion);
+                    DoCompileTimeELAssertion(assertion, null);
                     return null;
                 }
 
@@ -350,31 +350,66 @@ namespace BotL.Compiler
             return e;
         }
 
-        private static ELNode DoCompileTimeELAssertion(Call assertion)
+        /// <summary>
+        /// Process a declaration from source code of the form "/foo/bar:bar", "/a:b:c", etc.
+        /// This just writes the assertion directly into the EL database.
+        /// </summary>
+        /// <param name="assertion">The expression to write</param>
+        /// <param name="localRoot">The tree node to write it into, if this is being called to handle an expression of the form "/a/b/{c,d}".  Then localRoot will be /a/b for the handlign of c and d.</param>
+        /// <returns>The newly written node.</returns>
+        internal static ELNode DoCompileTimeELAssertion(object assertion, ELNode localRoot)
         {
-            if (assertion.IsFunctor(Symbol.Slash, 1))
+            var cassertion = assertion as Call;
+
+            if (cassertion == null)
             {
-                return ELNode.Root / assertion.Arguments[0];
+                // The assertion is just a key; do a non-exclusive write into localRoot
+                if (localRoot != null)
+                    return localRoot.StoreNonExclusive(assertion, true);
+                // The original assertion is of the form "atom/something" or "atom:something", which
+                // is invalid.
+                throw new SyntaxError("Compile-time EL assertion should begin with a /", assertion);
+            }
+            if (cassertion.IsFunctor(Symbol.Slash, 1))
+            {
+                return ELNode.Root.StoreNonExclusive(cassertion.Arguments[0], true);
             }
 
-            if (assertion.Arity != 2)
-                throw new InvalidOperationException($"Invalid EL expression {assertion}");
+            if (cassertion.Arity != 2)
+                throw new InvalidOperationException($"Invalid EL expression {cassertion}");
 
-            var parentExp = assertion.Arguments[0] as Call;
+            ELNode parent;
+            var parentExp = cassertion.Arguments[0] as Call;
             if (parentExp == null)
-                throw new InvalidOperationException($"Invalid EL expression {assertion.Arguments[0]}");
+            {
+                // Parent expression is an atom, so assertion is of the form foo/bar, foo:bar, etc.
+                if (localRoot != null)
+                    parent = localRoot.StoreNonExclusive(cassertion.Arguments[0], true);
+                else
+                    throw new InvalidOperationException($"Invalid EL expression {cassertion.Arguments[0]}");
+            }
+            else
+                parent = DoCompileTimeELAssertion(parentExp, localRoot);
 
-            var parent = DoCompileTimeELAssertion(parentExp);
+            var childKey = cassertion.Arguments[1];
+            var childCall = childKey as Call;
+            if (childCall != null)
+            {
+                if (childCall.IsFunctor(Symbol.CurlyBraces, 1))
+                {
+                    if (cassertion.Functor.Name != "/")
+                        throw new SyntaxError("{} can only be used after / in an EL assertion.", assertion);
+                    foreach (var e in Macros.ConjunctionConjuncts(childCall[1]))
+                        DoCompileTimeELAssertion(e, parent);
+                    return null;
+                }
+                else
+                    throw new InvalidOperationException($"Invalid EL key {cassertion.Arguments[1]}");
+            }
 
-            var childKey = assertion.Arguments[1];
-            if (childKey is Call)
-                throw new InvalidOperationException($"Invalid EL key {assertion.Arguments[1]}");
-
-            switch (assertion.Functor.Name)
+            switch (cassertion.Functor.Name)
             {
                 case "/":
-                    return parent / childKey;
-
                 case "/>":
                     return parent.StoreNonExclusive(childKey, true);
 
@@ -382,7 +417,7 @@ namespace BotL.Compiler
                     return parent % childKey;
 
                 default:
-                    throw new InvalidOperationException($"Invalid EL expression {assertion}");
+                    throw new InvalidOperationException($"Invalid EL expression {cassertion}");
             }
         }
 
@@ -1025,8 +1060,7 @@ namespace BotL.Compiler
 
         internal static Predicate MakeTable(Symbol name, int arity)
         {
-            var table = new Table(name, arity);
-            table.DefinedInFile = CurrentSourceFile;
+            var table = new Table(name, arity) {DefinedInFile = CurrentSourceFile};
             return new Predicate(name, arity, null, table)
             {
                 FirstClause = SpecialClauses[arity]
@@ -1046,8 +1080,7 @@ namespace BotL.Compiler
                 if (rows.Count == 0)
                     throw new Exception("No rows found in table file");
                 var arity = rows[0].Length;
-                var table = new Table(predicateName, arity);
-                table.DefinedInFile = CurrentSourceFile;
+                var table = new Table(predicateName, arity) {DefinedInFile = CurrentSourceFile};
                 table.AddRows(rows);
                 if (parser.Signature.Count != rows[0].Length)
                 {

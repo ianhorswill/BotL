@@ -349,6 +349,28 @@ namespace BotL.Compiler
         }
         #endregion
 
+        #region Term deconstruction utilities
+        /// <summary>
+        /// Return all the conjuncts of a conjunction, e.g. ((a, b), (c, d)) would return a, b, c, and d.
+        /// If argument is not a conjunction, it is returned by itself.
+        /// </summary>
+        /// <param name="expression">Expression that may be a conjunction.</param>
+        /// <returns>Conjuncts of expression</returns>
+        public static IEnumerable<object> ConjunctionConjuncts(object expression)
+        {
+            var call = expression as Call;
+            if (call != null && call.IsFunctor(Symbol.Comma, 2))
+            {
+                foreach (var e in ConjunctionConjuncts(call[1]))
+                    yield return e;
+                foreach (var e in ConjunctionConjuncts(call[2]))
+                    yield return e;
+            }
+            else
+                yield return expression;
+        }
+        #endregion
+
         #region Grammar rule macros
         private static readonly Symbol GrammarRuleQueueVarName = Symbol.Intern("*Q*");
         private static readonly Symbol MatchQueueSequence = Symbol.Intern("words");

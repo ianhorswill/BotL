@@ -92,6 +92,8 @@ namespace BotL
                         catch (Exception e)
                         {
                             StandardError.WriteLine(e.Message);
+                            if (ShowCSharpStack)
+                                StandardError.WriteLine(e.StackTrace);
                         }
                     }
                     else if (command.StartsWith("rule "))
@@ -105,6 +107,8 @@ namespace BotL
                         catch (Exception e)
                         {
                             StandardError.WriteLine(e.Message);
+                            if (ShowCSharpStack)
+                                StandardError.WriteLine(e.StackTrace);
                         }
                     }
                     else if (command.StartsWith("transform "))
@@ -119,6 +123,8 @@ namespace BotL
                         catch (Exception e)
                         {
                             StandardError.WriteLine(e.Message);
+                            if (ShowCSharpStack)
+                                StandardError.WriteLine(e.StackTrace);
                         }
                     }
                     else if (command.StartsWith("table ") || command.StartsWith("function ")
@@ -136,6 +142,8 @@ namespace BotL
                         catch (Exception e)
                         {
                             StandardError.WriteLine(e.Message);
+                            if (ShowCSharpStack)
+                                StandardError.WriteLine(e.StackTrace);
                         }
                     }
                     else

@@ -265,9 +265,11 @@ namespace BotL.Compiler
             if (p.FirstClause != null)
             {
                 ListClause(stream, p.FirstClause);
-                foreach (var c in p.ExtraClauses)
-                    ListClause(stream, c);
-            } else
+                if (p.ExtraClauses != null)
+                    foreach (var c in p.ExtraClauses)
+                        ListClause(stream, c);
+            }
+            else
                 stream.WriteLine($"{p} is rule predicate with no rules.");
         }
 

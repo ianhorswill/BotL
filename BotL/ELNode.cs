@@ -322,7 +322,7 @@ namespace BotL
                 return Root;
 
             var node = nodeArg as ELNode;
-            if (DataStack[deref].Type != TaggedValueType.Reference)
+            if (DataStack[deref].Type != TaggedValueType.Reference || !(nodeArg is ELNode))
             {
                 if (DataStack[deref].Type == TaggedValueType.Unbound)
                     throw new InstantiationException("ELNode argument must be instantiated");

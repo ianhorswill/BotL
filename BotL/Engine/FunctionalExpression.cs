@@ -39,7 +39,7 @@ namespace BotL
     internal static class FunctionalExpression
     {
         public const ushort EvalStackOffset = 256;
-        private static readonly System.Random Random = new System.Random();
+        public static readonly System.Random Random = new System.Random();
 
         /// <summary>
         /// Execute the compiled functional express starting at pc inside of clause.

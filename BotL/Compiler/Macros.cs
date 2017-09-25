@@ -74,6 +74,18 @@ namespace BotL.Compiler
                                                   Or(And(generator,
                                                          new Call("%maximize_update_and_repeat", result, score)),
                                                      new Call("nonvar", result))));
+            DeclareMacro("sample", 5,
+                (choice, score, generator, keptChoices, result) =>
+                {
+                    var choiceSet = Variable.MakeGenerated("*choices*");
+                    return And(new Call(Symbol.Equal, choiceSet, new Call(Symbol.New, new Call("SampledChoiceSet"))),
+                        Or(And(generator,
+                                new Call(Symbol.Dot, choiceSet, new Call("Add", choice, score)),
+                                Symbol.Fail),
+                            new Call(Symbol.Equal, result,
+                                new Call(Symbol.Dot, choiceSet, new Call("Choose", keptChoices)))));
+                });
+
             DeclareMacro("arg_min", 3,
                 (arg, scoreExpression, result) => {
                     var score = Variable.MakeGenerated("*score*");
@@ -125,6 +137,7 @@ namespace BotL.Compiler
                                                   new Call("%inc_and_repeat", rtemp)),
                                               new Call(Symbol.Equal, rtemp, result)));
                             });
+            
             Functions.DeclareFunction("count", 1);
             DeclareMacro("sum", 3,
                             (score, generator, result) =>
@@ -287,6 +300,13 @@ namespace BotL.Compiler
         }
 
         public static void DeclareMacro(string name, int arity, Func<object, object, object, object, object> expander)
+        {
+            DeclareMacro(name, arity, (Delegate)expander);
+        }
+
+        public delegate object FiveArgExpander(object a1, object a2, object a3, object a4, object a5);
+
+        public static void DeclareMacro(string name, int arity, FiveArgExpander expander)
         {
             DeclareMacro(name, arity, (Delegate)expander);
         }

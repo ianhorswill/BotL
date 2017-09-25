@@ -80,3 +80,4 @@ TAGS
 *.csproj
 =======
 *.exe
+*.ide

@@ -81,5 +81,16 @@ setoftest(2)");
         {
             TestFalse("check(1=0)");
         }
+
+        [TestMethod]
+        public void SampleTest()
+        {
+            TestTrue("X=array(1,2,3), sample(Y, Y, Y in X, 1, Z), Z=3");
+            for (int i = 0; i < 1000; i++)
+            {
+                TestTrue("X=array(0,1), sample(Y, Y, Y in X, 2, Z), Z=1");
+                TestTrue("X=array(1,0), sample(Y, Y, Y in X, 2, Z), Z=1");
+            }
+        }
     }
 }

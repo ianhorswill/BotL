@@ -93,7 +93,7 @@ namespace BotL.Unity
 
             switch (Event.current.type)
             {
-                case EventType.mouseDown:
+                case EventType.MouseDown:
                     if (ShowInspector && WindowRect.Contains(Event.current.mousePosition))
                     {
                         mouseClicked = true;

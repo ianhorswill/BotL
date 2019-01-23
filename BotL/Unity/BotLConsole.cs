@@ -34,7 +34,7 @@ namespace BotL.Unity
     {
         internal override void Start()
         {
-            Header = $"\nBotL verison {System.Reflection.Assembly.GetCallingAssembly().GetName().Version}\n\n";
+            Header = $"\nBotL version {System.Reflection.Assembly.GetCallingAssembly().GetName().Version}\n\n";
             base.Start();
             Repl.StandardOutput = Out;
             Repl.StandardError = Out;
@@ -50,6 +50,7 @@ namespace BotL.Unity
                 Out.Write("> ");
             Out.WriteLine(command + "</b>");
             Repl.RunCommand(command);
+            Compiler.Lint.Check(Out);
         }
     }
 }

@@ -79,6 +79,10 @@ namespace BotL
                     break;
 #endif
 
+                case "lint":
+                    Compiler.Lint.Check(StandardError);
+                    break;
+
                 default:
                     // ReSharper disable once PossibleNullReferenceException
                     if (command.StartsWith("load "))

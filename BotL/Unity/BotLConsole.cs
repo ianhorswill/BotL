@@ -34,13 +34,14 @@ namespace BotL.Unity
     {
         internal override void Start()
         {
-            Header = $"\nBotL verison {System.Reflection.Assembly.GetCallingAssembly().GetName().Version}\n\n";
+            Header = $"\nBotL version {System.Reflection.Assembly.GetCallingAssembly().GetName().Version}\n\n";
             base.Start();
             Repl.StandardOutput = Out;
             Repl.StandardError = Out;
             Repl.StandardInput = null;
             WindowTitle = "BotL console: ";
             PopupOnWrite = true;
+            Compiler.Lint.Check(Out);
         }
 
         protected override void Run(string command)

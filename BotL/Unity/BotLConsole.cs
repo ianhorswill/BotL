@@ -41,6 +41,7 @@ namespace BotL.Unity
             Repl.StandardInput = null;
             WindowTitle = "BotL console: ";
             PopupOnWrite = true;
+            Compiler.Lint.Check(Out);
         }
 
         protected override void Run(string command)

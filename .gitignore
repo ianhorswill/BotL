@@ -22,6 +22,7 @@ TestResults
 *.booproj
 *.dll
 *.pdb
+BotL/.vs*/*
 
 # ============= #
 # Excel generated  #

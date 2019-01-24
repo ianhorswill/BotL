@@ -51,6 +51,7 @@ namespace BotL.Unity
                 Out.Write("> ");
             Out.WriteLine(command + "</b>");
             Repl.RunCommand(command);
+            Compiler.Lint.Check(Out);
         }
     }
 }

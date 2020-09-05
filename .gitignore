@@ -82,3 +82,7 @@ TAGS
 =======
 *.exe
 *.ide
+*.lock
+*.ide-shm
+*.ide-wal
+*.testlog

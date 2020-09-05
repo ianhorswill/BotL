@@ -167,8 +167,7 @@ namespace BotL
             DefinePrimop("load", 1, (argBase, ignore) =>
             {
                 var addr = Deref(argBase);
-                var path = DataStack[addr].reference as string;
-                if (DataStack[addr].Type == TaggedValueType.Reference && path != null)
+                if (DataStack[addr].Type == TaggedValueType.Reference && DataStack[addr].reference is string path)
                 {
                     Compiler.Compiler.CompileFile(path);
                 }
@@ -181,8 +180,7 @@ namespace BotL
             DefinePrimop("load_table", 1, (argBase, ignore) =>
             {
                 var addr = Deref(argBase);
-                var path = DataStack[addr].reference as string;
-                if (DataStack[addr].Type == TaggedValueType.Reference && path != null)
+                if (DataStack[addr].Type == TaggedValueType.Reference && DataStack[addr].reference is string path)
                 {
                     LoadTable(path);
                 }
@@ -207,11 +205,9 @@ namespace BotL
                     throw new ArgumentTypeException("set_property", 1, "Argument should be a string or symbol",
                         DataStack[nameAddr].ValueOrUnbound);
                 var nArg = DataStack[nameAddr].reference;
-                var name = nArg as string;
-                if (name == null)
+                if (!(nArg is string name))
                 {
-                    var s = nArg as Symbol;
-                    if (s != null)
+                    if (nArg is Symbol s)
                         name = s.Name;
                     else
                         throw new ArgumentTypeException("set_property", 1, "Argument should be a string or symbol",
@@ -230,22 +226,21 @@ namespace BotL
 
                 if (DataStack[collectionAddr].Type != TaggedValueType.Reference)
                 {
-                    throw new ArgumentException("Invalid collecction argument to in/2.");
+                    throw new ArgumentException("Invalid collection argument to in/2.");
                 }
 
                 var collection = DataStack[collectionAddr].Value;
                 if (DataStack[memberAddr].Type == TaggedValueType.Unbound)
                 {
                     // We're enumerating
-                    var ilist = collection as IList;
-                    if (ilist != null)
+                    if (collection is IList iList)
                     {
-                        if (ilist.Count==0)
+                        if (iList.Count==0)
                             return CallStatus.Fail;
                         // Enumerating an IList
-                        DataStack[memberAddr].SetGeneral(ilist[restartCount]);
+                        DataStack[memberAddr].SetGeneral(iList[restartCount]);
                         SaveVariable(memberAddr);
-                        return restartCount < ilist.Count-1
+                        return restartCount < iList.Count-1
                             ? CallStatus.NonDeterministicSuccess
                             : CallStatus.DeterministicSuccess;
                     }
@@ -254,10 +249,9 @@ namespace BotL
                         // Enumerating some other IEnumerable
                         if (restartCount == 0)
                         {
-                            var ienumerable = collection as IEnumerable;
-                            if (ienumerable == null)
-                                throw new ArgumentException("Invalid collecction argument to in/2.");
-                            DataStack[enumeratorAddr].reference = ienumerable.GetEnumerator();
+                            if (!(collection is IEnumerable iEnumerable))
+                                throw new ArgumentException("Invalid collection argument to in/2.");
+                            DataStack[enumeratorAddr].reference = iEnumerable.GetEnumerator();
                         }
                         var enumerator = (IEnumerator) DataStack[enumeratorAddr].reference;
                         if (enumerator.MoveNext())
@@ -273,21 +267,18 @@ namespace BotL
                 {
                     // We're testing membership
                     var member = DataStack[memberAddr].Value;
-                    var hashset = collection as HashSet<object>;
-                    if (hashset != null)
+                    if (collection is HashSet<object> hashset)
                         return hashset.Contains(member) ? CallStatus.DeterministicSuccess : CallStatus.Fail;
-                    var ilist = collection as IList;
-                    if (ilist != null)
-                        return ilist.Contains(member) ? CallStatus.DeterministicSuccess : CallStatus.Fail;
-                    var ienumerable = collection as IEnumerable;
-                    if (ienumerable != null)
+                    if (collection is IList iList)
+                        return iList.Contains(member) ? CallStatus.DeterministicSuccess : CallStatus.Fail;
+                    if (collection is IEnumerable iEnumerable)
                     {
-                        foreach (var e in ienumerable)
+                        foreach (var e in iEnumerable)
                             if (Equals(e, member))
                                 return CallStatus.DeterministicSuccess;
                         return CallStatus.Fail;
                     }
-                    throw new ArgumentException("Invalid collecction argument to in/2.");
+                    throw new ArgumentException("Invalid collection argument to in/2.");
                 }
             },
             tempVars: 1);
@@ -303,15 +294,13 @@ namespace BotL
                     throw new InstantiationException("element argument to adjoin must be instantiated");
                 var element = DataStack[addr].Value;
 
-                var set = collection as HashSet<object>;
-                if (set != null)
+                if (collection is HashSet<object> set)
                 {
                     set.Add(element);
                 }
                 else
                 {
-                    var list = collection as IList;
-                    if (list != null)
+                    if (collection is IList list)
                     {
                         list.Add(element);
                     }
@@ -330,8 +319,7 @@ namespace BotL
                 var listAddr = Deref(argBase);
                 if (DataStack[listAddr].Type == TaggedValueType.Unbound)
                     throw new InstantiationException("list argument to item must be instantiated");
-                var list = DataStack[listAddr].Value as IList;
-                if (list == null)
+                if (!(DataStack[listAddr].Value is IList list))
                     throw new ArgumentException("List argument to item must be a list.");
                 var indexAddr = Deref(argBase + 1);
                 var elementAddr = Deref(argBase + 2);
@@ -374,8 +362,7 @@ namespace BotL
             DefinePrimop("call", 2, (argBase, ignore) =>
             {
                 var addr1 = Deref(argBase);
-                var sym = DataStack[addr1].reference as Symbol;
-                if (DataStack[addr1].Type != TaggedValueType.Reference || sym == null)
+                if (DataStack[addr1].Type != TaggedValueType.Reference || !(DataStack[addr1].reference is Symbol sym))
                     throw new ArgumentException("Predicate name argument to call should be a symbol, but got "+DataStack[addr1].ValueOrUnbound);
                 DataStack[argBase].reference = Predicate(sym, DataStack[argBase + 1].integer);
                 return CallStatus.CallIndirect;
@@ -386,8 +373,7 @@ namespace BotL
             DefinePrimop("set_global!", 2, (argBase, ignore) =>
             {
                 var nameAddr = Deref(argBase);
-                var name = DataStack[nameAddr].reference as Symbol;
-                if (name == null || DataStack[nameAddr].Type != TaggedValueType.Reference)
+                if (!(DataStack[nameAddr].reference is Symbol name) || DataStack[nameAddr].Type != TaggedValueType.Reference)
                     throw new ArgumentException("Invalid global variable name: "+DataStack[nameAddr].Value);
                 var valueAddr = Deref(argBase + 1);
                 if (DataStack[valueAddr].Type == TaggedValueType.Unbound)
@@ -404,8 +390,7 @@ namespace BotL
             DefinePrimop("try_set_global!", 2, (argBase, ignore) =>
             {
                 var nameAddr = Deref(argBase);
-                var name = DataStack[nameAddr].reference as Symbol;
-                if (name == null || DataStack[nameAddr].Type != TaggedValueType.Reference)
+                if (!(DataStack[nameAddr].reference is Symbol name) || DataStack[nameAddr].Type != TaggedValueType.Reference)
                     throw new ArgumentException("Invalid global variable name: " + DataStack[nameAddr].Value);
                 var valueAddr = Deref(argBase + 1);
                 if (DataStack[valueAddr].Type == TaggedValueType.Unbound)
@@ -489,7 +474,7 @@ namespace BotL
         }
 
 #region Primop argument accessors specialized by type
-        private interface IPrimopArgument<T>
+        private interface IPrimopArgument<out T>
         {
             T GetValue(ushort index);
         }

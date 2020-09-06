@@ -64,7 +64,7 @@ namespace BotL
         internal static readonly Environment[] EnvironmentStack = new Environment[EStackSize];
         /// <summary>
         /// Stack of restart information for invocations of backtrackable predicates in the environment stack.
-        /// Each entry in the environment stack has at most one entry in the choicepointstack.  However,
+        /// Each entry in the environment stack has at most one entry in the ChoicePointStack.  However,
         /// many calls are deterministic, meaning they can't be restarted, and so they have no entry here.
         /// As a consequence, when backtracking occurs, the system proceeds directly to whatever previous
         /// predicate *was* restartable.
@@ -171,8 +171,8 @@ namespace BotL
             if (!Run(TopLevelApplyFunction))
                 throw new CallFailedException(functor);
             var result = KB.TopLevelReturnValue.Value.Value;
-            if (result is T)
-                return (T)result;
+            if (result is T typed)
+                return typed;
             throw new InvalidCastException($"Call to BotL predicate {functor} did not return a value of type {typeof(T).Name}");
         }
 
@@ -826,9 +826,8 @@ namespace BotL
                             if (headPredicate.Table != null)
                             {
                                 Profiler.MaybeSampleStack(goalFrame, headPredicate);
-                                bool canContinue;
                                 var nextRow = headPredicate.Table.MatchTableRows(restartedClauseNumber, dTop,
-                                    out canContinue);
+                                    out var canContinue);
                                 restartedClauseNumber = 0;
                                 if (nextRow == 0)
                                     goto fail;
@@ -859,7 +858,7 @@ namespace BotL
                                         break;
 
                                     case CallStatus.CallIndirect:
-                                        throw new InvalidOperationException("Tail call to primop that returned callindirect.");
+                                        throw new InvalidOperationException("Tail call to primop that returned CallIndirect.");
                                 }
                                 restartedClauseNumber = 0;
                             }
@@ -951,9 +950,8 @@ namespace BotL
                             if (headPredicate.Table != null)
                             {
                                 Profiler.MaybeSampleStack(goalFrame, headPredicate);
-                                bool canContinue;
                                 var nextRow = headPredicate.Table.MatchTableRows(restartedClauseNumber, dTop,
-                                    out canContinue);
+                                    out var canContinue);
                                 restartedClauseNumber = 0;
                                 if (nextRow == 0)
                                     goto fail;
@@ -1249,6 +1247,7 @@ namespace BotL
 
         [Conditional("DEBUG")]
         // ReSharper disable once UnusedParameter.Local
+        // ReSharper disable once ParameterOnlyUsedForPreconditionCheck.Local
         private static void SanityCheckStack(ushort goalFrame, ushort eTop, ushort cTop,
             // ReSharper disable once UnusedParameter.Local
             ushort dTop)
@@ -1298,9 +1297,8 @@ namespace BotL
         /// <param name="uStackTop">Undo stack position to undo back to.</param>
         private static void UndoTo(ushort cpTrailTop, ushort uStackTop)
         {
-            ushort t;
             UndoTo(cpTrailTop);
-            t = UTop;
+            var t = UTop;
             while (t>uStackTop)
                 UndoStack[--t].Invoke();
             UTop = t;
@@ -1728,9 +1726,9 @@ namespace BotL
                         firstArg = false;
                     else
                         StandardError.Write(", ");
-                    if (a is StackReference)
+                    if (a is StackReference reference)
                     {
-                        var offset = ((StackReference) a).Offset;
+                        var offset = reference.Offset;
                         if (offset < 0)
                             StandardError.Write('_');
                         else
